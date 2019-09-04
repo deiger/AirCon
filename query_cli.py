@@ -13,8 +13,9 @@ import ssl
 import sys
 from http.client import HTTPSConnection
 
-_HISENSE_USER_SERVER = 'user-field.aylanetworks.com'
-_HISENSE_DEVICES_SERVER = 'ads-field.aylanetworks.com'
+_HISENSE_DOMAIN = 'aylanetworks.com'
+_HISENSE_USER_SERVER = 'user-field.' + _HISENSE_DOMAIN
+_HISENSE_DEVICES_SERVER = 'ads-field.' + _HISENSE_DOMAIN
 _SECRET_MAP = {
   'oem-us': b'\x1dgAPT\xd1\xa9\xec\xe2\xa2\x01\x19\xc0\x03X\x13j\xfc\xb5\x91',
   'mid-us': b'\xdeCx\xbe\x0cq8\x0b\x99\xb4Z\x93>\xfc\xcc\x9ag\x98\xf8\x14',
