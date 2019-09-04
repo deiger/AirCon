@@ -32,7 +32,7 @@ __author__ = 'droreiger@gmail.com (Dror Eiger)'
 
 import argparse
 import base64
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from dataclasses_json import dataclass_json
 import enum
 import hmac
@@ -201,22 +201,69 @@ class TemperatureUnit(enum.Enum):
 @dataclass_json
 @dataclass
 class Properties:
-  t_backlight: Dimmer = Dimmer.OFF  # DimmerStatus
-  t_run_mode: DoubleFrequency = DoubleFrequency.OFF  # DoubleFrequency
-  t_eco: Economy = Economy.OFF  # EconomyStatus
-  t_temp_eight: EightHeat = EightHeat.OFF  # EightHeatStatus
-  t_fan_leftright: AirFlow = AirFlow.OFF  # HorizontalAirFlow
-  t_fan_speed: FanSpeed = FanSpeed.AUTO  # FanSpeed
-  t_fan_power: AirFlow = AirFlow.OFF  # VerticalAirFlow
-  t_temp_heatcold: FastColdHeat = FastColdHeat.OFF  # FastCoolHeatStatus
-  f_humidity: int = 50  # Humidity
-  f_temp_in: int = 81  # EnvironmentTemperature (Fahrenheit)
-  t_power: Power = Power.ON  # PowerStatus
-  t_fan_mute: Quiet = Quiet.OFF  # QuiteModeStatus
-  t_sleep: SleepMode = SleepMode.STOP  # SleepMode
-  t_temptype: TemperatureUnit = TemperatureUnit.FAHRENHEIT  # CurrentTemperatureUnit
-  t_temp: int = 81  # CurrentTemperature
-  t_work_mode: WorkMode = WorkMode.AUTO  # WorkModeStatus
+  # Don't use ack_cmd without implementing the relevant handlers!
+  ack_cmd: bool = field(default=None, metadata={'base_type': 'boolean', 'read_only': False})
+  f_electricity: int = field(default=100, metadata={'base_type': 'integer', 'read_only': True})
+  f_e_arkgrille: bool = field(default=0, metadata={'base_type': 'boolean', 'read_only': True})
+  f_e_incoiltemp: bool = field(default=0, metadata={'base_type': 'boolean', 'read_only': True})
+  f_e_incom: bool = field(default=0, metadata={'base_type': 'boolean', 'read_only': True})
+  f_e_indisplay: bool = field(default=0, metadata={'base_type': 'boolean', 'read_only': True})
+  f_e_ineeprom: bool = field(default=0, metadata={'base_type': 'boolean', 'read_only': True})
+  f_e_inele: bool = field(default=0, metadata={'base_type': 'boolean', 'read_only': True})
+  f_e_infanmotor: bool = field(default=0, metadata={'base_type': 'boolean', 'read_only': True})
+  f_e_inhumidity: bool = field(default=0, metadata={'base_type': 'boolean', 'read_only': True})
+  f_e_inkeys: bool = field(default=0, metadata={'base_type': 'boolean', 'read_only': True})
+  f_e_inlow: bool = field(default=0, metadata={'base_type': 'boolean', 'read_only': True})
+  f_e_intemp: bool = field(default=0, metadata={'base_type': 'boolean', 'read_only': True})
+  f_e_invzero: bool = field(default=0, metadata={'base_type': 'boolean', 'read_only': True})
+  f_e_outcoiltemp: bool = field(default=0, metadata={'base_type': 'boolean', 'read_only': True})
+  f_e_outeeprom: bool = field(default=0, metadata={'base_type': 'boolean', 'read_only': True})
+  f_e_outgastemp: bool = field(default=0, metadata={'base_type': 'boolean', 'read_only': True})
+  f_e_outmachine2: bool = field(default=0, metadata={'base_type': 'boolean', 'read_only': True})
+  f_e_outmachine: bool = field(default=0, metadata={'base_type': 'boolean', 'read_only': True})
+  f_e_outtemp: bool = field(default=0, metadata={'base_type': 'boolean', 'read_only': True})
+  f_e_outtemplow: bool = field(default=0, metadata={'base_type': 'boolean', 'read_only': True})
+  f_e_push: bool = field(default=0, metadata={'base_type': 'boolean', 'read_only': True})
+  f_filterclean: bool = field(default=0, metadata={'base_type': 'boolean', 'read_only': True})
+  f_humidity: int = field(default=50, metadata={'base_type': 'integer', 'read_only': True})  # Humidity
+  f_power_display: bool = field(default=0, metadata={'base_type': 'boolean', 'read_only': True})
+  f_temp_in: float = field(default=81.0, metadata={'base_type': 'decimal', 'read_only': True})  # EnvironmentTemperature (Fahrenheit)
+  f_voltage: int = field(default=0, metadata={'base_type': 'integer', 'read_only': True})
+  t_backlight: Dimmer = field(default=Dimmer.OFF, metadata={'base_type': 'boolean', 'read_only': False})  # DimmerStatus
+  t_device_info: bool = field(default=0, metadata={'base_type': 'boolean', 'read_only': False})
+  t_display_power: bool = field(default=None, metadata={'base_type': 'boolean', 'read_only': False})
+  t_eco: Economy = field(default=Economy.OFF, metadata={'base_type': 'boolean', 'read_only': False})
+  t_fan_leftright: AirFlow = field(default=AirFlow.OFF, metadata={'base_type': 'boolean', 'read_only': False})  # HorizontalAirFlow
+  t_fan_mute: Quiet = field(default=Quiet.OFF, metadata={'base_type': 'boolean', 'read_only': False})  # QuiteModeStatus
+  t_fan_power: AirFlow = field(default=AirFlow.OFF, metadata={'base_type': 'boolean', 'read_only': False})  # VerticalAirFlow
+  t_fan_speed: FanSpeed = field(default=FanSpeed.AUTO, metadata={'base_type': 'integer', 'read_only': False})  # FanSpeed
+  t_ftkt_start: int = field(default=None, metadata={'base_type': 'integer', 'read_only': False})
+  t_power: Power = field(default=Power.ON, metadata={'base_type': 'boolean', 'read_only': False})  # PowerStatus
+  t_run_mode: DoubleFrequency = field(default=DoubleFrequency.OFF, metadata={'base_type': 'boolean', 'read_only': False})  # DoubleFrequency
+  t_setmulti_value: int = field(default=None, metadata={'base_type': 'integer', 'read_only': False})
+  t_sleep: SleepMode = field(default=SleepMode.STOP, metadata={'base_type': 'integer', 'read_only': False})  # SleepMode
+  t_temp: int = field(default=81, metadata={'base_type': 'integer', 'read_only': False})  # CurrentTemperature
+  t_temptype: TemperatureUnit = field(default=TemperatureUnit.FAHRENHEIT, metadata={'base_type': 'boolean', 'read_only': False})  # CurrentTemperatureUnit
+  t_temp_eight: EightHeat = field(default=EightHeat.OFF, metadata={'base_type': 'boolean', 'read_only': False})  # EightHeatStatus
+  t_temp_heatcold: FastColdHeat = field(default=FastColdHeat.OFF, metadata={'base_type': 'boolean', 'read_only': False})  # FastCoolHeatStatus
+  t_work_mode: WorkMode = field(default=WorkMode.AUTO, metadata={'base_type': 'integer', 'read_only': False})  # WorkModeStatus
+
+  @classmethod
+  def _get_metadata(cls, attr: str):
+    return cls.__dataclass_fields__[attr].metadata
+
+  @classmethod
+  def get_type(cls, attr: str):
+    return cls.__dataclass_fields__[attr].type
+
+  @classmethod
+  def get_base_type(cls, attr: str):
+    return cls._get_metadata(attr)['base_type']
+
+  @classmethod
+  def get_read_only(cls, attr: str):
+    return cls._get_metadata(attr)['read_only']
+
 
 @dataclass
 class Data:
@@ -228,6 +275,24 @@ class Data:
   updates_seq_no_lock = threading.Lock()
   properties = Properties()
   properties_lock = threading.Lock()
+
+
+def queue_command(name: str, value) -> None:
+  if Properties.get_read_only(name):
+    raise Error('Cannot update read-only property "{}".'.format(name))
+  data_type = Properties.get_type(name)
+  base_type = Properties.get_base_type(name)
+  command = {
+    'properties': [{
+      'property': {
+        'base_type': base_type,
+        'name': name,
+        'value': data_type(value)
+      }
+    }]
+  }
+  _data.commands_queue.put_nowait(command)
+
 
 def pad(data: bytes):
   """Zero padding for AES data encryption (non standard)."""
@@ -390,39 +455,16 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
       _data.updates_seq_no = update['seq_no']
     try:
       name = update['data']['name']
-      value = update['data']['value']
+      data_type = Properties.get_type(name)
+      value = data_type(update['data']['value'])
       with _data.properties_lock:
-        data_type = type(getattr(_data.properties, name))
-        setattr(_data.properties, name, data_type(value))
-        logging.debug('Updated properties: %s' % _data.properties)
+        old_value = getattr(_data.properties, name)
+        if value != old_value:
+          setattr(_data.properties, name, value)
+          logging.debug('Updated properties: %s' % _data.properties)
+          mqtt_publish_status()
     except:
       logging.exception('Failed to handle %s', update)
-
-  def _queue_command(self, name: str, value) -> None:
-    with _data.properties_lock:
-      curr_value = getattr(_data.properties, name)
-    base_type = self._get_base_type(curr_value)
-    data_type = type(curr_value)
-    command = {
-      'properties': [{
-        'property': {
-          'base_type': base_type,
-          'name': name,
-          'value': data_type(value)
-        }
-      }]
-    }
-    _data.commands_queue.put_nowait(command)
-
-  @staticmethod
-  def _get_base_type(value) -> str:
-    if isinstance(data_type, int):
-      return 'integer'
-    if isinstance(data_type, float):
-      return 'decimal'
-    if isinstance(data_type, str):
-      return 'string'
-    return 'boolean'
 
   @staticmethod
   def _encrypt_and_sign(data: dict) -> dict:
@@ -471,10 +513,11 @@ def mqtt_on_connect(client: mqtt.Client, userdata, flags, rc):
 
 
 def mqtt_on_message(client: mqtt.Client, userdata, message: mqtt.MQTTMessage):
-  mqtt_publish_status(_data.commands_queue.put(json.loads(message.payload)))
+  payload = json.loads(message.payload)
+  queue_command(payload['property'], payload['value'])
 
 
-def mqtt_publish_status(status: dict) -> None:
+def mqtt_publish_status() -> None:
   if _mqtt_client:
     _mqtt_client.publish(_mqtt_topics['pub'],
                          payload=_data.properties.to_json().encode('utf-8'))
