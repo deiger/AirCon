@@ -118,13 +118,13 @@ class Error(Exception):
   """Error class for AC handling."""
   pass
 
-class AirFlow(enum.Enum):
+class AirFlow(enum.IntEnum):
   OFF = 0
   VERTICAL_ONLY = 1
   HORIZONTAL_ONLY = 2
   VERTICAL_AND_HORIZONTAL = 3
 
-class FanSpeed(enum.Enum):
+class FanSpeed(enum.IntEnum):
   AUTO = 0
   LOWER = 5
   LOW = 6
@@ -132,14 +132,14 @@ class FanSpeed(enum.Enum):
   HIGH = 8
   HIGHER = 9
 
-class SleepMode(enum.Enum):
+class SleepMode(enum.IntEnum):
   STOP = 0
   ONE = 1
   TWO = 2
   THREE = 3
   FOUR = 4
 
-class StateMachine(enum.Enum):
+class StateMachine(enum.IntEnum):
   FANONLY = 0
   HEAT = 1
   COOL = 2
@@ -150,7 +150,7 @@ class StateMachine(enum.Enum):
   OFFLINE = 7
   READONLYSHARED = 8
 
-class WorkMode(enum.Enum):
+class WorkMode(enum.IntEnum):
   FAN = 0
   HEAT = 1
   COOL = 2
@@ -398,6 +398,32 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
     except:
       logging.exception('Failed to handle %s', update)
 
+  def _queue_command(self, name: str, value) -> None:
+    with _data.properties_lock:
+      curr_value = getattr(_data.properties, name)
+    base_type = self._get_base_type(curr_value)
+    data_type = type(curr_value)
+    command = {
+      'properties': [{
+        'property': {
+          'base_type': base_type,
+          'name': name,
+          'value': data_type(value)
+        }
+      }]
+    }
+    _data.commands_queue.put_nowait(command)
+
+  @staticmethod
+  def _get_base_type(value) -> str:
+    if isinstance(data_type, int):
+      return 'integer'
+    if isinstance(data_type, float):
+      return 'decimal'
+    if isinstance(data_type, str):
+      return 'string'
+    return 'boolean'
+
   @staticmethod
   def _encrypt_and_sign(data: dict) -> dict:
     text = json.dumps(data).encode('utf-8')
@@ -457,7 +483,7 @@ def mqtt_publish_status(status: dict) -> None:
 def ParseArguments() -> argparse.Namespace:
   """Parse command line arguments."""
   arg_parser = argparse.ArgumentParser(
-      description='JSON server for PIMA alarms.',
+      description='JSON server for HiSense air conditioners.',
       allow_abbrev=False)
   arg_parser.add_argument('-p', '--port', required=True, type=int,
                           help='Port for the server.')
