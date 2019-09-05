@@ -13,21 +13,21 @@ It is not affiliated with either HiSense, any of it's subsidiaries, or any of it
    ```bash
    pip3.7 install dataclasses_json pycryptodome
    ```
-1. Configure the AC with the dedicated app: Log into the app, associate the AC and connect it to the network, as described in the app documentation.
+1. Configure the AC with the dedicated app. Links to each app are available in the table below. Log into the app, associate the AC and connect it to the network, as described in the app documentation.
 1. Once everything has been configured, the AC can be blocked from connecting to the internet, as it will no longer be needed. Set it a static IP address in the router, and write it down.
 1. Download and run [query_cli.py](query_cli.py), to fetch the LAN keys that will allow connecting to the AC. Pass it your login credentials, as well as the app ID from the list below:
 
-   | Brand        | app ID     |
-   |--------------|------------|
-   | Beko         | beko-eu    |
-   | Hisense (EU) | oem-eu     |
-   | Hisense (US) | oem-us     |
-   | Neutral (EU) | mid-eu     |
-   | Neutral (US) | mid-us     |
-   | Tornado      | tornado-us |
-   | Westinghouse | wwh-us     |
-   | Winia        | winia-us   |
-   | York         | york-us    |
+   | Brand        | App ID     | App link
+   |--------------|------------|---------|
+   | Beko         | beko-eu    | [![](https://lh3.googleusercontent.com/I-9mYsqb_ImtNelF2ar-ezZen3VNlliD0iI2LPidZTCbEtzw-Z2gt_M52J9354c0FRQ=s50-rw)](https://play.google.com/store/apps/details?id=com.oem.android.airconnect) |
+   | Hisense (EU) | oem-eu     | [![](https://lh3.googleusercontent.com/-HdiS1L18OjviXxGY68fvuBO3I4J1XGEEPOIc0f8p268f0ZJYkADHVvOgzH2wttsBwnk=s50-rw)](https://play.google.com/store/apps/details?id=com.accontrol.europe.hisense) |
+   | Hisense (US) | oem-us     | |
+   | Neutral (EU) | mid-eu     | |
+   | Neutral (US) | mid-us     | [![](https://lh3.googleusercontent.com/op7-cqkm6N3JinyViCONKKgIVeMWI4BGO4TP3atRheGKG_vzsufh1PmEa-v9b8OAEPI=s50-rw)](https://play.google.com/store/apps/details?id=com.accontrol.mid.america.hisense) |
+   | Tornado      | tornado-us | [![](https://lh3.googleusercontent.com/M9kU7oYeZTU8hVLChdJQL4giJacgUT2yFw-pqNk8JR4kbqbvl9x8dT88BC0admZrrQ=s50-rw)](https://play.google.com/store/apps/details?id=com.accontrol.tornado.america.hisense) |
+   | Westinghouse | wwh-us     | [![](https://lh3.googleusercontent.com/k4pCQqZWG1Ml612bsTHMseB4XyWgkR7qKctZReADiS1FCyc11Wb4bpNqCJIPA3AtXAU=s50-rw)](https://play.google.com/store/apps/details?id=com.oem.android.livehome) |
+   | Winia        | winia-us   | [![](https://lh3.googleusercontent.com/IGIkHlnLbFxTFGOk_aql3sVGgL9DLOtc3Ti_oDhQLUT8_-8PGmXjVBcQnmgqWxitB_U=s50-rw)](https://play.google.com/store/apps/details?id=com.accontrol.winia.america.hisense) |
+   | York         | york-us    | [![](https://lh3.googleusercontent.com/udf-qe7lXPJ5d7pi96WC8ex20-DuzAvAfyYX1i9B0zyvKjj0TLqoWwZmju-M5y0dQwE=s50-rw)](https://play.google.com/store/apps/details?id=com.accontrol.york.america.hisense) |
 
    For example:
    ```bash
