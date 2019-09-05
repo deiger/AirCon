@@ -25,7 +25,7 @@ the string locally stored by the app cache (using a rooted device).
 The code here relies on Python 3.7
 If running in Raspberry Pi, install Python 3.7 manually.
 Also install additional libraries:
-pip3.7 install dataclasses_json pycryptodome
+pip3.7 install dataclasses_json paho-mqtt pycryptodome
 """
 
 __author__ = 'droreiger@gmail.com (Dror Eiger)'
@@ -42,6 +42,7 @@ import json
 import logging
 import logging.handlers
 import math
+import paho.mqtt.client as mqtt
 import queue
 import random
 import socket
@@ -300,11 +301,13 @@ def queue_command(name: str, value) -> None:
       'property': {
         'base_type': base_type,
         'name': name,
-        'value': data_type[value] if issubclass(data_type, enum.Enum) else data_type(value)
+        'value': data_type[value].value if issubclass(data_type, enum.Enum) else data_type(value)
       }
     }]
   }
   _data.commands_queue.put_nowait(command)
+  with _keep_alive.run_lock:
+    _keep_alive.run_lock.notify()
 
 
 def pad(data: bytes):
@@ -351,21 +354,23 @@ class KeepAliveThread(threading.Thread):
     super(KeepAliveThread, self).__init__(name='Keep Alive thread')
 
   def run(self) -> None:
-    self.run_lock.acquire()
-    conn = None
-    while True:
-      if not conn:
-        conn = HTTPConnection(_parsed_args.ip)
-        method = 'POST'
-      else:
-        method = 'PUT'
-      logging.debug('%s /local_reg.json %s', method, json.dumps(self._json))
-      conn.request(method, '/local_reg.json', json.dumps(self._json), self._headers)
-      resp = conn.getresponse()
-      if resp.status != 202:
-        logging.error('Recieved invalid response for local_reg: %r', resp)
-      self._json['local_reg']['notify'] = int(
-          self.run_lock.wait(self._INTERVAL))
+    logging.debug('run_lock.acquire()')
+    with self.run_lock:
+      conn = None
+      while True:
+        if not conn:
+          conn = HTTPConnection(_parsed_args.ip)
+          method = 'POST'
+        else:
+          method = 'PUT'
+        logging.debug('%s /local_reg.json %s', method, json.dumps(self._json))
+        conn.request(method, '/local_reg.json', json.dumps(self._json), self._headers)
+        resp = conn.getresponse()
+        if resp.status != 202:
+          logging.error('Recieved invalid response for local_reg: %r', resp)
+        logging.debug('run_lock.wait()')
+        self._json['local_reg']['notify'] = int(
+            self.run_lock.wait(self._INTERVAL))
 
 
 class HTTPRequestHandler(BaseHTTPRequestHandler):
@@ -429,7 +434,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
       return
     _config.lan_config.random_2 = ''.join(
         random.choices(string.ascii_letters + string.digits, k=16))
-    _config.lan_config.time_2 = time.monotonic_ns()
+    _config.lan_config.time_2 = time.monotonic_ns() % 2**40
     _config.update()
     self.do_HEAD()
     self._write_json({"random_2": _config.lan_config.random_2,
@@ -484,7 +489,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
     Returns the current internally stored state of the AC.
     """
     with _data.properties_lock:
-      data = _data.properties.to_json()
+      data = _data.properties.to_dict()
     self.do_HEAD()
     self._write_json(data)
 
@@ -492,13 +497,13 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
     """Handles queue command request (by a smart home hub).
     """
     try:
-      queue_command(query['property'], query['value'])
+      queue_command(query['property'][0], query['value'][0])
     except:
       logging.exception('Failed to queue command.')
       self.do_HEAD(400)
       return
     self.do_HEAD()
-    self._write_json({})
+    self._write_json({'queued commands': _data.commands_queue.qsize()})
 
   @staticmethod
   def _encrypt_and_sign(data: dict) -> dict:
@@ -520,7 +525,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
   def _write_json(self, data: dict) -> None:
     """Send out the provided data dict as JSON."""
-    logging.debug('Response: %r', data)
+    logging.debug('Response:\n%s', json.dumps(data))
     self.wfile.write(json.dumps(data).encode('utf-8'))
 
   _HANDLERS_MAP = {
