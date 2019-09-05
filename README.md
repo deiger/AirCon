@@ -95,3 +95,55 @@ It is not affiliated with either HiSense, any of it's subsidiaries, or any of it
    ```
 1. If you use [MQTT](http://en.wikipedia.org/wiki/Mqtt) for [HomeAssistant](https://www.home-assistant.io/) or
    [openHAB](https://www.openhab.org/), the broker should now provide the updated status of the AC, and accepts commands.
+
+# Available Properties
+
+Listed here are the properties available through the API:
+
+| Property         | Read Only | Values                                 | Comment                               |
+|------------------|-----------|----------------------------------------|---------------------------------------|
+| ack_cmd          |           | 0, 1                                   | Not implemented yet                   |
+| f_electricity    | x         | Integer                                |                                       |
+| f_e_arkgrille    | x         | 0, 1                                   |                                       |
+| f_e_incoiltemp   | x         | 0, 1                                   |                                       |
+| f_e_incom        | x         | 0, 1                                   |                                       |
+| f_e_indisplay    | x         | 0, 1                                   |                                       |
+| f_e_ineeprom     | x         | 0, 1                                   |                                       |
+| f_e_inele        | x         | 0, 1                                   |                                       |
+| f_e_infanmotor   | x         | 0, 1                                   |                                       |
+| f_e_inhumidity   | x         | 0, 1                                   |                                       |
+| f_e_inkeys       | x         | 0, 1                                   |                                       |
+| f_e_inlow        | x         | 0, 1                                   |                                       |
+| f_e_intemp       | x         | 0, 1                                   |                                       |
+| f_e_invzero      | x         | 0, 1                                   |                                       |
+| f_e_outcoiltemp  | x         | 0, 1                                   |                                       |
+| f_e_outeeprom    | x         | 0, 1                                   |                                       |
+| f_e_outgastemp   | x         | 0, 1                                   |                                       |
+| f_e_outmachine2  | x         | 0, 1                                   |                                       |
+| f_e_outmachine   | x         | 0, 1                                   |                                       |
+| f_e_outtemp      | x         | 0, 1                                   |                                       |
+| f_e_outtemplow   | x         | 0, 1                                   |                                       |
+| f_e_push         | x         | 0, 1                                   |                                       |
+| f_filterclean    | x         | 0, 1                                   | Is the filter requires cleaning       |
+| f_humidity       | x         | Integer                                |                                       |
+| f_power_display  | x         | 0, 1                                   |                                       |
+| f_temp_in        | x         | Decimal                                | Environment temperature in Fahrenheit |
+| f_voltage        | x         | Integer                                |                                       |
+| t_backlight      |           | ON, OFF                                |                                       |
+| t_device_info    |           | 0, 1                                   |                                       |
+| t_display_power  |           | 0, 1                                   |                                       |
+| t_eco            |           | OFF, ON                                | Economy mode                          |
+| t_fan_leftright  |           | OFF, ON                                | Horizontal air flow                   |
+| t_fan_mute       |           | OFF, ON                                | Quite mode                            |
+| t_fan_power      |           | OFF, ON                                | Vertical air flow                     |
+| t_fan_speed      |           | AUTO, LOWER, LOW, MIDIUM, HIGH, HIGHER | Fan Speed                             |
+| t_ftkt_start     |           | Integer                                |                                       |
+| t_power          |           | OFF, ON                                | Power                                 |
+| t_run_mode       |           | OFF, ON                                | Double frequency                      |
+| t_setmulti_value |           | Integer                                |                                       |
+| t_sleep          |           | STOP, ONE, TWO, THREE, FOUR            | Sleep mode                            |
+| t_temp           |           | Integer                                | Temperature in Fahrenheit             |
+| t_temptype       |           | CELSIUS, FAHRENHEIT                    | Temperature unit                      |
+| t_temp_eight     |           | OFF, ON                                | Eight heat mode                       |
+| t_temp_heatcold  |           | OFF, ON                                | Fast cool heat                        |
+| t_work_mode      |           | FAN, HEAT, COOL, DRY, AUTO             | Work mode                             |
