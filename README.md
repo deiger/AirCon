@@ -124,12 +124,12 @@ Listed here are the properties available through the API:
 | f_e_outtemp      | x         | 0, 1                                   |                                       |
 | f_e_outtemplow   | x         | 0, 1                                   |                                       |
 | f_e_push         | x         | 0, 1                                   |                                       |
-| f_filterclean    | x         | 0, 1                                   | Is the filter requires cleaning       |
-| f_humidity       | x         | Integer                                |                                       |
+| f_filterclean    | x         | 0, 1                                   | Does the filter require cleaning      |
+| f_humidity       | x         | Integer                                | Relative humidity percent             |
 | f_power_display  | x         | 0, 1                                   |                                       |
 | f_temp_in        | x         | Decimal                                | Environment temperature in Fahrenheit |
 | f_voltage        | x         | Integer                                |                                       |
-| t_backlight      |           | ON, OFF                                |                                       |
+| t_backlight      |           | ON, OFF                                | Turn the display on/off               |
 | t_device_info    |           | 0, 1                                   |                                       |
 | t_display_power  |           | 0, 1                                   |                                       |
 | t_eco            |           | OFF, ON                                | Economy mode                          |
