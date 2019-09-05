@@ -96,7 +96,7 @@ It is not affiliated with either HiSense, any of it's subsidiaries, or any of it
 1. If you use [MQTT](http://en.wikipedia.org/wiki/Mqtt) for [HomeAssistant](https://www.home-assistant.io/) or
    [openHAB](https://www.openhab.org/), the broker should now provide the updated status of the AC, and accepts commands.
 
-# Available Properties
+## Available Properties
 
 Listed here are the properties available through the API:
 
