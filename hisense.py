@@ -229,24 +229,37 @@ class Properties:
   f_power_display: bool = field(default=0, metadata={'base_type': 'boolean', 'read_only': True})
   f_temp_in: float = field(default=81.0, metadata={'base_type': 'decimal', 'read_only': True})  # EnvironmentTemperature (Fahrenheit)
   f_voltage: int = field(default=0, metadata={'base_type': 'integer', 'read_only': True})
-  t_backlight: Dimmer = field(default=Dimmer.OFF, metadata={'base_type': 'boolean', 'read_only': False})  # DimmerStatus
+  t_backlight: Dimmer = field(default=Dimmer.OFF, metadata={'base_type': 'boolean', 'read_only': False,
+    'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: Dimmer[x]}})  # DimmerStatus
   t_device_info: bool = field(default=0, metadata={'base_type': 'boolean', 'read_only': False})
   t_display_power: bool = field(default=None, metadata={'base_type': 'boolean', 'read_only': False})
-  t_eco: Economy = field(default=Economy.OFF, metadata={'base_type': 'boolean', 'read_only': False})
-  t_fan_leftright: AirFlow = field(default=AirFlow.OFF, metadata={'base_type': 'boolean', 'read_only': False})  # HorizontalAirFlow
-  t_fan_mute: Quiet = field(default=Quiet.OFF, metadata={'base_type': 'boolean', 'read_only': False})  # QuiteModeStatus
-  t_fan_power: AirFlow = field(default=AirFlow.OFF, metadata={'base_type': 'boolean', 'read_only': False})  # VerticalAirFlow
-  t_fan_speed: FanSpeed = field(default=FanSpeed.AUTO, metadata={'base_type': 'integer', 'read_only': False})  # FanSpeed
+  t_eco: Economy = field(default=Economy.OFF, metadata={'base_type': 'boolean', 'read_only': False,
+    'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: Economy[x]}})
+  t_fan_leftright: AirFlow = field(default=AirFlow.OFF, metadata={'base_type': 'boolean', 'read_only': False,
+    'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: AirFlow[x]}})  # HorizontalAirFlow
+  t_fan_mute: Quiet = field(default=Quiet.OFF, metadata={'base_type': 'boolean', 'read_only': False,
+    'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: Quite[x]}})  # QuiteModeStatus
+  t_fan_power: AirFlow = field(default=AirFlow.OFF, metadata={'base_type': 'boolean', 'read_only': False,
+    'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: AirFlow[x]}})  # VerticalAirFlow
+  t_fan_speed: FanSpeed = field(default=FanSpeed.AUTO, metadata={'base_type': 'integer', 'read_only': False,
+    'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: FanSpeed[x]}})  # FanSpeed
   t_ftkt_start: int = field(default=None, metadata={'base_type': 'integer', 'read_only': False})
-  t_power: Power = field(default=Power.ON, metadata={'base_type': 'boolean', 'read_only': False})  # PowerStatus
-  t_run_mode: DoubleFrequency = field(default=DoubleFrequency.OFF, metadata={'base_type': 'boolean', 'read_only': False})  # DoubleFrequency
+  t_power: Power = field(default=Power.ON, metadata={'base_type': 'boolean', 'read_only': False,
+    'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: Power[x]}})  # PowerStatus
+  t_run_mode: DoubleFrequency = field(default=DoubleFrequency.OFF, metadata={'base_type': 'boolean', 'read_only': False,
+    'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: DoubleFrequency[x]}})  # DoubleFrequency
   t_setmulti_value: int = field(default=None, metadata={'base_type': 'integer', 'read_only': False})
-  t_sleep: SleepMode = field(default=SleepMode.STOP, metadata={'base_type': 'integer', 'read_only': False})  # SleepMode
+  t_sleep: SleepMode = field(default=SleepMode.STOP, metadata={'base_type': 'integer', 'read_only': False,
+    'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: SleepMode[x]}})  # SleepMode
   t_temp: int = field(default=81, metadata={'base_type': 'integer', 'read_only': False})  # CurrentTemperature
-  t_temptype: TemperatureUnit = field(default=TemperatureUnit.FAHRENHEIT, metadata={'base_type': 'boolean', 'read_only': False})  # CurrentTemperatureUnit
-  t_temp_eight: EightHeat = field(default=EightHeat.OFF, metadata={'base_type': 'boolean', 'read_only': False})  # EightHeatStatus
-  t_temp_heatcold: FastColdHeat = field(default=FastColdHeat.OFF, metadata={'base_type': 'boolean', 'read_only': False})  # FastCoolHeatStatus
-  t_work_mode: WorkMode = field(default=WorkMode.AUTO, metadata={'base_type': 'integer', 'read_only': False})  # WorkModeStatus
+  t_temptype: TemperatureUnit = field(default=TemperatureUnit.FAHRENHEIT, metadata={'base_type': 'boolean', 'read_only': False,
+    'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: TemperatureUnit[x]}})  # CurrentTemperatureUnit
+  t_temp_eight: EightHeat = field(default=EightHeat.OFF, metadata={'base_type': 'boolean', 'read_only': False,
+    'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: EightHeat[x]}})  # EightHeatStatus
+  t_temp_heatcold: FastColdHeat = field(default=FastColdHeat.OFF, metadata={'base_type': 'boolean', 'read_only': False,
+    'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: FastColdHeat[x]}})  # FastCoolHeatStatus
+  t_work_mode: WorkMode = field(default=WorkMode.AUTO, metadata={'base_type': 'integer', 'read_only': False,
+    'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: WorkMode[x]}})  # WorkModeStatus
 
   @classmethod
   def _get_metadata(cls, attr: str):
@@ -287,7 +300,7 @@ def queue_command(name: str, value) -> None:
       'property': {
         'base_type': base_type,
         'name': name,
-        'value': data_type(value)
+        'value': data_type[value] if issubclass(data_type, enum.Enum) else data_type(value)
       }
     }]
   }
@@ -444,8 +457,8 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
     """
     try:
       update = self._decrypt_and_validate(data)
-    except Error as e:
-      logging.error(str(e))
+    except Error:
+      logging.exception('Failed to parse property.')
       self.do_HEAD(400)
       return
     self.do_HEAD()
@@ -465,6 +478,27 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
           mqtt_publish_status()
     except:
       logging.exception('Failed to handle %s', update)
+
+  def get_status_handler(self, path: str, query: dict, data: dict) -> None:
+    """Handles get status request (by a smart home hub).
+    Returns the current internally stored state of the AC.
+    """
+    with _data.properties_lock:
+      data = _data.properties.to_json()
+    self.do_HEAD()
+    self._write_json(data)
+
+  def queue_command_handler(self, path: str, query: dict, data: dict) -> None:
+    """Handles queue command request (by a smart home hub).
+    """
+    try:
+      queue_command(query['property'], query['value'])
+    except:
+      logging.exception('Failed to queue command.')
+      self.do_HEAD(400)
+      return
+    self.do_HEAD()
+    self._write_json({})
 
   @staticmethod
   def _encrypt_and_sign(data: dict) -> dict:
@@ -490,6 +524,8 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
     self.wfile.write(json.dumps(data).encode('utf-8'))
 
   _HANDLERS_MAP = {
+    '/hisense/status': get_status_handler,
+    '/hisense/command': queue_command_handler,
     '/local_lan/key_exchange.json': key_exchange_handler,
     '/local_lan/commands.json': command_handler,
     '/local_lan/property/datapoint.json': property_update_handler,
@@ -504,7 +540,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
     # '/local_lan/wifi_scan_results.json': module_request_handler,
     # '/local_lan/wifi_status.json': module_request_handler,
     # '/local_lan/regtoken.json': module_request_handler,
-    # '/local_lan/wifi_stop_ap.json': module_request_handler
+    # '/local_lan/wifi_stop_ap.json': module_request_handler,
   }
 
 
