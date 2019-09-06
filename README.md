@@ -1,9 +1,12 @@
 # HiSense Air Conditioners
 
 This program implements the LAN API for HiSense WiFi Air Conditioner module, model AEH-W4B1.
-The program will probably fit other HiSense modules, like AEH-W4A1 as well, but I have not tried any. Please let me know if you do.
+
+As discussed [here](../../issues/1), the program doesn't seem to fit the AEH-W4A1 module, which relies on entirely different protocol (implemented by the Hi-Smart Life app). Please let me know if you have a different experience, or try other modules.
+
 The module is installed in ACs that are either manufactured or only branded by many other companies. These include Beko, Westinghouse, Winia, Tornado, York and more.
-It is not affiliated with either HiSense, any of it's subsidiaries, or any of its resellers.
+
+**This program is not affiliated with either HiSense, any of it's subsidiaries, or any of its resellers.**
 
 ## Prerequisites
 
