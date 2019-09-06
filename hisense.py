@@ -202,7 +202,6 @@ class TemperatureUnit(enum.Enum):
 @dataclass_json
 @dataclass
 class Properties:
-  # Don't use ack_cmd without implementing the relevant handlers!
   ack_cmd: bool = field(default=None, metadata={'base_type': 'boolean', 'read_only': False})
   f_electricity: int = field(default=100, metadata={'base_type': 'integer', 'read_only': True})
   f_e_arkgrille: bool = field(default=0, metadata={'base_type': 'boolean', 'read_only': True})
@@ -290,6 +289,15 @@ class Data:
   properties = Properties()
   properties_lock = threading.Lock()
 
+  def update_property(self, name: str, value) -> None:
+    """Update the stored properties, if changed."""
+    with self.properties_lock:
+      old_value = getattr(self.properties, name)
+      if value != old_value:
+        setattr(self.properties, name, value)
+        logging.debug('Updated properties: %s' % self.properties)
+        mqtt_publish_status()
+
 
 def queue_command(name: str, value) -> None:
   if Properties.get_read_only(name):
@@ -301,11 +309,16 @@ def queue_command(name: str, value) -> None:
       'property': {
         'base_type': base_type,
         'name': name,
-        'value': data_type[value].value if issubclass(data_type, enum.Enum) else data_type(value)
+        'value': data_type[value].value if issubclass(data_type, enum.Enum) else data_type(value),
+        'id': ''.join(random.choices(string.ascii_letters + string.digits, k=8)),
       }
     }]
   }
-  _data.commands_queue.put_nowait(command)
+  # There are (usually) no acks on commands, so also queue an update to the
+  # property, to be run once the command is sent.
+  typed_value = data_type[value] if issubclass(data_type, enum.Enum) else data_type(value)
+  property_updater = lambda: _data.update_property(name, typed_value)
+  _data.commands_queue.put_nowait((command, property_updater))
   with _keep_alive.run_lock:
     _keep_alive.run_lock.notify()
 
@@ -354,7 +367,6 @@ class KeepAliveThread(threading.Thread):
     super(KeepAliveThread, self).__init__(name='Keep Alive thread')
 
   def run(self) -> None:
-    logging.debug('run_lock.acquire()')
     with self.run_lock:
       conn = None
       while True:
@@ -368,7 +380,6 @@ class KeepAliveThread(threading.Thread):
         resp = conn.getresponse()
         if resp.status != 202:
           logging.error('Recieved invalid response for local_reg: %r', resp)
-        logging.debug('run_lock.wait()')
         self._json['local_reg']['notify'] = int(
             self.run_lock.wait(self._INTERVAL))
 
@@ -450,11 +461,13 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
       command['seq_no'] = _data.commands_seq_no
       _data.commands_seq_no += 1
     try:
-      command['data'] = _data.commands_queue.get_nowait()
+      command['data'], property_updater = _data.commands_queue.get_nowait()
     except queue.Empty:
-      command['data'] = {}
+      command['data'], property_updater = {}, None
     self.do_HEAD()
     self._write_json(self._encrypt_and_sign(command))
+    if property_updater:
+      property_updater()
 
   def property_update_handler(self, path: str, query: dict, data: dict) -> None:
     """Handles a property update request.
@@ -475,12 +488,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
       name = update['data']['name']
       data_type = Properties.get_type(name)
       value = data_type(update['data']['value'])
-      with _data.properties_lock:
-        old_value = getattr(_data.properties, name)
-        if value != old_value:
-          setattr(_data.properties, name, value)
-          logging.debug('Updated properties: %s' % _data.properties)
-          mqtt_publish_status()
+      _data.update_property(name, value)
     except:
       logging.exception('Failed to handle %s', update)
 
@@ -534,10 +542,10 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
     '/local_lan/key_exchange.json': key_exchange_handler,
     '/local_lan/commands.json': command_handler,
     '/local_lan/property/datapoint.json': property_update_handler,
+    '/local_lan/property/datapoint/ack.json': property_update_handler,
+    '/local_lan/node/property/datapoint.json': property_update_handler,
+    '/local_lan/node/property/datapoint/ack.json': property_update_handler,
     # TODO: Handle these if needed.
-    # '/local_lan/property/datapoint/ack.json': property_update_handler,
-    # '/local_lan/node/property/datapoint.json': property_update_handler,
-    # '/local_lan/node/property/datapoint/ack.json': property_update_handler,
     # '/local_lan/node/conn_status.json': connection_status_handler,
     # '/local_lan/connect_status': module_request_handler,
     # '/local_lan/status.json': setup_device_details_handler,
