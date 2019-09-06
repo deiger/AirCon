@@ -14,7 +14,7 @@ The module is installed in ACs that are either manufactured or only branded by m
 1. Have Python 3.7 installed. If using Raspberry Pi, either upgrade to Raspbian Buster, or manually install it in Raspbian Stretch.
 1. Install additional libraries:
    ```bash
-   pip3.7 install dataclasses_json pycryptodome
+   pip3.7 install dataclasses_json paho-mqtt pycryptodome
    ```
 1. Configure the AC with the dedicated app. Links to each app are available in the table below. Log into the app, associate the AC and connect it to the network, as described in the app documentation.
 1. Once everything has been configured, the AC can be blocked from connecting to the internet, as it will no longer be needed. Set it a static IP address in the router, and write it down.
