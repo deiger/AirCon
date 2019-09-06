@@ -105,7 +105,7 @@ Listed here are the properties available through the API:
 
 | Property         | Read Only | Values                                 | Comment                               |
 |------------------|-----------|----------------------------------------|---------------------------------------|
-| ack_cmd          |           | 0, 1                                   | Not implemented yet                   |
+| ack_cmd          |           | 0, 1                                   | Used to kick the AC                   |
 | f_electricity    | x         | Integer                                |                                       |
 | f_e_arkgrille    | x         | 0, 1                                   |                                       |
 | f_e_incoiltemp   | x         | 0, 1                                   |                                       |
