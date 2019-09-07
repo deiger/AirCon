@@ -296,7 +296,7 @@ class Data:
       if value != old_value:
         setattr(self.properties, name, value)
         logging.debug('Updated properties: %s' % self.properties)
-        mqtt_publish_status()
+      mqtt_publish_update(name, value)
 
 
 def queue_command(name: str, value) -> None:
@@ -566,10 +566,11 @@ def mqtt_on_message(client: mqtt.Client, userdata, message: mqtt.MQTTMessage):
   queue_command(payload['property'], payload['value'])
 
 
-def mqtt_publish_status() -> None:
+def mqtt_publish_update(name: str, value) -> None:
   if _mqtt_client:
+    payload = {name: value.name if isinstance(value, enum.Enum) else value}
     _mqtt_client.publish(_mqtt_topics['pub'],
-                         payload=_data.properties.to_json().encode('utf-8'))
+                         payload=json.dumps(payload).encode('utf-8'))
 
 
 def ParseArguments() -> argparse.Namespace:
