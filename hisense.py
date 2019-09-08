@@ -32,7 +32,7 @@ __author__ = 'droreiger@gmail.com (Dror Eiger)'
 
 import argparse
 import base64
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from dataclasses_json import dataclass_json
 import enum
 import hmac
@@ -284,6 +284,8 @@ class Data:
   commands_queue = queue.Queue()
   commands_seq_no = 0
   commands_seq_no_lock = threading.Lock()
+  next_command_id = 0
+  next_command_id_lock = threading.Lock()
   updates_seq_no = 0
   updates_seq_no_lock = threading.Lock()
   properties = Properties()
@@ -321,6 +323,28 @@ def queue_command(name: str, value) -> None:
   _data.commands_queue.put_nowait((command, property_updater))
   with _keep_alive.run_lock:
     _keep_alive.run_lock.notify()
+
+
+def queue_get_property_commands() -> None:
+  """Gets the current status for all properties."""
+  with _data.next_command_id_lock:
+    for data_field in fields(Properties):
+      command = {
+        'cmds': [{
+          'cmd': {
+            'method': 'GET',
+            'resource': 'property.json?name=' + data_field.name,
+            'uri': '/local_lan/property/datapoint.json',
+            'data': '',
+            'cmd_id': _data.next_command_id,
+          }
+        }]
+      }
+      _data.next_command_id += 1
+      _data.commands_queue.put_nowait((command, None))
+  if _keep_alive:
+    with _keep_alive.run_lock:
+      _keep_alive.run_lock.notify()    
 
 
 def pad(data: bytes):
@@ -381,7 +405,7 @@ class KeepAliveThread(threading.Thread):
         if resp.status != 202:
           logging.error('Recieved invalid response for local_reg: %r', resp)
         self._json['local_reg']['notify'] = int(
-            self.run_lock.wait(self._INTERVAL))
+            _data.commands_queue.qsize() > 0 or self.run_lock.wait(self._INTERVAL))
 
 
 class HTTPRequestHandler(BaseHTTPRequestHandler):
@@ -616,9 +640,6 @@ if __name__ == '__main__':
   _config = Config()
   _data = Data()
 
-  _keep_alive = KeepAliveThread()
-  _keep_alive.start()
-
   _mqtt_client = None  # type: typing.Optional[mqtt.Client]
   _mqtt_topics = {}  # type: typing.Dict[str, str]
   if _parsed_args.mqtt_host:
@@ -632,6 +653,12 @@ if __name__ == '__main__':
       _mqtt_client.username_pw_set(*_parsed_args.mqtt_user.split(':',1))
     _mqtt_client.connect(_parsed_args.mqtt_host, _parsed_args.mqtt_port)
     _mqtt_client.loop_start()
+
+  _keep_alive = None  # type: typing.Optional[KeepAliveThread]
+  queue_get_property_commands()
+
+  _keep_alive = KeepAliveThread()
+  _keep_alive.start()
 
   httpd = HTTPServer(('', _parsed_args.port), HTTPRequestHandler)
   try:
