@@ -18,7 +18,7 @@ The module is installed in ACs that are either manufactured or only branded by m
    ```
 1. Configure the AC with the dedicated app. Links to each app are available in the table below. Log into the app, associate the AC and connect it to the network, as described in the app documentation.
 1. Once everything has been configured, the AC can be blocked from connecting to the internet, as it will no longer be needed. Set it a static IP address in the router, and write it down.
-1. Download and run [query_cli.py](query_cli.py), to fetch the LAN keys that will allow connecting to the AC. Pass it your login credentials, as well as the app ID from the list below:
+1. Download and run [query_cli.py](query_cli.py), to fetch the LAN keys that will allow connecting to the AC. Pass it your login credentials, as well as the code for your app from the list below:
 
    | Code       | App Name            | App link
    |------------|---------------------|---------|
