@@ -44,7 +44,13 @@ _SECRET_MAP = {
   'york-us': b'\xc6A\x7fHyV<\xb2\xa2\xde<\x1f{c\xa9\rt\x9fy\xef',
   'beko-eu': b'\xa9C\n\xdb\xf7+\x01\xe2X\ne\x85\x06\x89\xaa\x88ZP+\x07>~s{\xd3\x1f\x05\x91&\x8c\x81\x84&\xe11\xef=s"*\xa4',
   'oem-eu': b'a\x1ez\xf5\xc4\x0f\x18~\xe5\xeb\xb1\x9f\xe4\xf5&B\xfe#\x88\xcb>\x06O,y\xc1\x06c\x9d\x99J\xc2x\xac\xeb\x82\x93\xe5\r\x89d',
-  'mid-eu': b'\x05$\xe6\xecW\xa3\xd1B\xa0\x84\xab*\xf0\x04\x80\xce\xae\xe5`\xc4>w\xf8\xc4\xf3X\xf6<\xd2\xd2I\x14!\xd0\x98\xed\xf2\xab\xae\xc6\x03'
+  'mid-eu': b'\x05$\xe6\xecW\xa3\xd1B\xa0\x84\xab*\xf0\x04\x80\xce\xae\xe5`\xc4>w\xf8\xc4\xf3X\xf6<\xd2\xd2I\x14!\xd0\x98\xed\xf2\xab\xae\xc6\x03',
+  'haxxair': b'\xd8\xaf\x89--\x00\xabI\x93\x83j\xab\x9acX\xac^\x90f;',
+  'field-us': b'\xc8b\x08\xfa\xce8\xf8\xf1\x81\xa5\x81\x8fX\xb4\x80\xc0\xdc\xf5\ny',
+}
+_SECRET_ID_MAP = {
+  'haxxair': 'HAXXAIR',
+  'field-us': 'pactera-field-f624d97f-us',
 }
 _USER_AGENT = 'Dalvik/2.1.0 (Linux; U; Android 9.0; SM-G850F Build/LRX22G)'
 
@@ -72,9 +78,13 @@ if __name__ == '__main__':
   logger = logging.getLogger()
   logger.setLevel('INFO')
   logger.addHandler(logging_handler)
-  app_id = 'a-Hisense-{}-field-id'.format(args.app)
+  if args.app in _SECRET_ID_MAP:
+    app_prefix = _SECRET_ID_MAP[args.app]
+  else:
+    app_prefix = 'a-Hisense-{}-field'.format(args.app)
+  app_id = app_prefix + '-id'
   secret = base64.b64encode(_SECRET_MAP[args.app]).decode('utf-8').rstrip('=').replace('+', '-').replace('/', '_')
-  app_secret = 'a-Hisense-{}-field-{}'.format(args.app, secret)
+  app_secret = '-'.join((app_prefix, secret))
   ssl_context = ssl.SSLContext()
   ssl_context.verify_mode = ssl.CERT_NONE
   ssl_context.check_hostname = False
