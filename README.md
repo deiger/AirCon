@@ -2,7 +2,7 @@
 
 This program implements the LAN API for HiSense WiFi Air Conditioner module, model AEH-W4B1.
 
-As discussed [here](../../issues/1), the program doesn't seem to fit the AEH-W4A1 module, which relies on entirely different protocol (implemented by the Hi-Smart Life app). Please let me know if you have a different experience, or try other modules.
+As discussed [here](../../issues/1), the program doesn't seem to fit the AEH-W4A1 module, which relies on entirely different protocol (implemented by the apps [Hi-Smart Life](https://play.google.com/store/apps/details?id=com.qd.android.livehome), [AirConnect](https://play.google.com/store/apps/details?id=com.oem.android.airconnect), [Smart Cool](https://play.google.com/store/apps/details?id=com.oem.android.livehome) and [AC WIFI](https://play.google.com/store/apps/details?id=com.oem.android.ecold)). Please let me know if you have a different experience, or try other modules.
 
 The module is installed in ACs that are either manufactured or only branded by many other companies. These include Beko, Westinghouse, Winia, Tornado, York and more.
 
@@ -22,13 +22,14 @@ The module is installed in ACs that are either manufactured or only branded by m
 
    | Brand        | App ID     | App link
    |--------------|------------|---------|
-   | Beko         | beko-eu    | [![](https://lh3.googleusercontent.com/I-9mYsqb_ImtNelF2ar-ezZen3VNlliD0iI2LPidZTCbEtzw-Z2gt_M52J9354c0FRQ=s50-rw)](https://play.google.com/store/apps/details?id=com.oem.android.airconnect) |
+   | Beko         | beko-eu    | |
+   | Haxxair      | HAXXAIR    | [![](https://lh3.googleusercontent.com/-9FX7-sYlE2xDwG9uymjPejV-P8nI_hQ9zN7QDu6OgyYILbjdg5o38nQTvAmFTPyiw=s50-rw)](https://play.google.com/store/apps/details?id=com.aylanetworks.accontrol.haxxair) |
    | Hisense (EU) | oem-eu     | [![](https://lh3.googleusercontent.com/-HdiS1L18OjviXxGY68fvuBO3I4J1XGEEPOIc0f8p268f0ZJYkADHVvOgzH2wttsBwnk=s50-rw)](https://play.google.com/store/apps/details?id=com.accontrol.europe.hisense) |
    | Hisense (US) | oem-us     | |
-   | Neutral (EU) | mid-eu     | |
+   | Neutral (EU) | mid-eu     | [![](https://lh3.googleusercontent.com/LWmnlcSnT2hYmdwB2vq5SoBuaawkS8eu0F6n9Tytowrftp7kflmUXRAt_uWg7C0Fgspn=s50-rw)](https://play.google.com/store/apps/details?id=com.accontrol.mid.europe.hisense) |
    | Neutral (US) | mid-us     | [![](https://lh3.googleusercontent.com/op7-cqkm6N3JinyViCONKKgIVeMWI4BGO4TP3atRheGKG_vzsufh1PmEa-v9b8OAEPI=s50-rw)](https://play.google.com/store/apps/details?id=com.accontrol.mid.america.hisense) |
    | Tornado      | tornado-us | [![](https://lh3.googleusercontent.com/M9kU7oYeZTU8hVLChdJQL4giJacgUT2yFw-pqNk8JR4kbqbvl9x8dT88BC0admZrrQ=s50-rw)](https://play.google.com/store/apps/details?id=com.accontrol.tornado.america.hisense) |
-   | Westinghouse | wwh-us     | [![](https://lh3.googleusercontent.com/k4pCQqZWG1Ml612bsTHMseB4XyWgkR7qKctZReADiS1FCyc11Wb4bpNqCJIPA3AtXAU=s50-rw)](https://play.google.com/store/apps/details?id=com.oem.android.livehome) |
+   | Westinghouse | wwh-us     | |
    | Winia        | winia-us   | [![](https://lh3.googleusercontent.com/IGIkHlnLbFxTFGOk_aql3sVGgL9DLOtc3Ti_oDhQLUT8_-8PGmXjVBcQnmgqWxitB_U=s50-rw)](https://play.google.com/store/apps/details?id=com.accontrol.winia.america.hisense) |
    | York         | york-us    | [![](https://lh3.googleusercontent.com/udf-qe7lXPJ5d7pi96WC8ex20-DuzAvAfyYX1i9B0zyvKjj0TLqoWwZmju-M5y0dQwE=s50-rw)](https://play.google.com/store/apps/details?id=com.accontrol.york.america.hisense) |
 
