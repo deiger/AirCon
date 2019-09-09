@@ -1,8 +1,8 @@
 # HiSense Air Conditioners
 
-This program implements the LAN API for HiSense WiFi Air Conditioner module, model AEH-W4B1.
+This program implements the Ayla Networks LAN API to interact with HiSense WiFi Air Conditioner module, model AEH-W4B1.
 
-As discussed [here](../../issues/1), the program doesn't seem to fit the AEH-W4A1 module, which relies on entirely different protocol (implemented by the apps [Hi-Smart Life](https://play.google.com/store/apps/details?id=com.qd.android.livehome), [AirConnect](https://play.google.com/store/apps/details?id=com.oem.android.airconnect), [Smart Cool](https://play.google.com/store/apps/details?id=com.oem.android.livehome) and [AC WIFI](https://play.google.com/store/apps/details?id=com.oem.android.ecold)). Please let me know if you have a different experience, or try other modules.
+As discussed [here](../../issues/1), the program doesn't seem to fit the AEH-W4A1 module, which relies on entirely different protocol (implemented by the apps [Hi-Smart Life](https://play.google.com/store/apps/details?id=com.qd.android.livehome), [AirConnect](https://play.google.com/store/apps/details?id=com.oem.android.airconnect), [Smart Cool](https://play.google.com/store/apps/details?id=com.oem.android.livehome), [AC WIFI](https://play.google.com/store/apps/details?id=com.oem.android.ecold) and [טורנדו WiFi](https://play.google.com/store/apps/details?id=com.oem.android.tornadowifi)). Please let me know if you have a different experience, or tried it with other modules.
 
 The module is installed in ACs that are either manufactured or only branded by many other companies. These include Beko, Westinghouse, Winia, Tornado, York and more.
 
@@ -107,7 +107,6 @@ Listed here are the properties available through the API:
 
 | Property         | Read Only | Values                                 | Comment                               |
 |------------------|-----------|----------------------------------------|---------------------------------------|
-| ack_cmd          |           | 0, 1                                   | Used to kick the AC                   |
 | f_electricity    | x         | Integer                                |                                       |
 | f_e_arkgrille    | x         | 0, 1                                   |                                       |
 | f_e_incoiltemp   | x         | 0, 1                                   |                                       |
@@ -148,7 +147,7 @@ Listed here are the properties available through the API:
 | t_setmulti_value |           | Integer                                |                                       |
 | t_sleep          |           | STOP, ONE, TWO, THREE, FOUR            | Sleep mode                            |
 | t_temp           |           | Integer                                | Temperature in Fahrenheit             |
-| t_temptype       |           | CELSIUS, FAHRENHEIT                    | Temperature unit                      |
+| t_temptype       |           | CELSIUS, FAHRENHEIT                    | Displayed temperature unit            |
 | t_temp_eight     |           | OFF, ON                                | Eight heat mode                       |
 | t_temp_heatcold  |           | OFF, ON                                | Fast cool heat                        |
 | t_work_mode      |           | FAN, HEAT, COOL, DRY, AUTO             | Work mode                             |
