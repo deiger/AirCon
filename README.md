@@ -6,7 +6,7 @@ As discussed [here](../../issues/1), the program doesn't seem to fit the AEH-W4A
 
 The module is installed in ACs that are either manufactured or only branded by many other companies. These include Beko, Westinghouse, Winia, Tornado, York and more.
 
-**This program is not affiliated with either HiSense, any of it's subsidiaries, or any of its resellers.**
+**This program is not affiliated with Ayla Networks, HiSense, any of it's subsidiaries, or any of its resellers.**
 
 ## Prerequisites
 
