@@ -15,7 +15,7 @@
  */
 
 preferences {
-	input("host", "text", title: "IP Address", description: "The IP address and port for the Hisense server.")
+  input("host", "text", title: "IP Address", description: "The IP address and port for the Hisense server.")
 }
 
 metadata {
@@ -65,23 +65,23 @@ metadata {
     multiAttributeTile(name:"temperature", type:"thermostat", width: 6, height: 4) {
       tileAttribute("device.switch", key: "PRIMARY_CONTROL") {
         attributeState("off", label: '${name}', action: "on", backgroundColor: "#ffffff", nextState:"on", icon:"st.thermostat.ac.air-conditioning")
-  	    attributeState("on", label: '${name}', action: "off", backgroundColor: "#79b821", nextState:"off", icon:"st.thermostat.ac.air-conditioning")
-  	    attributeState("offline", label:'${name}', backgroundColor:"#bc2323", defaultState: true, icon:"st.thermostat.ac.air-conditioning")
+        attributeState("on", label: '${name}', action: "off", backgroundColor: "#79b821", nextState:"off", icon:"st.thermostat.ac.air-conditioning")
+        attributeState("offline", label:'${name}', backgroundColor:"#bc2323", defaultState: true, icon:"st.thermostat.ac.air-conditioning")
       }
       tileAttribute("device.thermostatSetpoint", key: "VALUE_CONTROL") {
-          attributeState("VALUE_UP", action: "temperatureUp")
-          attributeState("VALUE_DOWN", action: "temperatureDown")
+        attributeState("VALUE_UP", action: "temperatureUp")
+        attributeState("VALUE_DOWN", action: "temperatureDown")
       }
       tileAttribute("device.temperature", key: "SECONDARY_CONTROL") {
-          attributeState("temp", label:'${currentValue}', unit:"dC", icon: "st.alarm.temperature.normal")
+        attributeState("temp", label:'${currentValue}', unit:"dC", icon: "st.alarm.temperature.normal")
       }
     }
     standardTile("airConditionerMode", "device.airConditionerMode", width: 2, height: 2, decoration: "flat") {
-			state("fanOnly", label:'Fan', action: "nextAirConditionerMode", backgroundColor:"#145D78", nextState:"heat", icon: "st.thermostat.fan-on")
-			state("heat", label:'Heat', action: "nextAirConditionerMode", backgroundColor:"#e86d13", nextState:"cool", icon: "st.thermostat.heat")
-			state("cool", label:'Cool', action: "nextAirConditionerMode", backgroundColor:"#00a0dc", nextState:"dry", icon: "st.thermostat.cool")
-			state("dry", label:'Dry', action: "nextAirConditionerMode", backgroundColor:"#44B621", nextState:"auto", icon: "st.vents.wet")
-			state("auto", label:'Auto', action: "nextAirConditionerMode", backgroundColor: "#ffffff", nextState:"fanOnly", icon: "st.thermostat.auto")
+      state("fanOnly", label:'Fan', action: "nextAirConditionerMode", backgroundColor:"#145D78", nextState:"heat", icon: "st.thermostat.fan-on")
+      state("heat", label:'Heat', action: "nextAirConditionerMode", backgroundColor:"#e86d13", nextState:"cool", icon: "st.thermostat.heat")
+      state("cool", label:'Cool', action: "nextAirConditionerMode", backgroundColor:"#00a0dc", nextState:"dry", icon: "st.thermostat.cool")
+      state("dry", label:'Dry', action: "nextAirConditionerMode", backgroundColor:"#44B621", nextState:"auto", icon: "st.vents.wet")
+      state("auto", label:'Auto', action: "nextAirConditionerMode", backgroundColor: "#ffffff", nextState:"fanOnly", icon: "st.thermostat.auto")
     }
     standardTile("fanSpeed", "device.fanSpeed", width: 2, height: 2, decoration: "flat") {
       state("0", label: 'Auto', action: "nextFanSpeed", nextState:"5", icon:"st.thermostat.fan-auto")
@@ -103,10 +103,10 @@ metadata {
     valueTile("humidity", "device.humidity", width: 2, height: 2, decoration: "flat") {
       state("humidity", label: '${currentValue}%', backgroundColor: "#ffffff")
     }
-		main("temperature")
-		details([
-			"temperature", "airConditionerMode", "fanSpeed", "display", "rapidCooling", "humidity"
-		])
+    main("temperature")
+    details([
+      "temperature", "airConditionerMode", "fanSpeed", "display", "rapidCooling", "humidity"
+    ])
   }
 }
 
@@ -290,13 +290,13 @@ void updateField(String field, value, String unit="") {
   String valueStr = value.toString()
   def oldValue = device.currentState(field)?.stringValue
   if (valueStr != oldValue) {
-  	sendEvent(name: field, value: valueStr, unit: unit, descriptionText: "${field} is ${value}${unit}", displayed: true)
+    sendEvent(name: field, value: valueStr, unit: unit, descriptionText: "${field} is ${value}${unit}", displayed: true)
   }
 }
 
 void updateStatusHandler(physicalgraph.device.HubResponse hubResponse) {
-	log.debug "updateStatusHandler(${hubResponse.body})"
-	def status = hubResponse?.json
+  log.debug "updateStatusHandler(${hubResponse.body})"
+  def status = hubResponse?.json
   if (status) {
     state.switch = status.t_power == "ON" ? "on" : "off"
     state.display = status.t_backlight == "ON" ? "off" : "on"
@@ -335,15 +335,15 @@ float convertTempToF(float temp) {
 }
 
 def sendQuery(path, _callback) {
-	def options = [
-     	"method": "GET",
-      "path": path,
-      "headers": [
-      	"HOST": settings.host,
-        "Content-Type": "application/json",
-      ]
+  def options = [
+    "method": "GET",
+    "path": path,
+    "headers": [
+      "HOST": settings.host,
+      "Content-Type": "application/json",
+    ]
   ]
   log.debug options
-	def hubAction = new physicalgraph.device.HubAction(options, null, [callback: _callback])
+  def hubAction = new physicalgraph.device.HubAction(options, null, [callback: _callback])
   sendHubCommand(hubAction)
 }
