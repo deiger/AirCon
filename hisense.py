@@ -337,7 +337,7 @@ def unpad(data: bytes):
 class KeepAliveThread(threading.Thread):
   """Thread to preiodically generate keep-alive requests."""
   
-  _INTERVAL = 10.0
+  _KEEP_ALIVE_INTERVAL = 10.0
 
   def __init__(self):
     self.run_lock = threading.Condition()
@@ -370,18 +370,21 @@ class KeepAliveThread(threading.Thread):
     with self.run_lock:
       conn = None
       while True:
-        if not conn:
-          conn = HTTPConnection(_parsed_args.ip)
-          method = 'POST'
-        else:
-          method = 'PUT'
-        logging.debug('%s /local_reg.json %s', method, json.dumps(self._json))
-        conn.request(method, '/local_reg.json', json.dumps(self._json), self._headers)
-        resp = conn.getresponse()
-        if resp.status != 202:
-          logging.error('Recieved invalid response for local_reg: %r', resp)
+        try:
+          if not conn:
+            conn = HTTPConnection(_parsed_args.ip, timeout=1)
+            method = 'POST'
+          else:
+            method = 'PUT'
+          logging.debug('%s /local_reg.json %s', method, json.dumps(self._json))
+          conn.request(method, '/local_reg.json', json.dumps(self._json), self._headers)
+          resp = conn.getresponse()
+          if resp.status != 202:
+            logging.error('Recieved invalid response for local_reg: %r', resp)
+        except:
+          logging.exception('Failed to send local_reg keep alive to the AC.')
         self._json['local_reg']['notify'] = int(
-            _data.commands_queue.qsize() > 0 or self.run_lock.wait(self._INTERVAL))
+            _data.commands_queue.qsize() > 0 or self.run_lock.wait(self._KEEP_ALIVE_INTERVAL))
 
 
 class QueryStatusThread(threading.Thread):
@@ -391,7 +394,8 @@ class QueryStatusThread(threading.Thread):
   to the keep alive, so this is just a belt and suspenders.
   """
   
-  _INTERVAL = 600.0
+  _STATUS_UPDATE_INTERVAL = 600.0
+  _WAIT_FOR_EMPTY_QUEUE = 10.0
 
   def __init__(self):
     self._next_command_id = 0
@@ -399,6 +403,10 @@ class QueryStatusThread(threading.Thread):
 
   def run(self) -> None:
     while True:
+      # In case the AC is stuck, and not fetching commands, avoid flooding
+      # the queue with status updates.
+      while _data.commands_queue.qsize() > 10:
+        time.sleep(self._WAIT_FOR_EMPTY_QUEUE)
       for data_field in fields(Properties):
         command = {
           'cmds': [{
@@ -416,7 +424,7 @@ class QueryStatusThread(threading.Thread):
       if _keep_alive:
         with _keep_alive.run_lock:
           _keep_alive.run_lock.notify()
-      time.sleep(self._INTERVAL)
+      time.sleep(self._STATUS_UPDATE_INTERVAL)
 
 
 class HTTPRequestHandler(BaseHTTPRequestHandler):
