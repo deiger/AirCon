@@ -140,7 +140,7 @@ Listed here are the properties available through the API:
 | t_fan_leftright  |           | OFF, ON                                | Horizontal air flow                   |
 | t_fan_mute       |           | OFF, ON                                | Quite mode                            |
 | t_fan_power      |           | OFF, ON                                | Vertical air flow                     |
-| t_fan_speed      |           | AUTO, LOWER, LOW, MIDIUM, HIGH, HIGHER | Fan Speed                             |
+| t_fan_speed      |           | AUTO, LOWER, LOW, MEDIUM, HIGH, HIGHER | Fan Speed                             |
 | t_ftkt_start     |           | Integer                                |                                       |
 | t_power          |           | OFF, ON                                | Power                                 |
 | t_run_mode       |           | OFF, ON                                | Double frequency                      |
