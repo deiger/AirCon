@@ -129,7 +129,7 @@ class FanSpeed(enum.IntEnum):
   AUTO = 0
   LOWER = 5
   LOW = 6
-  MIDIUM = 7
+  MEDIUM = 7
   HIGH = 8
   HIGHER = 9
 
@@ -372,7 +372,7 @@ class KeepAliveThread(threading.Thread):
       while True:
         try:
           if not conn:
-            conn = HTTPConnection(_parsed_args.ip, timeout=1)
+            conn = HTTPConnection(_parsed_args.ip, timeout=5)
             method = 'POST'
           else:
             method = 'PUT'
@@ -383,6 +383,7 @@ class KeepAliveThread(threading.Thread):
             logging.error('Recieved invalid response for local_reg: %r', resp)
         except:
           logging.exception('Failed to send local_reg keep alive to the AC.')
+          conn = None
         self._json['local_reg']['notify'] = int(
             _data.commands_queue.qsize() > 0 or self.run_lock.wait(self._KEEP_ALIVE_INTERVAL))
 
