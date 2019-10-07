@@ -299,7 +299,7 @@ class Data:
       mqtt_publish_update(name, value)
 
 
-def queue_command(name: str, value) -> None:
+def queue_command(name: str, value, recursive: bool = False) -> None:
   if Properties.get_read_only(name):
     raise Error('Cannot update read-only property "{}".'.format(name))
   data_type = Properties.get_type(name)
@@ -319,8 +319,16 @@ def queue_command(name: str, value) -> None:
   typed_value = data_type[value] if issubclass(data_type, enum.Enum) else data_type(value)
   property_updater = lambda: _data.update_property(name, typed_value)
   _data.commands_queue.put_nowait((command, property_updater))
-  with _keep_alive.run_lock:
-    _keep_alive.run_lock.notify()
+
+  # Handle turning on FastColdHeat
+  if name == 't_temp_heatcold' and typed_value == FastColdHeat.ON:
+    queue_command('t_fan_speed', 'AUTO', True)
+    queue_command('t_fan_mute', 'OFF', True)
+    queue_command('t_sleep', 'STOP', True)
+    queue_command('t_temp_eight', 'OFF', True)
+  if not recursive:
+    with _keep_alive.run_lock:
+      _keep_alive.run_lock.notify()
 
 
 def pad(data: bytes):
@@ -445,8 +453,11 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
     query = parse_qs(parsed_url.query)
     handler = self._HANDLERS_MAP.get(parsed_url.path)
     if handler:
-      handler(self, parsed_url.path, query, {})
-      return
+      try:
+        handler(self, parsed_url.path, query, {})
+        return
+      except:
+        logging.exception('Failed to parse property.')
     self.do_HEAD(404)
 
   def do_POST(self):
@@ -460,8 +471,11 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
     data = json.loads(post_data)
     handler = self._HANDLERS_MAP.get(parsed_url.path)
     if handler:
-      handler(self, parsed_url.path, query, data)
-      return
+      try:
+        handler(self, parsed_url.path, query, data)
+        return
+      except:
+        logging.exception('Failed to parse property.')
     self.do_HEAD(404)
 
   def key_exchange_handler(self, path: str, query: dict, data: dict) -> None:
@@ -525,7 +539,10 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
       return
     self.do_HEAD()
     with _data.updates_seq_no_lock:
-      if _data.updates_seq_no > update['seq_no']:
+      # Every once in a while the sequence number is zeroed out, so accept it.
+      if _data.updates_seq_no > update['seq_no'] and update['seq_no'] > 0:
+        logging.error('Stale update found %d. Last update used is %d.',
+                      (update['seq_no'], _data.updates_seq_no))
         return  # Old update
       _data.updates_seq_no = update['seq_no']
     try:
