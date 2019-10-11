@@ -112,7 +112,8 @@ if __name__ == '__main__':
   conn.request('POST', '/users/sign_in.json', body=json.dumps(query), headers=headers)
   resp = conn.getresponse()
   if resp.status != 200:
-    logging.error('Failed to login to Hisense server: %r', resp)
+    logging.error('Failed to login to Hisense server:\nStatus %d: %r',
+                  resp.status, resp.reason)
     sys.exit(1)
   tokens = json.loads(resp.read())
   conn.close()
@@ -128,7 +129,8 @@ if __name__ == '__main__':
   conn.request('GET', '/apiv1/devices.json', headers=headers)
   resp = conn.getresponse()
   if resp.status != 200:
-    logging.error('Failed to get devices data from Hisense server: %r', resp)
+    logging.error('Failed to get devices data from Hisense server:\nStatus %d: %r',
+                  resp.status, resp.reason)
     sys.exit(1)
   devices = json.loads(resp.read())
   if not devices:
