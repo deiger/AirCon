@@ -32,9 +32,16 @@ import ssl
 import sys
 from http.client import HTTPSConnection
 
-_HISENSE_DOMAIN = 'aylanetworks.com'
-_HISENSE_USER_SERVER = 'user-field.' + _HISENSE_DOMAIN
-_HISENSE_DEVICES_SERVER = 'ads-field.' + _HISENSE_DOMAIN
+_AYLA_USER_SERVERS = {
+  'us': 'user-field.aylanetworks.com',
+  'eu': 'user-field-eu.aylanetworks.com',
+  'cn': 'user-field.ayla.com.cn',
+}
+_AYLA_DEVICES_SERVERS = {
+  'us': 'ads-field.aylanetworks.com',
+  'eu': 'ads-eu.aylanetworks.com',
+  'cn': 'ads-field.ayla.com.cn',
+}
 _SECRET_MAP = {
   'oem-us': b'\x1dgAPT\xd1\xa9\xec\xe2\xa2\x01\x19\xc0\x03X\x13j\xfc\xb5\x91',
   'mid-us': b'\xdeCx\xbe\x0cq8\x0b\x99\xb4Z\x93>\xfc\xcc\x9ag\x98\xf8\x14',
@@ -85,11 +92,17 @@ if __name__ == '__main__':
   app_id = app_prefix + '-id'
   secret = base64.b64encode(_SECRET_MAP[args.app]).decode('utf-8').rstrip('=').replace('+', '-').replace('/', '_')
   app_secret = '-'.join((app_prefix, secret))
+  # Extract the region from the app ID (and fallback to US)
+  region = args.app[-2:]
+  if region not in _AYLA_USER_SERVERS:
+    region = 'us'
+  user_server = _AYLA_USER_SERVERS[region]
+  devices_server = _AYLA_DEVICES_SERVERS[region]
   ssl_context = ssl.SSLContext()
   ssl_context.verify_mode = ssl.CERT_NONE
   ssl_context.check_hostname = False
   ssl_context.load_default_certs()
-  conn = HTTPSConnection(_HISENSE_USER_SERVER, context=ssl_context)
+  conn = HTTPSConnection(user_server, context=ssl_context)
   query = {
     'user': {
       'email': args.user,
@@ -106,9 +119,10 @@ if __name__ == '__main__':
     'Authorization': 'none',
     'Content-Type': 'application/json',
     'User-Agent': _USER_AGENT,
-    'Host': _HISENSE_USER_SERVER,
+    'Host': user_server,
     'Accept-Encoding': 'gzip'
   }
+  logging.debug('POST /users/sign_in.json, body=%r, headers=%r' % (json.dumps(query), headers))
   conn.request('POST', '/users/sign_in.json', body=json.dumps(query), headers=headers)
   resp = conn.getresponse()
   if resp.status != 200:
@@ -117,15 +131,16 @@ if __name__ == '__main__':
     sys.exit(1)
   tokens = json.loads(resp.read())
   conn.close()
-  conn = HTTPSConnection(_HISENSE_DEVICES_SERVER, context=ssl_context)
+  conn = HTTPSConnection(devices_server, context=ssl_context)
   headers = {
     'Accept': 'application/json',
     'Connection': 'Keep-Alive',
     'Authorization': 'auth_token ' + tokens['access_token'],
     'User-Agent': _USER_AGENT,
-    'Host': _HISENSE_DEVICES_SERVER,
+    'Host': devices_server,
     'Accept-Encoding': 'gzip'
   }
+  logging.debug('GET /apiv1/devices.json, headers=%r' % headers)
   conn.request('GET', '/apiv1/devices.json', headers=headers)
   resp = conn.getresponse()
   if resp.status != 200:
