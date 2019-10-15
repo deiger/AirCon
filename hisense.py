@@ -589,7 +589,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
     sign = base64.b64encode(Encryption.hmac_digest(_config.dev.sign_key, text)).decode('utf-8')
     if sign != data['sign']:
       raise Error('Invalid signature for %s!' % text.decode('utf-8'))
-    logging.debug('Decrypted: %s', text.decode('utf-8'))
+    logging.info('Decrypted: %s', text.decode('utf-8'))
     return json.loads(text.decode('utf-8'))
 
   def _write_json(self, data: dict) -> None:
@@ -664,8 +664,14 @@ def ParseArguments() -> argparse.Namespace:
 if __name__ == '__main__':
   _parsed_args = ParseArguments()  # type: argparse.Namespace
 
-  log_socket = '/var/run/syslog' if sys.platform == 'darwin' else '/dev/log'
-  logging_handler = logging.handlers.SysLogHandler(address=log_socket)
+  if sys.platform == 'linux':
+    logging_handler = logging.handlers.SysLogHandler(address='/dev/log')
+  elif sys.platform == 'darwin':
+    logging_handler = logging.handlers.SysLogHandler(address='/var/run/syslog')
+  elif sys.platform.lower() in ['windows', 'win32']:
+    logging_handler = logging.handlers.SysLogHandler()
+  else:  # Unknown platform, revert to stderr
+    logging_handler = logging.StreamHandler(sys.stderr)
   logging_handler.setFormatter(
       logging.Formatter(fmt='{levelname[0]}{asctime}.{msecs:03.0f}  '
                         '{filename}:{lineno}] {message}',
