@@ -42,6 +42,11 @@ _AYLA_DEVICES_SERVERS = {
   'eu': 'ads-eu.aylanetworks.com',
   'cn': 'ads-field.ayla.com.cn',
 }
+'''
+    public static String AUTOMATION_URL = "https://autoapi.ifuturehome.com.cn/v1/";
+    public static final String FIELD_APP_ID = "huihe-d70b5148-field-us-id";
+    public static final String FIELD_APP_SECRET = "huihe-d70b5148-field-us-orxaM7xo-jcuYLzvMKNwofCv9NQ";
+'''
 _SECRET_MAP = {
   'oem-us': b'\x1dgAPT\xd1\xa9\xec\xe2\xa2\x01\x19\xc0\x03X\x13j\xfc\xb5\x91',
   'mid-us': b'\xdeCx\xbe\x0cq8\x0b\x99\xb4Z\x93>\xfc\xcc\x9ag\x98\xf8\x14',
@@ -54,10 +59,12 @@ _SECRET_MAP = {
   'mid-eu': b'\x05$\xe6\xecW\xa3\xd1B\xa0\x84\xab*\xf0\x04\x80\xce\xae\xe5`\xc4>w\xf8\xc4\xf3X\xf6<\xd2\xd2I\x14!\xd0\x98\xed\xf2\xab\xae\xc6\x03',
   'haxxair': b'\xd8\xaf\x89--\x00\xabI\x93\x83j\xab\x9acX\xac^\x90f;',
   'field-us': b'\xc8b\x08\xfa\xce8\xf8\xf1\x81\xa5\x81\x8fX\xb4\x80\xc0\xdc\xf5\ny',
+  'huihe-us': b'\xa2\xbcZ3\xbch\xfa7.`\xbc\xef0\xa3p\xa1\xf0\xaf\xf4\xd4',
 }
 _SECRET_ID_MAP = {
   'haxxair': 'HAXXAIR',
   'field-us': 'pactera-field-f624d97f-us',
+  'huihe-us': 'huihe-d70b5148-field-us',
 }
 _USER_AGENT = 'Dalvik/2.1.0 (Linux; U; Android 9.0; SM-G850F Build/LRX22G)'
 
