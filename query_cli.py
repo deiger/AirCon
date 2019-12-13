@@ -42,11 +42,6 @@ _AYLA_DEVICES_SERVERS = {
   'eu': 'ads-eu.aylanetworks.com',
   'cn': 'ads-field.ayla.com.cn',
 }
-'''
-    public static String AUTOMATION_URL = "https://autoapi.ifuturehome.com.cn/v1/";
-    public static final String FIELD_APP_ID = "huihe-d70b5148-field-us-id";
-    public static final String FIELD_APP_SECRET = "huihe-d70b5148-field-us-orxaM7xo-jcuYLzvMKNwofCv9NQ";
-'''
 _SECRET_MAP = {
   'oem-us': b'\x1dgAPT\xd1\xa9\xec\xe2\xa2\x01\x19\xc0\x03X\x13j\xfc\xb5\x91',
   'mid-us': b'\xdeCx\xbe\x0cq8\x0b\x99\xb4Z\x93>\xfc\xcc\x9ag\x98\xf8\x14',
