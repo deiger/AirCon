@@ -200,9 +200,27 @@ class TemperatureUnit(enum.Enum):
   FAHRENHEIT = 1
 
 
+class Properties(object):
+  @classmethod
+  def _get_metadata(cls, attr: str):
+    return cls.__dataclass_fields__[attr].metadata
+
+  @classmethod
+  def get_type(cls, attr: str):
+    return cls.__dataclass_fields__[attr].type
+
+  @classmethod
+  def get_base_type(cls, attr: str):
+    return cls._get_metadata(attr)['base_type']
+
+  @classmethod
+  def get_read_only(cls, attr: str):
+    return cls._get_metadata(attr)['read_only']
+
+
 @dataclass_json
 @dataclass
-class Properties:
+class AcProperties(Properties):
   # ack_cmd: bool = field(default=None, metadata={'base_type': 'boolean', 'read_only': False})
   f_electricity: int = field(default=100, metadata={'base_type': 'integer', 'read_only': True})
   f_e_arkgrille: bool = field(default=0, metadata={'base_type': 'boolean', 'read_only': True})
@@ -262,21 +280,20 @@ class Properties:
   t_work_mode: WorkMode = field(default=WorkMode.AUTO, metadata={'base_type': 'integer', 'read_only': False,
     'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: WorkMode[x]}})  # WorkModeStatus
 
-  @classmethod
-  def _get_metadata(cls, attr: str):
-    return cls.__dataclass_fields__[attr].metadata
 
-  @classmethod
-  def get_type(cls, attr: str):
-    return cls.__dataclass_fields__[attr].type
-
-  @classmethod
-  def get_base_type(cls, attr: str):
-    return cls._get_metadata(attr)['base_type']
-
-  @classmethod
-  def get_read_only(cls, attr: str):
-    return cls._get_metadata(attr)['read_only']
+@dataclass_json
+@dataclass
+class HumidifierProperties(Properties):
+  humi: int = field(default=0, metadata={'base_type': 'integer', 'read_only': False})
+  mist: int = field(default=1, metadata={'base_type': 'integer', 'read_only': False})
+  mistSt: int = field(default=0, metadata={'base_type': 'integer', 'read_only': True})
+  realhumi: int = field(default=0, metadata={'base_type': 'integer', 'read_only': True})
+  remain: int = field(default=0, metadata={'base_type': 'integer', 'read_only': True})
+  switch: Power = field(default=Power.ON, metadata={'base_type': 'boolean', 'read_only': False})
+  temp: int = field(default=81, metadata={'base_type': 'integer', 'read_only': True})
+  timer: int = field(default=-1, metadata={'base_type': 'integer', 'read_only': False})
+  water: bool = field(default=0, metadata={'base_type': 'boolean', 'read_only': True})
+  workmode: int = field(default=0, metadata={'base_type': 'integer', 'read_only': False})
 
 
 @dataclass
@@ -287,7 +304,7 @@ class Data:
   commands_seq_no_lock = threading.Lock()
   updates_seq_no = 0
   updates_seq_no_lock = threading.Lock()
-  properties = Properties()
+  properties: Properties
   properties_lock = threading.Lock()
 
   def update_property(self, name: str, value) -> None:
@@ -301,10 +318,10 @@ class Data:
 
 
 def queue_command(name: str, value, recursive: bool = False) -> None:
-  if Properties.get_read_only(name):
+  if _data.properties.get_read_only(name):
     raise Error('Cannot update read-only property "{}".'.format(name))
-  data_type = Properties.get_type(name)
-  base_type = Properties.get_base_type(name)
+  data_type = _data.properties.get_type(name)
+  base_type = _data.properties.get_base_type(name)
   command = {
     'properties': [{
       'property': {
@@ -417,7 +434,7 @@ class QueryStatusThread(threading.Thread):
       # the queue with status updates.
       while _data.commands_queue.qsize() > 10:
         time.sleep(self._WAIT_FOR_EMPTY_QUEUE)
-      for data_field in fields(Properties):
+      for data_field in fields(_data.properties):
         command = {
           'cmds': [{
             'cmd': {
@@ -548,7 +565,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
       _data.updates_seq_no = update['seq_no']
     try:
       name = update['data']['name']
-      data_type = Properties.get_type(name)
+      data_type = _data.properties.get_type(name)
       value = data_type(update['data']['value'])
       _data.update_property(name, value)
     except:
@@ -659,6 +676,9 @@ def ParseArguments() -> argparse.Namespace:
   arg_parser.add_argument('--log_level', default='WARNING',
                           choices={'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG'},
                           help='Minimal log level.')
+  arg_parser.add_argument('--device_type', default='ac',
+                          choices={'ac', 'humidifier'},
+                          help='Minimal log level.')
   return arg_parser.parse_args()
 
 
@@ -682,7 +702,12 @@ if __name__ == '__main__':
   logger.addHandler(logging_handler)
 
   _config = Config()
-  _data = Data()
+  if _parsed_args.device_type == 'ac':
+    _data = Data(properties=AcProperties())
+  elif _parsed_args.device_type == 'humidifier':
+    _data = Data(properties=HumidifierProperties())
+  else:
+    sys.exit(1)  # Should never get here.
 
   _mqtt_client = None  # type: typing.Optional[mqtt.Client]
   _mqtt_topics = {}  # type: typing.Dict[str, str]
