@@ -152,7 +152,7 @@ class StateMachine(enum.IntEnum):
   OFFLINE = 7
   READONLYSHARED = 8
 
-class WorkMode(enum.IntEnum):
+class AcWorkMode(enum.IntEnum):
   FAN = 0
   HEAT = 1
   COOL = 2
@@ -198,6 +198,24 @@ class Quiet(enum.Enum):
 class TemperatureUnit(enum.Enum):
   CELSIUS = 0
   FAHRENHEIT = 1
+
+class HumidifierWorkMode(enum.Enum):
+  NORMAL = 0
+  NIGHTLIGHT = 1
+  SLEEP = 2
+
+class HumidifierWater(enum.Enum):
+  OK = 0
+  NO_WATER = 1
+
+class Mist(enum.Enum):
+  SMALL = 1
+  MIDDLE = 2
+  BIG = 3
+
+class MistState(enum.Enum):
+  OFF = 0
+  ON = 1
 
 
 class Properties(object):
@@ -277,23 +295,28 @@ class AcProperties(Properties):
     'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: EightHeat[x]}})  # EightHeatStatus
   t_temp_heatcold: FastColdHeat = field(default=FastColdHeat.OFF, metadata={'base_type': 'boolean', 'read_only': False,
     'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: FastColdHeat[x]}})  # FastCoolHeatStatus
-  t_work_mode: WorkMode = field(default=WorkMode.AUTO, metadata={'base_type': 'integer', 'read_only': False,
-    'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: WorkMode[x]}})  # WorkModeStatus
+  t_work_mode: AcWorkMode = field(default=AcWorkMode.AUTO, metadata={'base_type': 'integer', 'read_only': False,
+    'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: AcWorkMode[x]}})  # WorkModeStatus
 
 
 @dataclass_json
 @dataclass
 class HumidifierProperties(Properties):
   humi: int = field(default=0, metadata={'base_type': 'integer', 'read_only': False})
-  mist: int = field(default=1, metadata={'base_type': 'integer', 'read_only': False})
-  mistSt: int = field(default=0, metadata={'base_type': 'integer', 'read_only': True})
+  mist: Mist = field(default=Mist.SMALL, metadata={'base_type': 'integer', 'read_only': False,
+    'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: Mist[x]}})
+  mistSt: MistState = field(default=MistState.OFF, metadata={'base_type': 'integer', 'read_only': True,
+    'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: MistState[x]}})
   realhumi: int = field(default=0, metadata={'base_type': 'integer', 'read_only': True})
   remain: int = field(default=0, metadata={'base_type': 'integer', 'read_only': True})
-  switch: Power = field(default=Power.ON, metadata={'base_type': 'boolean', 'read_only': False})
+  switch: Power = field(default=Power.ON, metadata={'base_type': 'boolean', 'read_only': False,
+    'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: Power[x]}})
   temp: int = field(default=81, metadata={'base_type': 'integer', 'read_only': True})
   timer: int = field(default=-1, metadata={'base_type': 'integer', 'read_only': False})
-  water: bool = field(default=0, metadata={'base_type': 'boolean', 'read_only': True})
-  workmode: int = field(default=0, metadata={'base_type': 'integer', 'read_only': False})
+  water: HumidifierWater = field(default=HumidifierWater.OK, metadata={'base_type': 'boolean', 'read_only': True,
+    'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: HumidifierWater[x]}})
+  workmode: HumidifierWorkMode = field(default=HumidifierWorkMode.NORMAL, metadata={'base_type': 'integer', 'read_only': False,
+    'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: HumidifierWorkMode[x]}})
 
 
 @dataclass
