@@ -55,11 +55,16 @@ _SECRET_MAP = {
   'haxxair': b'\xd8\xaf\x89--\x00\xabI\x93\x83j\xab\x9acX\xac^\x90f;',
   'field-us': b'\xc8b\x08\xfa\xce8\xf8\xf1\x81\xa5\x81\x8fX\xb4\x80\xc0\xdc\xf5\ny',
   'huihe-us': b'\xa2\xbcZ3\xbch\xfa7.`\xbc\xef0\xa3p\xa1\xf0\xaf\xf4\xd4',
+  'hisense-eu': b'\xc0\xedK,\xff+X\xfa\xf6p\x87\xaa\xbcV\x88\xfbI\xb4\xcf\xad',
 }
 _SECRET_ID_MAP = {
   'haxxair': 'HAXXAIR',
   'field-us': 'pactera-field-f624d97f-us',
   'huihe-us': 'huihe-d70b5148-field-us',
+  'hisense-eu': 'Hisense',
+}
+_SECRET_ID_EXTRA_MAP = {
+  'hisense-eu': 'mw',
 }
 _USER_AGENT = 'Dalvik/2.1.0 (Linux; U; Android 9.0; SM-G850F Build/LRX22G)'
 
@@ -91,7 +96,10 @@ if __name__ == '__main__':
     app_prefix = _SECRET_ID_MAP[args.app]
   else:
     app_prefix = 'a-Hisense-{}-field'.format(args.app)
-  app_id = app_prefix + '-id'
+  if args.app in _SECRET_ID_EXTRA_MAP:
+    app_id = '-'.join((app_prefix, _SECRET_ID_EXTRA_MAP[args.app], 'id'))
+  else:
+    app_id = '-'.join((app_prefix, 'id'))
   secret = base64.b64encode(_SECRET_MAP[args.app]).decode('utf-8').rstrip('=').replace('+', '-').replace('/', '_')
   app_secret = '-'.join((app_prefix, secret))
   # Extract the region from the app ID (and fallback to US)
