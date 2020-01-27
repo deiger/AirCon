@@ -56,15 +56,18 @@ _SECRET_MAP = {
   'field-us': b'\xc8b\x08\xfa\xce8\xf8\xf1\x81\xa5\x81\x8fX\xb4\x80\xc0\xdc\xf5\ny',
   'huihe-us': b'\xa2\xbcZ3\xbch\xfa7.`\xbc\xef0\xa3p\xa1\xf0\xaf\xf4\xd4',
   'hisense-eu': b'\xc0\xedK,\xff+X\xfa\xf6p\x87\xaa\xbcV\x88\xfbI\xb4\xcf\xad',
+  'hismart-eu': b'0\x07\xe9\x04a\xa6e\xc4\x1c\x08+"\r\x84w\x91\x8f\xa8)\x98',
 }
 _SECRET_ID_MAP = {
   'haxxair': 'HAXXAIR',
   'field-us': 'pactera-field-f624d97f-us',
   'huihe-us': 'huihe-d70b5148-field-us',
   'hisense-eu': 'Hisense',
+  'hismart-eu': 'Hismart',
 }
 _SECRET_ID_EXTRA_MAP = {
   'hisense-eu': 'mw',
+  'hismart-eu': 'fA',
 }
 _USER_AGENT = 'Dalvik/2.1.0 (Linux; U; Android 9.0; SM-G850F Build/LRX22G)'
 
