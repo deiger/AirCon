@@ -1,6 +1,6 @@
 # HiSense Air Conditioners
 
-This program implements the Ayla Networks LAN API to interact with HiSense WiFi Air Conditioner module, model AEH-W4B1.
+This program implements the Ayla Networks LAN API to interact with HiSense WiFi Air Conditioner module, models AEH-W4B1 and AEH-W4E1.
 
 As discussed [here](../../issues/1), the program doesn't seem to fit the AEH-W4A1 module, which relies on entirely different protocol (implemented by the apps [Hi-Smart Life](https://play.google.com/store/apps/details?id=com.qd.android.livehome), [AirConnect](https://play.google.com/store/apps/details?id=com.oem.android.airconnect), [Smart Cool](https://play.google.com/store/apps/details?id=com.oem.android.livehome), [AC WIFI](https://play.google.com/store/apps/details?id=com.oem.android.ecold) and [טורנדו WiFi](https://play.google.com/store/apps/details?id=com.oem.android.tornadowifi)). Please let me know if you have a different experience, or tried it with other modules.
 
@@ -10,7 +10,7 @@ The module is installed in ACs and humidifiers that are either manufactured or o
 
 ## Prerequisites
 
-1. Air Conditioner with HiSense AEH-W4B1 installed.
+1. Air Conditioner with HiSense AEH-W4B1 or AEH-W4E1 installed.
 1. Have Python 3.7 installed. If using Raspberry Pi, either upgrade to Raspbian Buster, or manually install it in Raspbian Stretch.
 1. Install additional libraries:
    ```bash
@@ -25,7 +25,9 @@ The module is installed in ACs and humidifiers that are either manufactured or o
    | beko-eu    | Beko?               | |
    | haxxair    | HAXXAIR WIFI REMOTE | [![](https://lh3.googleusercontent.com/-9FX7-sYlE2xDwG9uymjPejV-P8nI_hQ9zN7QDu6OgyYILbjdg5o38nQTvAmFTPyiw=s50-rw)](https://play.google.com/store/apps/details?id=com.aylanetworks.accontrol.haxxair) |
    | hisense-eu | HiSmart Life        | [![](https://lh3.googleusercontent.com/AbCPfEScNDwgsKozku6jmItFPVq9WJCl30jZKlSDFDAtlAiC3WRZZ4MlWEEWR8ZxKA=s50-rw)](https://play.google.com/store/apps/details?id=com.hisense.hismartinternationalforandroid) |
+   | hisense-us | HiSmart Home        | [![](https://lh3.googleusercontent.com/Qs9UJVhczWYk-ij7UiRWoCDi2pYIoOUYuU5pBwOKQSD_07KHyAnLGg-myF7U9a387w=s50-rw)](https://play.google.com/store/apps/details?id=com.hisense.hismartinternationalus) |
    | hismart-eu | Smart-Living        | [![](https://lh3.googleusercontent.com/k9p0RMiW_xax5FIU5tpwSZav1In7tu6szGQopRWhSyRd2dIr0_L0IWHPVLSHxbrWrA=s50-rw)](https://play.google.com/store/apps/details?id=com.smart.international2) |
+   | hismart-us | AI-Home             | [![](https://lh3.googleusercontent.com/eUJicIOk50rP391IFs0Xw6306adghQuiQtaLgUkxImuP6bAdHvQjS1gbIKY75Bd2mkA=s50-rw)](https://play.google.com/store/apps/details?id=com.smart.internationalus) |
    | huihe-us   | SunHome             | [![](https://lh3.googleusercontent.com/3tI6Nbx4ZlphD_b5O7bW3XcMEKnFkViOKMS9-cL9K9OQVyGJRjRmKu67JU8_t_w93iZs=s50-rw)](https://play.google.com/store/apps/details?id=com.sunvalley.sunhome) |
    | field-us   | HiSmart Air         | [![](https://lh3.googleusercontent.com/9p4SUOklfccVzJdrbhHZW8MlmioF-YgfLWOQBtad2N_A5AWtcyNv7X-M3QT1e2Fdam00=s50-rw)](https://play.google.com/store/apps/details?id=com.aylanetworks.accontrol.hisense) |
    | mid-eu     | WiFi AC             | [![](https://lh3.googleusercontent.com/LWmnlcSnT2hYmdwB2vq5SoBuaawkS8eu0F6n9Tytowrftp7kflmUXRAt_uWg7C0Fgspn=s50-rw)](https://play.google.com/store/apps/details?id=com.accontrol.mid.europe.hisense) |
