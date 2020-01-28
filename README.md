@@ -4,7 +4,7 @@ This program implements the Ayla Networks LAN API to interact with HiSense WiFi 
 
 As discussed [here](../../issues/1), the program doesn't seem to fit the AEH-W4A1 module, which relies on entirely different protocol (implemented by the apps [Hi-Smart Life](https://play.google.com/store/apps/details?id=com.qd.android.livehome), [AirConnect](https://play.google.com/store/apps/details?id=com.oem.android.airconnect), [Smart Cool](https://play.google.com/store/apps/details?id=com.oem.android.livehome), [AC WIFI](https://play.google.com/store/apps/details?id=com.oem.android.ecold) and [טורנדו WiFi](https://play.google.com/store/apps/details?id=com.oem.android.tornadowifi)). Please let me know if you have a different experience, or tried it with other modules.
 
-The module is installed in ACs and humidifiers that are either manufactured or only branded by many other companies. These include Beko, Westinghouse, Winia, Tornado, York and more.
+The module is installed in A/Cs and humidifiers that are either manufactured or only branded by many other companies. These include Beko, Westinghouse, Winia, Tornado, York and more.
 
 **This program is not affiliated with Ayla Networks, HiSense, any of it's subsidiaries, or any of its resellers.**
 
@@ -16,9 +16,9 @@ The module is installed in ACs and humidifiers that are either manufactured or o
    ```bash
    pip3.7 install dataclasses_json paho-mqtt pycryptodome
    ```
-1. Configure the AC with the dedicated app. Links to each app are available in the table below. Log into the app, associate the AC and connect it to the network, as described in the app documentation.
-1. Once everything has been configured, the AC can be blocked from connecting to the internet, as it will no longer be needed. Set it a static IP address in the router, and write it down.
-1. Download and run [query_cli.py](query_cli.py), to fetch the LAN keys that will allow connecting to the AC. Pass it your login credentials, as well as the code for your app from the list below:
+1. Configure the A/C with the dedicated app. Links to each app are available in the table below. Log into the app, associate the A/C and connect it to the network, as described in the app documentation.
+1. Once everything has been configured, the A/C can be blocked from connecting to the internet, as it will no longer be needed. Set it a static IP address in the router, and write it down.
+1. Download and run [query_cli.py](query_cli.py), to fetch the LAN keys that will allow connecting to the A/C. Pass it your login credentials, as well as the code for your app from the list below:
 
    | Code       | App Name            | App link
    |------------|---------------------|---------|
@@ -44,10 +44,10 @@ The module is installed in ACs and humidifiers that are either manufactured or o
    ```bash
    ./query_cli.py --user foo@example.com --passwd my_pass --app tornado-us --config config.json
    ```
-   The CLI will generate a config file, that needs to be passed to the AC control server below.
-   If you have more than one AC that you would like to control, create a separate config file for each AC, and run a separate control process. You can select the AC that the config is generated for by setting the `--device` flag to the device name you configured in the app.
+   The CLI will generate a config file, that needs to be passed to the A/C control server below.
+   If you have more than one A/C that you would like to control, create a separate config file for each A/C, and run a separate control process. You can select the A/C that the config is generated for by setting the `--device` flag to the device name you configured in the app.
 
-## Run the AC control server
+## Run the A/C control server
 
 1. Download [hisense.py](hisense.py).
 1. Test out that you can run the server, e.g.:
@@ -56,8 +56,8 @@ The module is installed in ACs and humidifiers that are either manufactured or o
    ```
    Parameters:
    - `--port` or `-p` - Port for the web server.
-   - `--ip` - The IP address for the AC.
-   - `--config` - The config file with the credentials to connect to the AC.
+   - `--ip` - The IP address for the A/C.
+   - `--config` - The config file with the credentials to connect to the A/C.
    - `--mqtt_host` - The MQTT broker hostname or IP address. Must be set to enable MQTT.
    - `--mqtt_port` - The MQTT broker port. Default is 1883.
    - `--mqtt_client_id` - The MQTT client ID. If not set, a random client ID will be generated.
@@ -82,7 +82,7 @@ The module is installed in ACs and humidifiers that are either manufactured or o
 1. Create a service configuration file (as root), e.g. `/lib/systemd/system/hisense.service`:
    ```INI
    [Unit]
-   Description=Hisense AC server
+   Description=Hisense A/C server
    After=network.target
 
    [Service]
@@ -105,7 +105,7 @@ The module is installed in ACs and humidifiers that are either manufactured or o
    sudo systemctl start hisense.service
    ```
 1. If you use [MQTT](http://en.wikipedia.org/wiki/Mqtt) for [HomeAssistant](https://www.home-assistant.io/) or
-   [openHAB](https://www.openhab.org/), the broker should now provide the updated status of the AC, and accepts commands.
+   [openHAB](https://www.openhab.org/), the broker should now provide the updated status of the A/C, and accepts commands.
 
 ## Available Properties
 
