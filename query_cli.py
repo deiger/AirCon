@@ -142,7 +142,13 @@ if __name__ == '__main__':
     logging.error('Failed to login to Hisense server:\nStatus %d: %r',
                   resp.status, resp.reason)
     sys.exit(1)
-  tokens = json.loads(resp.read())
+  resp_data = resp.read()
+  try:
+    tokens = json.loads(resp_data)
+  except UnicodeDecodeError:
+    logging.exception('Failed to parse login tokens to Hisense server:\nData: %r',
+                      resp_data)
+    sys.exit(1)
   conn.close()
   conn = HTTPSConnection(devices_server, context=ssl_context)
   headers = {
@@ -160,7 +166,13 @@ if __name__ == '__main__':
     logging.error('Failed to get devices data from Hisense server:\nStatus %d: %r',
                   resp.status, resp.reason)
     sys.exit(1)
-  devices = json.loads(resp.read())
+  resp_data = resp.read()
+  try:
+    devices = json.loads(resp_data)
+  except UnicodeDecodeError:
+    logging.exception('Failed to parse devices data from Hisense server:\nData: %r',
+                      resp_data)
+    sys.exit(1)
   if not devices:
     logging.error('No device is configured! Please configure a device first.')
     sys.exit(1)
