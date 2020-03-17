@@ -2,21 +2,19 @@
 """
 Small command line program to query HiSense servers.
 Generates a small config file, to control the AC locally.
-
 After configuring the AC from your phone, pass the username, password
 and application type to this script, in order to be able to control
 the device locally.
-
 Note that this script needs to be run only once. The generated config
 file needs to be passed to the hisense server script, to continuously
 control the AC.
-
 The --app flag depends on your AC.
 """
 __author__ = 'droreiger@gmail.com (Dror Eiger)'
 
 import argparse
 import base64
+import gzip
 import json
 import logging
 import ssl
@@ -144,6 +142,10 @@ if __name__ == '__main__':
     sys.exit(1)
   resp_data = resp.read()
   try:
+    resp_data = gzip.decompress(resp_data)
+  except OSError:
+    pass  # Not gzipped.
+  try:
     tokens = json.loads(resp_data)
   except UnicodeDecodeError:
     logging.exception('Failed to parse login tokens to Hisense server:\nData: %r',
@@ -167,6 +169,10 @@ if __name__ == '__main__':
                   resp.status, resp.reason)
     sys.exit(1)
   resp_data = resp.read()
+  try:
+    resp_data = gzip.decompress(resp_data)
+  except OSError:
+    pass  # Not gzipped.
   try:
     devices = json.loads(resp_data)
   except UnicodeDecodeError:
@@ -193,7 +199,12 @@ if __name__ == '__main__':
   if resp.status != 200:
     logging.error('Failed to get device data from Hisense server: %r', resp)
     sys.exit(1)
-  lanip = json.loads(resp.read())['lanip']
+  resp_data = resp.read()
+  try:
+    resp_data = gzip.decompress(resp_data)
+  except OSError:
+    pass  # Not gzipped.
+  lanip = json.loads(resp_data)['lanip']
   conn.close()
   config = {
     'lanip_key': lanip['lanip_key'],
