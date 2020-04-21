@@ -87,6 +87,8 @@ if __name__ == '__main__':
                           help='Device name to fetch data for. If not set, takes the first.')
   arg_parser.add_argument('--config', required=True,
                           help='Config file to write to.')
+  arg_parser.add_argument('--properties', type=bool, default=False,
+                          help='Fetch the properties for the device.')
   args = arg_parser.parse_args()
   logging_handler = logging.StreamHandler(stream=sys.stderr)
   logging_handler.setFormatter(
@@ -208,6 +210,18 @@ if __name__ == '__main__':
   except OSError:
     pass  # Not gzipped.
   lanip = json.loads(resp_data)['lanip']
+  if args.properties:
+    conn.request('GET', '/apiv1/dsns/{}/properties.json'.format(dsn), headers=headers)
+    resp = conn.getresponse()
+    if resp.status != 200:
+      logging.error('Failed to get properties data from Hisense server: %r', resp)
+      sys.exit(1)
+    resp_data = resp.read()
+    try:
+      resp_data = gzip.decompress(resp_data)
+    except OSError:
+      pass  # Not gzipped.
+    logging.info('Properties:\n%s', json.dumps(json.loads(resp_data), indent=2))
   conn.close()
   config = {
     'lanip_key': lanip['lanip_key'],
