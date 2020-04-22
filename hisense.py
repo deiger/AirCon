@@ -587,6 +587,10 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         return  # Old update
       _data.updates_seq_no = update['seq_no']
     try:
+      if not update['data']:
+        logging.warning('No value returned for seq_no %d, likely an unsupported property key.',
+                        update['seq_no'])
+        return
       name = update['data']['name']
       data_type = _data.properties.get_type(name)
       value = data_type(update['data']['value'])
