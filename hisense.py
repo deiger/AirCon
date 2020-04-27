@@ -393,6 +393,7 @@ class KeepAliveThread(threading.Thread):
     sock = None
     try:
       sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+      sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
       sock.connect(('10.255.255.255', 1))
       local_ip = sock.getsockname()[0]
     finally:
