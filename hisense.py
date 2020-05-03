@@ -746,8 +746,8 @@ if __name__ == '__main__':
   _mqtt_client = None  # type: typing.Optional[mqtt.Client]
   _mqtt_topics = {}  # type: typing.Dict[str, str]
   if _parsed_args.mqtt_host:
-    _mqtt_topics['pub'] = '/'.join(_parsed_args.mqtt_topic, '{}', 'status')
-    _mqtt_topics['sub'] = '/'.join(_parsed_args.mqtt_topic, '{}', 'command')
+    _mqtt_topics['pub'] = '/'.join((_parsed_args.mqtt_topic, '{}', 'status'))
+    _mqtt_topics['sub'] = '/'.join((_parsed_args.mqtt_topic, '{}', 'command'))
     _mqtt_client = mqtt.Client(client_id=_parsed_args.mqtt_client_id,
                                clean_session=True)
     _mqtt_client.on_connect = mqtt_on_connect
