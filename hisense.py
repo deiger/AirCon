@@ -42,7 +42,6 @@ import json
 import logging
 import logging.handlers
 import math
-import os
 import paho.mqtt.client as mqtt
 import queue
 import random
@@ -665,19 +664,26 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
 
 def mqtt_on_connect(client: mqtt.Client, userdata, flags, rc):
-  client.subscribe(_mqtt_topics['sub'])
+  for data_field in fields(_data.properties):
+    client.subscribe(_mqtt_topics['sub'].format(data_field.name))
 
 
 def mqtt_on_message(client: mqtt.Client, userdata, message: mqtt.MQTTMessage):
-  payload = json.loads(message.payload)
-  queue_command(payload['property'], payload['value'])
+  name = message.topic.rsplit('/', 2)[1]
+  payload = message.payload
+  if name == 't_work_mode' and payload == 'fan_only':
+    payload = 'FAN'
+  queue_command(name, payload.upper())
 
 
 def mqtt_publish_update(name: str, value) -> None:
   if _mqtt_client:
-    payload = {name: value.name if isinstance(value, enum.Enum) else value}
-    _mqtt_client.publish(_mqtt_topics['pub'],
-                         payload=json.dumps(payload).encode('utf-8'))
+    if isinstance(value, enum.Enum):
+      payload = 'fan_only' if value == AcWorkMode.FAN else value.name.lower()
+    else:
+      payload = str(value)
+    _mqtt_client.publish(_mqtt_topics['pub'].format(name),
+                         payload=payload.encode('utf-8'))
 
 
 def ParseArguments() -> argparse.Namespace:
@@ -740,8 +746,8 @@ if __name__ == '__main__':
   _mqtt_client = None  # type: typing.Optional[mqtt.Client]
   _mqtt_topics = {}  # type: typing.Dict[str, str]
   if _parsed_args.mqtt_host:
-    _mqtt_topics['pub'] = os.path.join(_parsed_args.mqtt_topic, 'status')
-    _mqtt_topics['sub'] = os.path.join(_parsed_args.mqtt_topic, 'command')
+    _mqtt_topics['pub'] = '/'.join(_parsed_args.mqtt_topic, '{}', 'status')
+    _mqtt_topics['sub'] = '/'.join(_parsed_args.mqtt_topic, '{}', 'command')
     _mqtt_client = mqtt.Client(client_id=_parsed_args.mqtt_client_id,
                                clean_session=True)
     _mqtt_client.on_connect = mqtt_on_connect
