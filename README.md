@@ -62,8 +62,8 @@ The module is installed in A/Cs and humidifiers that are either manufactured or 
    - `--mqtt_port` - The MQTT broker port. Default is 1883.
    - `--mqtt_client_id` - The MQTT client ID. If not set, a random client ID will be generated.
    - `--mqtt_user` - &lt;user:password&gt; for the MQTT channel. If not set, no authentication is used.
-   - `--mqtt_topic` - The MQTT root topic. Default is &quot;hisense_ac&quot;. The server will listen on topic
-     &lt;{mqtt_topic}/command&gt; and publish to &lt;{mqtt_topic}/status&gt;.
+   - `--mqtt_topic` - The MQTT root topic. Default is &quot;hisense_ac&quot;. The server will listen on topics
+     &lt;{mqtt_topic}/{property_name}/command&gt; and publish to &lt;{mqtt_topic}/{property_name}/status&gt;.
    - `--log_level` - The minimal log level to send to syslog. Default is WARNING.
 1. Access e.g. using curl:
    ```bash
