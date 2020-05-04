@@ -344,12 +344,19 @@ def queue_command(name: str, value, recursive: bool = False) -> None:
     raise Error('Cannot update read-only property "{}".'.format(name))
   data_type = _data.properties.get_type(name)
   base_type = _data.properties.get_base_type(name)
+  if issubclass(data_type, enum.Enum):
+    data_value = data_type[value].value
+  elif data_type is int and type(value) is str and value.endswith('.0'):
+    # Don't fail if the input is whole number passed as decimal.
+    data_value = data_type(float(value))
+  else:
+    data_value = data_type(value)
   command = {
     'properties': [{
       'property': {
         'base_type': base_type,
         'name': name,
-        'value': data_type[value].value if issubclass(data_type, enum.Enum) else data_type(value),
+        'value': data_value,
         'id': ''.join(random.choices(string.ascii_letters + string.digits, k=8)),
       }
     }]
