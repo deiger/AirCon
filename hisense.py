@@ -676,11 +676,17 @@ def mqtt_on_connect(client: mqtt.Client, userdata, flags, rc):
 
 
 def mqtt_on_message(client: mqtt.Client, userdata, message: mqtt.MQTTMessage):
+  logging.info('MQTT message Topic: %r, Payload %r',
+               message.topic, message.payload)
   name = message.topic.rsplit('/', 2)[1]
   payload = message.payload
   if name == 't_work_mode' and payload == 'fan_only':
     payload = 'FAN'
-  queue_command(name, payload.upper())
+  try:
+    queue_command(name, payload.upper())
+  except Exception:
+    logging.exception('Failed to parse value %r for property %r',
+                      payload.upper(), name)
 
 
 def mqtt_publish_update(name: str, value) -> None:
