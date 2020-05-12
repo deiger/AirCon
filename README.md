@@ -25,6 +25,7 @@ The module is installed in A/Cs and humidifiers that are either manufactured or 
    | beko-eu    | Beko?               | |
    | haxxair    | HAXXAIR WIFI REMOTE | [![](https://lh3.googleusercontent.com/-9FX7-sYlE2xDwG9uymjPejV-P8nI_hQ9zN7QDu6OgyYILbjdg5o38nQTvAmFTPyiw=s50-rw)](https://play.google.com/store/apps/details?id=com.aylanetworks.accontrol.haxxair) |
    | denali-us  | Denali Aire         | [![](https://lh3.googleusercontent.com/8NYl3eNN7M_cXmvo4ywj9al5794Ci_dzGYxYZopHd96Z4yr1M12e8xzk9mkz5cMELQ=s50-rw)](https://play.google.com/store/apps/details?id=com.smart.internationalus.denaliaire) |
+   | fglair-eu  | FGLair              | [![](https://lh3.googleusercontent.com/LcrpWfFdRi3GriCV3MqPhkKsxV-IkwFHxZHHDugC__iaO1HE-7UyKuQj-bEWyggo8DFP=s50-rw)](https://play.google.com/store/apps/details?id=com.fujitsu.fglair) |
    | field-us   | HiSmart Air         | [![](https://lh3.googleusercontent.com/9p4SUOklfccVzJdrbhHZW8MlmioF-YgfLWOQBtad2N_A5AWtcyNv7X-M3QT1e2Fdam00=s50-rw)](https://play.google.com/store/apps/details?id=com.aylanetworks.accontrol.hisense) |
    | hisense-eu | HiSmart Life        | [![](https://lh3.googleusercontent.com/AbCPfEScNDwgsKozku6jmItFPVq9WJCl30jZKlSDFDAtlAiC3WRZZ4MlWEEWR8ZxKA=s50-rw)](https://play.google.com/store/apps/details?id=com.hisense.hismartinternationalforandroid) |
    | hisense-us | HiSmart Home        | [![](https://lh3.googleusercontent.com/Qs9UJVhczWYk-ij7UiRWoCDi2pYIoOUYuU5pBwOKQSD_07KHyAnLGg-myF7U9a387w=s50-rw)](https://play.google.com/store/apps/details?id=com.hisense.hismartinternationalus) |
