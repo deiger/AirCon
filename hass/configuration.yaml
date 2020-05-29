@@ -26,6 +26,5 @@ climate:
     swing_mode_state_topic: "hisense_ac/t_fan_power/status"
     temperature_command_topic: "hisense_ac/t_temp/command"
     temperature_state_topic: "hisense_ac/t_temp/status"
-    value_template: "{{ value_json }}"
     temperature_unit: "F"
     precision: 1.0
