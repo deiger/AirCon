@@ -679,7 +679,7 @@ def mqtt_on_message(client: mqtt.Client, userdata, message: mqtt.MQTTMessage):
   logging.info('MQTT message Topic: %r, Payload %r',
                message.topic, message.payload)
   name = message.topic.rsplit('/', 2)[1]
-  payload = message.payload
+  payload = message.payload.decode('utf-8')
   if name == 't_work_mode' and payload == 'fan_only':
     payload = 'FAN'
   try:
