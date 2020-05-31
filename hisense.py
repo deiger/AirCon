@@ -368,7 +368,7 @@ def queue_command(name: str, value, recursive: bool = False) -> None:
   _data.commands_queue.put_nowait((command, property_updater))
 
   # Handle turning on FastColdHeat
-  if name == 't_temp_heatcold' and typed_value == FastColdHeat.ON:
+  if name == 't_temp_heatcold' and typed_value is FastColdHeat.ON:
     queue_command('t_fan_speed', 'AUTO', True)
     queue_command('t_fan_mute', 'OFF', True)
     queue_command('t_sleep', 'STOP', True)
@@ -692,7 +692,7 @@ def mqtt_on_message(client: mqtt.Client, userdata, message: mqtt.MQTTMessage):
 def mqtt_publish_update(name: str, value) -> None:
   if _mqtt_client:
     if isinstance(value, enum.Enum):
-      payload = 'fan_only' if value == AcWorkMode.FAN else value.name.lower()
+      payload = 'fan_only' if value is AcWorkMode.FAN else value.name.lower()
     else:
       payload = str(value)
     _mqtt_client.publish(_mqtt_topics['pub'].format(name),
