@@ -159,6 +159,18 @@ Listed here are the properties available through the API:
 | t_temp_heatcold  |           | OFF, ON                                | Fast cool heat                        |
 | t_work_mode      |           | FAN, HEAT, COOL, DRY, AUTO             | Work mode                             |
 
+## Multiple Air Conditioners
+
+The server script supports a single Air Conditioner. In order to use with multiple Air Conditioners, a separate instance of the server needs to run for each Air Conditioner.
+
+This includes:
+- Create a separate config file for each A/C.
+- Select a different `--port` for the HTTP server of each A/C.
+- If using MQTT, select a different `--mqtt_topic` for each A/C.
+- Create a different service file, that refers to the settings above.
+
+* Note: _The smart home hub configuration should adjusted to refer to the right port or topics._
+
 ## SmartThings and HomeAssistant support
 
 I have built a groovy script to enable SmartThings integration with the Air Conditioner, through the control server above.
@@ -166,4 +178,5 @@ It currently implements the main functionality (turn on/off, AC mode, fan speed,
 
 The groovy file is available [here](devicetypes/deiger/hisense-air-conditioner.src/hisense-air-conditioner.groovy), for download and installation through the [Groovy IDE](https://graph.api.smartthings.com). As I'm continuously improving this script, it would be more efficient to use the IDE's github integration, in order to stay up-to-date.
 
-I've also created a configuration for HomeAssistant, available [here](hass/configuration.yaml) to communicate with the server through MQTT. Please let me know if you find issues while using it.
+I've also created a configuration for HomeAssistant, available [here](hass/configuration.yaml) to communicate with the server through MQTT. Please let me know if you find issues while using it.  
+* Note: _If you change the `--mqtt_topic` flag, you should adjust the topics in the HomeAssistant configuration accordingly._
