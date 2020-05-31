@@ -164,7 +164,7 @@ Listed here are the properties available through the API:
 The server script supports a single Air Conditioner. In order to use with multiple Air Conditioners, a separate instance of the server needs to run for each Air Conditioner.
 
 This includes:
-- Create a separate config file for each A/C.
+- Create a separate config file for each A/C. Do mind that you select the correct device when running the CLI.
 - Select a different `--port` for the HTTP server of each A/C.
 - If using MQTT, select a different `--mqtt_topic` for each A/C.
 - Create a different service file, that refers to the settings above.
