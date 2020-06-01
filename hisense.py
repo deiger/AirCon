@@ -329,6 +329,11 @@ class Data:
   properties: Properties
   properties_lock = threading.Lock()
 
+  def get_property(self, name: str):
+    """Get a stored property."""
+    with self.properties_lock:
+      return getattr(self.properties, name)
+
   def update_property(self, name: str, value) -> None:
     """Update the stored properties, if changed."""
     with self.properties_lock:
@@ -672,13 +677,26 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
 
 def mqtt_on_connect(client: mqtt.Client, userdata, flags, rc):
-  for data_field in fields(_data.properties):
-    client.subscribe(_mqtt_topics['sub'].format(data_field.name))
+  client.subscribe([(_mqtt_topics['sub'].format(data_field.name), 0)
+                    for data_field in fields(_data.properties)])
+  # Subscribe to subscription updates.
+  client.subscribe('$SYS/broker/log/M/subscribe/#')
+
+
+def mqtt_on_subscribe(payload: bytes):
+  # The last segment in the space delimited string is the topic.
+  topic = payload.decode('utf-8').rsplit(' ', 1)[-1]
+  if topic not in _mqtt_topics['pub']:
+    return
+  name = topic.rsplit('/', 2)[1]
+  mqtt_publish_update(name, _data.get_property(name))
 
 
 def mqtt_on_message(client: mqtt.Client, userdata, message: mqtt.MQTTMessage):
   logging.info('MQTT message Topic: %r, Payload %r',
                message.topic, message.payload)
+  if message.topic.startswith('$SYS/broker/log/M/subscribe'):
+    return mqtt_on_subscribe(message.payload)
   name = message.topic.rsplit('/', 2)[1]
   payload = message.payload.decode('utf-8')
   if name == 't_work_mode' and payload == 'fan_only':
