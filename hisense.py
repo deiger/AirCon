@@ -364,7 +364,7 @@ def queue_command(name: str, value, recursive: bool = False) -> None:
   }
   # There are (usually) no acks on commands, so also queue an update to the
   # property, to be run once the command is sent.
-  typed_value = data_type[value] if issubclass(data_type, enum.Enum) else data_type(value)
+  typed_value = data_type[value] if issubclass(data_type, enum.Enum) else data_value
   property_updater = lambda: _data.update_property(name, typed_value)
   _data.commands_queue.put_nowait((command, property_updater))
 
