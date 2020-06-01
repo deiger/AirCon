@@ -346,9 +346,10 @@ def queue_command(name: str, value, recursive: bool = False) -> None:
   base_type = _data.properties.get_base_type(name)
   if issubclass(data_type, enum.Enum):
     data_value = data_type[value].value
-  elif data_type is int and type(value) is str and value.endswith('.0'):
-    # Don't fail if the input is whole number passed as decimal.
-    data_value = data_type(float(value))
+  elif data_type is int and type(value) is str and '.' in value:
+    # Round rather than fail if the input is a float.
+    # This is commonly the case for temperatures converted by HA from Celsius.
+    data_value = round(float(value))
   else:
     data_value = data_type(value)
   command = {
