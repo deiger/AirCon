@@ -267,6 +267,7 @@ class AcProperties(Properties):
   f_voltage: int = field(default=0, metadata={'base_type': 'integer', 'read_only': True})
   t_backlight: Dimmer = field(default=Dimmer.OFF, metadata={'base_type': 'boolean', 'read_only': False,
     'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: Dimmer[x]}})  # DimmerStatus
+  t_control_value: int = field(default=None, metadata={'base_type': 'integer', 'read_only': False})
   t_device_info: bool = field(default=0, metadata={'base_type': 'boolean', 'read_only': False})
   t_display_power: bool = field(default=None, metadata={'base_type': 'boolean', 'read_only': False})
   t_eco: Economy = field(default=Economy.OFF, metadata={'base_type': 'boolean', 'read_only': False,
