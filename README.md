@@ -14,7 +14,7 @@ The module is installed in A/Cs and humidifiers that are either manufactured or 
 1. Have Python 3.7 installed. If using Raspberry Pi, either upgrade to Raspbian Buster, or manually install it in Raspbian Stretch.
 1. Install additional libraries:
    ```bash
-   pip3.7 install dataclasses_json paho-mqtt pycryptodome
+   pip3.7 install dataclasses_json paho-mqtt pycryptodome retry
    ```
 1. Configure the A/C with the dedicated app. Links to each app are available in the table below. Log into the app, associate the A/C and connect it to the network, as described in the app documentation.
 1. Once everything has been configured, the A/C can be blocked from connecting to the internet, as it will no longer be needed. Set it a static IP address in the router, and write it down.
