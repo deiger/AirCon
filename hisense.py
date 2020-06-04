@@ -36,7 +36,7 @@ from dataclasses import dataclass, field, fields
 from dataclasses_json import dataclass_json
 import enum
 import hmac
-from http.client import HTTPConnection
+from http.client import HTTPConnection, InvalidURL
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from http import HTTPStatus
 import json
@@ -54,6 +54,7 @@ import threading
 import time
 import typing
 from urllib.parse import parse_qs, urlparse, ParseResult
+import _thread
 
 from Crypto.Cipher import AES
 
@@ -432,24 +433,30 @@ class KeepAliveThread(threading.Thread):
     super(KeepAliveThread, self).__init__(name='Keep Alive thread')
 
   @retry(exceptions=ConnectionError, delay=0.5, max_delay=20, backoff=1.5, logger=logging)
-  def _establish_connection(self, conn: HTTPConnection, method: str) -> None:
+  def _establish_connection(self, conn: HTTPConnection) -> None:
+    method = 'PUT' if conn.sock else 'POST'
     logging.debug('%s /local_reg.json %s', method, json.dumps(self._json))
-    conn.request(method, '/local_reg.json', json.dumps(self._json), self._headers)
-    resp = conn.getresponse()
-    if resp.status != HTTPStatus.ACCEPTED:
-      raise ConnectionError('Recieved invalid response for local_reg: ' + repr(resp))
+    try:
+      conn.request(method, '/local_reg.json', json.dumps(self._json), self._headers)
+      resp = conn.getresponse()
+      if resp.status != HTTPStatus.ACCEPTED:
+        raise ConnectionError('Recieved invalid response for local_reg: ' + repr(resp))
+      resp.read()
+    except ConnectionError:
+      conn.close()  # Do not reuse the socket.
+      raise
 
   def run(self) -> None:
     with self.run_lock:
-      conn = None
+      try:
+        conn = HTTPConnection(_parsed_args.ip, timeout=5)
+      except InvalidURL:
+        logging.exception('Invalid IP provided.')
+        _thread.interrupt_main()
+        return
       while True:
         try:
-          if not conn:
-            conn = HTTPConnection(_parsed_args.ip, timeout=5)
-            method = 'POST'
-          else:
-            method = 'PUT'
-          self._establish_connection(conn, method)
+          self._establish_connection(conn)
         except:
           logging.exception('Failed to send local_reg keep alive to the AC.')
           conn = None
