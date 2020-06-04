@@ -25,7 +25,7 @@ the string locally stored by the app cache (using a rooted device).
 The code here relies on Python 3.7
 If running in Raspberry Pi, install Python 3.7 manually.
 Also install additional libraries:
-pip3.7 install dataclasses_json paho-mqtt pycryptodome
+pip3.7 install dataclasses_json paho-mqtt pycryptodome retry
 """
 
 __author__ = 'droreiger@gmail.com (Dror Eiger)'
@@ -406,6 +406,7 @@ class KeepAliveThread(threading.Thread):
 
   def __init__(self):
     self.run_lock = threading.Condition()
+    self._alive = False
     sock = None
     try:
       sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -434,7 +435,7 @@ class KeepAliveThread(threading.Thread):
 
   @retry(exceptions=ConnectionError, delay=0.5, max_delay=20, backoff=1.5, logger=logging)
   def _establish_connection(self, conn: HTTPConnection) -> None:
-    method = 'PUT' if conn.sock else 'POST'
+    method = 'PUT' if self._alive else 'POST'
     logging.debug('%s /local_reg.json %s', method, json.dumps(self._json))
     try:
       conn.request(method, '/local_reg.json', json.dumps(self._json), self._headers)
@@ -442,9 +443,12 @@ class KeepAliveThread(threading.Thread):
       if resp.status != HTTPStatus.ACCEPTED:
         raise ConnectionError('Recieved invalid response for local_reg: ' + repr(resp))
       resp.read()
-    except ConnectionError:
-      conn.close()  # Do not reuse the socket.
+    except:
+      self._alive = False
       raise
+    finally:
+      conn.close()
+    self._alive = True
 
   def run(self) -> None:
     with self.run_lock:
@@ -459,7 +463,6 @@ class KeepAliveThread(threading.Thread):
           self._establish_connection(conn)
         except:
           logging.exception('Failed to send local_reg keep alive to the AC.')
-          conn.close()
         self._json['local_reg']['notify'] = int(
             _data.commands_queue.qsize() > 0 or self.run_lock.wait(self._KEEP_ALIVE_INTERVAL))
 
