@@ -38,6 +38,7 @@ import enum
 import hmac
 from http.client import HTTPConnection
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from http import HTTPStatus
 import json
 import logging
 import logging.handlers
@@ -45,6 +46,7 @@ import math
 import paho.mqtt.client as mqtt
 import queue
 import random
+from retry import retry
 import socket
 import string
 import sys
@@ -429,6 +431,14 @@ class KeepAliveThread(threading.Thread):
     }
     super(KeepAliveThread, self).__init__(name='Keep Alive thread')
 
+  @retry(exceptions=ConnectionError, delay=0.5, max_delay=20, backoff=1.5, logger=logging)
+  def _establish_connection(self, conn: HTTPConnection, method: str) -> None:
+    logging.debug('%s /local_reg.json %s', method, json.dumps(self._json))
+    conn.request(method, '/local_reg.json', json.dumps(self._json), self._headers)
+    resp = conn.getresponse()
+    if resp.status != HTTPStatus.ACCEPTED:
+      raise ConnectionError('Recieved invalid response for local_reg: ' + repr(resp))
+
   def run(self) -> None:
     with self.run_lock:
       conn = None
@@ -439,11 +449,7 @@ class KeepAliveThread(threading.Thread):
             method = 'POST'
           else:
             method = 'PUT'
-          logging.debug('%s /local_reg.json %s', method, json.dumps(self._json))
-          conn.request(method, '/local_reg.json', json.dumps(self._json), self._headers)
-          resp = conn.getresponse()
-          if resp.status != 202:
-            logging.error('Recieved invalid response for local_reg: %r', resp)
+          self._establish_connection(conn, method)
         except:
           logging.exception('Failed to send local_reg keep alive to the AC.')
           conn = None
@@ -494,12 +500,12 @@ class QueryStatusThread(threading.Thread):
 class HTTPRequestHandler(BaseHTTPRequestHandler):
   """Handler for AC related HTTP requests."""
 
-  def do_HEAD(self, code: int = 200) -> None:
+  def do_HEAD(self, code: HTTPStatus = HTTPStatus.OK) -> None:
     """Return a JSON header."""
     self.send_response(code)
-    if code == 200:
+    if code == HTTPStatus.OK:
       self.send_header('Content-type', 'application/json')
-      self.end_headers()
+    self.end_headers()
 
   def do_GET(self) -> None:
     """Accepts get requests."""
@@ -513,7 +519,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         return
       except:
         logging.exception('Failed to parse property.')
-    self.do_HEAD(404)
+    self.do_HEAD(HTTPStatus.NOT_FOUND)
 
   def do_POST(self):
     """Accepts post requests."""
@@ -531,7 +537,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         return
       except:
         logging.exception('Failed to parse property.')
-    self.do_HEAD(404)
+    self.do_HEAD(HTTPStatus.NOT_FOUND)
 
   def key_exchange_handler(self, path: str, query: dict, data: dict) -> None:
     """Handles a key exchange.
@@ -549,18 +555,18 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
       _config.lan_config.time_1 = key['time_1']
     except KeyError:
       logging.error('Invalid key exchange: %r', data)
-      self.do_HEAD(400)
+      self.do_HEAD(HTTPStatus.BAD_REQUEST)
       return
     if key['key_id'] != _config.lan_config.lanip_key_id:
       logging.error('The key_id has been replaced!!\nOld ID was %d; new ID is %d.',
                     _config.lan_config.lanip_key_id, key['key_id'])
-      self.do_HEAD(404)
+      self.do_HEAD(HTTPStatus.NOT_FOUND)
       return
     _config.lan_config.random_2 = ''.join(
         random.choices(string.ascii_letters + string.digits, k=16))
     _config.lan_config.time_2 = time.monotonic_ns() % 2**40
     _config.update()
-    self.do_HEAD()
+    self.do_HEAD(HTTPStatus.OK)
     self._write_json({"random_2": _config.lan_config.random_2,
                       "time_2": _config.lan_config.time_2})
 
@@ -577,7 +583,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
       command['data'], property_updater = _data.commands_queue.get_nowait()
     except queue.Empty:
       command['data'], property_updater = {}, None
-    self.do_HEAD()
+    self.do_HEAD(HTTPStatus.OK)
     self._write_json(self._encrypt_and_sign(command))
     if property_updater:
       property_updater()
@@ -590,9 +596,9 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
       update = self._decrypt_and_validate(data)
     except Error:
       logging.exception('Failed to parse property.')
-      self.do_HEAD(400)
+      self.do_HEAD(HTTPStatus.BAD_REQUEST)
       return
-    self.do_HEAD()
+    self.do_HEAD(HTTPStatus.OK)
     with _data.updates_seq_no_lock:
       # Every once in a while the sequence number is zeroed out, so accept it.
       if _data.updates_seq_no > update['seq_no'] and update['seq_no'] > 0:
@@ -618,7 +624,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
     """
     with _data.properties_lock:
       data = _data.properties.to_dict()
-    self.do_HEAD()
+    self.do_HEAD(HTTPStatus.OK)
     self._write_json(data)
 
   def queue_command_handler(self, path: str, query: dict, data: dict) -> None:
@@ -628,9 +634,9 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
       queue_command(query['property'][0], query['value'][0])
     except:
       logging.exception('Failed to queue command.')
-      self.do_HEAD(400)
+      self.do_HEAD(HTTPStatus.BAD_REQUEST)
       return
-    self.do_HEAD()
+    self.do_HEAD(HTTPStatus.OK)
     self._write_json({'queued commands': _data.commands_queue.qsize()})
 
   @staticmethod
