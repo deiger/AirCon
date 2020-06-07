@@ -219,6 +219,23 @@ class MistState(enum.Enum):
   OFF = 0
   ON = 1
 
+class FglOperationMode(enum.IntEnum):
+  OFF = 0
+  ON = 1
+  AUTO = 2
+  COOL = 3
+  DRY = 4
+  FAN = 5
+  HEAT = 6
+
+class FglFanSpeed(enum.IntEnum):
+  QUIET = 0
+  LOW = 1
+  MEDIUM = 2
+  HIGH = 3
+  AUTO = 4
+
+
 
 class Properties(object):
   @classmethod
@@ -320,6 +337,26 @@ class HumidifierProperties(Properties):
     'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: HumidifierWater[x]}})
   workmode: HumidifierWorkMode = field(default=HumidifierWorkMode.NORMAL, metadata={'base_type': 'integer', 'read_only': False,
     'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: HumidifierWorkMode[x]}})
+
+
+@dataclass_json
+@dataclass
+class FglProperties(Properties):
+  operation_mode: FglOperationMode = field(default=FglOperationMode.AUTO, metadata={'base_type': 'integer', 'read_only': False,
+    'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: FglOperationMode[x]}})
+  fan_speed: FglFanSpeed = field(default=FglFanSpeed.AUTO, metadata={'base_type': 'integer', 'read_only': False,
+    'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: FglFanSpeed[x]}})
+  adjust_temperature: int = field(default=25, metadata={'base_type': 'integer', 'read_only': False})
+  af_vertical_move_step1: int = field(default=3, metadata={'base_type': 'integer', 'read_only': False})
+  af_vertical_direction: int = field(default=3, metadata={'base_type': 'integer', 'read_only': False})
+  af_vertical_swing: AirFlow = field(default=AirFlow.OFF, metadata={'base_type': 'boolean', 'read_only': False,
+    'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: AirFlow[x]}})  # HorizontalAirFlow
+  af_horizontal_move_step1: int = field(default=3, metadata={'base_type': 'integer', 'read_only': False})
+  af_horizontal_direction: int = field(default=3, metadata={'base_type': 'integer', 'read_only': False})
+  af_horizontal_swing: AirFlow = field(default=AirFlow.OFF, metadata={'base_type': 'boolean', 'read_only': False,
+    'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: AirFlow[x]}})  # HorizontalAirFlow
+  economy_mode: Economy = field(default=Economy.OFF, metadata={'base_type': 'boolean', 'read_only': False,
+    'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: Economy[x]}})
 
 
 @dataclass
@@ -760,7 +797,7 @@ def ParseArguments() -> argparse.Namespace:
                           choices={'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG'},
                           help='Minimal log level.')
   arg_parser.add_argument('--device_type', default='ac',
-                          choices={'ac', 'humidifier'},
+                          choices={'ac', 'fgl', 'humidifier'},
                           help='Minimal log level.')
   return arg_parser.parse_args()
 
@@ -787,6 +824,8 @@ if __name__ == '__main__':
   _config = Config()
   if _parsed_args.device_type == 'ac':
     _data = Data(properties=AcProperties())
+  elif _parsed_args.device_type == 'fgl':
+    _data = Data(properties=FglProperties())
   elif _parsed_args.device_type == 'humidifier':
     _data = Data(properties=HumidifierProperties())
   else:
