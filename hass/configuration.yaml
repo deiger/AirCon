@@ -12,6 +12,8 @@ climate:
       - "medium"
       - "high"
       - "higher"
+    max_temp: "86"
+    min_temp: "61"
     mode_command_topic: "hisense_ac/t_work_mode/command"
     mode_state_topic: "hisense_ac/t_work_mode/status"
     modes:
@@ -22,9 +24,9 @@ climate:
       - "auto"
     power_command_topic: "hisense_ac/t_power/command"
     power_state_topic: "hisense_ac/t_power/status"
+    precision: 1.0
     swing_mode_command_topic: "hisense_ac/t_fan_power/command"
     swing_mode_state_topic: "hisense_ac/t_fan_power/status"
     temperature_command_topic: "hisense_ac/t_temp/command"
     temperature_state_topic: "hisense_ac/t_temp/status"
     temperature_unit: "F"
-    precision: 1.0
