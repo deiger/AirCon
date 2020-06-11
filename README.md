@@ -1,12 +1,12 @@
 # HiSense Air Conditioners
 
-This program implements the Ayla Networks LAN API to interact with HiSense WiFi Air Conditioner module, models AEH-W4B1 and AEH-W4E1.
+This program implements the Ayla Networks LAN API to interact with HiSense WiFi Air Conditioner module, models AEH-W4B1 and AEH-W4E1, as well as Fujitsu FGLair.
 
 As discussed [here](../../issues/1), the program doesn't seem to fit the AEH-W4A1 module, which relies on entirely different protocol (implemented by the apps [Hi-Smart Life](https://play.google.com/store/apps/details?id=com.qd.android.livehome), [AirConnect](https://play.google.com/store/apps/details?id=com.oem.android.airconnect), [Smart Cool](https://play.google.com/store/apps/details?id=com.oem.android.livehome), [AC WIFI](https://play.google.com/store/apps/details?id=com.oem.android.ecold) and [טורנדו WiFi](https://play.google.com/store/apps/details?id=com.oem.android.tornadowifi)). Please let me know if you have a different experience, or tried it with other modules.
 
 The module is installed in A/Cs and humidifiers that are either manufactured or only branded by many other companies. These include Beko, Westinghouse, Winia, Tornado, York and more.
 
-**This program is not affiliated with Ayla Networks, HiSense, any of it's subsidiaries, or any of its resellers.**
+**This program is not affiliated with Ayla Networks, HiSense, Fujitsu, any of their subsidiaries, or any of their resellers.**
 
 ## Prerequisites
 
@@ -59,6 +59,11 @@ The module is installed in A/Cs and humidifiers that are either manufactured or 
    - `--port` or `-p` - Port for the web server.
    - `--ip` - The IP address for the A/C.
    - `--config` - The config file with the credentials to connect to the A/C.
+   - `--device_type` - Choose which configuration to use:
+      - `ac` - Hisense based A/C (default)
+      - `humidifier` - Hisense Humidifier
+      - `fgl` - Fujitsu FGLair, models AP-WA?E, AP-WC?E, AP-WD?E, AP-WF?E
+      - `fgl_b` - Fujitsu FGLair, models AP-WB?E
    - `--mqtt_host` - The MQTT broker hostname or IP address. Must be set to enable MQTT.
    - `--mqtt_port` - The MQTT broker port. Default is 1883.
    - `--mqtt_client_id` - The MQTT client ID. If not set, a random client ID will be generated.
