@@ -795,6 +795,9 @@ def ParseArguments() -> argparse.Namespace:
                           help='IP address for the AC.')
   arg_parser.add_argument('--config', required=True,
                           help='LAN Config file.')
+  arg_parser.add_argument('--device_type', default='ac',
+                          choices={'ac', 'fgl', 'fgl_b', 'humidifier'},
+                          help='Device type (for systems other than Hisense A/C).')
   arg_parser.add_argument('--mqtt_host', default=None,
                           help='MQTT broker hostname or IP address.')
   arg_parser.add_argument('--mqtt_port', type=int, default=1883,
@@ -807,9 +810,6 @@ def ParseArguments() -> argparse.Namespace:
                           help='MQTT topic.')
   arg_parser.add_argument('--log_level', default='WARNING',
                           choices={'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG'},
-                          help='Minimal log level.')
-  arg_parser.add_argument('--device_type', default='ac',
-                          choices={'ac', 'fgl', 'fgl_b', 'humidifier'},
                           help='Minimal log level.')
   return arg_parser.parse_args()
 
