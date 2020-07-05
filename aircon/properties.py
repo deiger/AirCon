@@ -1,39 +1,114 @@
-#!/usr/bin/env python3.7
-"""
-Properties for the air conditioner module server.
-"""
-
-__author__ = 'droreiger@gmail.com (Dror Eiger)'
-
-import argparse
-import base64
-from dataclasses import dataclass, field, fields
+from dataclasses import dataclass, field
 from dataclasses_json import dataclass_json
 import enum
-import hmac
-from http.client import HTTPConnection, InvalidURL
-from http.server import HTTPServer, BaseHTTPRequestHandler
-from http import HTTPStatus
-import json
-import logging
-import logging.handlers
-import math
-import paho.mqtt.client as mqtt
-import queue
-import random
-from retry import retry
-import socket
-import string
-import sys
-import threading
-import time
-import typing
-from urllib.parse import parse_qs, urlparse, ParseResult
 
-from Crypto.Cipher import AES
+class AirFlow(enum.IntEnum):
+  OFF = 0
+  VERTICAL_ONLY = 1
+  HORIZONTAL_ONLY = 2
+  VERTICAL_AND_HORIZONTAL = 3
 
+class FanSpeed(enum.IntEnum):
+  AUTO = 0
+  LOWER = 5
+  LOW = 6
+  MEDIUM = 7
+  HIGH = 8
+  HIGHER = 9
 
-class AirFlowState(enum.IntEnum):
+class SleepMode(enum.IntEnum):
+  STOP = 0
+  ONE = 1
+  TWO = 2
+  THREE = 3
+  FOUR = 4
+
+class StateMachine(enum.IntEnum):
+  FANONLY = 0
+  HEAT = 1
+  COOL = 2
+  DRY = 3
+  AUTO = 4
+  FAULTSHIELD = 5
+  POWEROFF = 6
+  OFFLINE = 7
+  READONLYSHARED = 8
+
+class AcWorkMode(enum.IntEnum):
+  FAN = 0
+  HEAT = 1
+  COOL = 2
+  DRY = 3
+  AUTO = 4
+
+class AirFlow(enum.Enum):
+  OFF = 0
+  ON = 1
+
+class DeviceErrorStatus(enum.Enum):
+  NORMALSTATE = 0
+  FAULTSTATE = 1
+
+class Dimmer(enum.Enum):
+  ON = 0
+  OFF = 1
+
+class DoubleFrequency(enum.Enum):
+  OFF = 0
+class AirFlow(enum.IntEnum):
+  OFF = 0
+  VERTICAL_ONLY = 1
+  HORIZONTAL_ONLY = 2
+  VERTICAL_AND_HORIZONTAL = 3
+
+class FanSpeed(enum.IntEnum):
+  AUTO = 0
+  LOWER = 5
+  LOW = 6
+  MEDIUM = 7
+  HIGH = 8
+  HIGHER = 9
+
+class SleepMode(enum.IntEnum):
+  STOP = 0
+  ONE = 1
+  TWO = 2
+  THREE = 3
+  FOUR = 4
+
+class StateMachine(enum.IntEnum):
+  FANONLY = 0
+  HEAT = 1
+  COOL = 2
+  DRY = 3
+  AUTO = 4
+  FAULTSHIELD = 5
+  POWEROFF = 6
+  OFFLINE = 7
+  READONLYSHARED = 8
+
+class AcWorkMode(enum.IntEnum):
+  FAN = 0
+  HEAT = 1
+  COOL = 2
+  DRY = 3
+  AUTO = 4
+
+class AirFlow(enum.Enum):
+  OFF = 0
+  ON = 1
+
+class DeviceErrorStatus(enum.Enum):
+  NORMALSTATE = 0
+  FAULTSTATE = 1
+
+class Dimmer(enum.Enum):
+  ON = 0
+  OFF = 1
+
+class DoubleFrequency(enum.Enum):
+  OFF = 0
+class AirFlow(enum.IntEnum):
   OFF = 0
   VERTICAL_ONLY = 1
   HORIZONTAL_ONLY = 2
@@ -206,7 +281,7 @@ class AcProperties(Properties):
   t_fan_leftright: AirFlow = field(default=AirFlow.OFF, metadata={'base_type': 'boolean', 'read_only': False,
     'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: AirFlow[x]}})  # HorizontalAirFlow
   t_fan_mute: Quiet = field(default=Quiet.OFF, metadata={'base_type': 'boolean', 'read_only': False,
-    'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: Quite[x]}})  # QuiteModeStatus
+    'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: Quiet[x]}})  # QuietModeStatus
   t_fan_power: AirFlow = field(default=AirFlow.OFF, metadata={'base_type': 'boolean', 'read_only': False,
     'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: AirFlow[x]}})  # VerticalAirFlow
   t_fan_speed: FanSpeed = field(default=FanSpeed.AUTO, metadata={'base_type': 'integer', 'read_only': False,
