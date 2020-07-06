@@ -5,6 +5,7 @@ from http.client import HTTPConnection, InvalidURL
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import json
 import logging
+import logging.handlers
 import paho.mqtt.client as mqtt
 from retry import retry
 import socket
@@ -120,79 +121,82 @@ class QueryStatusThread(threading.Thread):
           _keep_alive.run_lock.notify()
       time.sleep(self._STATUS_UPDATE_INTERVAL)
 
-class HTTPRequestHandler(BaseHTTPRequestHandler):
-  """Handler for AC related HTTP requests."""
-  def __init__(self, device_controller: DeviceController):
-    super().__init__()
-    _query_handlers = QueryHandlers(config, data, device_controller, 
-                                  self._write_response)
-    self._HANDLERS_MAP = {
-      '/hisense/status': _query_handlers.get_status_handler,
-      '/hisense/command': _query_handlers.queue_command_handler,
-      '/local_lan/key_exchange.json': _query_handlers.key_exchange_handler,
-      '/local_lan/commands.json': _query_handlers.command_handler,
-      '/local_lan/property/datapoint.json': _query_handlers.property_update_handler,
-      '/local_lan/property/datapoint/ack.json': _query_handlers.property_update_handler,
-      '/local_lan/node/property/datapoint.json': _query_handlers.property_update_handler,
-      '/local_lan/node/property/datapoint/ack.json': _query_handlers.property_update_handler,
-      # TODO: Handle these if needed.
-      # '/local_lan/node/conn_status.json': _query_handlers.connection_status_handler,
-      # '/local_lan/connect_status': _query_handlers.module_request_handler,
-      # '/local_lan/status.json': _query_handlers.setup_device_details_handler,
-      # '/local_lan/wifi_scan.json': _query_handlers.module_request_handler,
-      # '/local_lan/wifi_scan_results.json': _query_handlers.module_request_handler,
-      # '/local_lan/wifi_status.json': _query_handlers.module_request_handler,
-      # '/local_lan/regtoken.json': _query_handlers.module_request_handler,
-      # '/local_lan/wifi_stop_ap.json': _query_handlers.module_request_handler,
-    }
+def MakeHttpRequestHandlerClass(config: Config, data: Data, device_controller: DeviceController):
+  class HTTPRequestHandler(BaseHTTPRequestHandler):
+    """Handler for AC related HTTP requests."""
+    def __init__(self, *args, **kwargs):
+      super(HTTPRequestHandler, self).__init__(*args, **kwargs)
 
-  def _queue_command(self, path: str, query: dict, data: dict):
-      self._query_handlers.queue_command_handler(path, query, data)
-      with _keep_alive.run_lock:
-        _keep_alive.run_lock.notify()
+      self._query_handlers = QueryHandlers(config, data, device_controller, 
+                                      self._write_response)
+      self._HANDLERS_MAP = {
+        '/hisense/status': _query_handlers.get_status_handler,
+        '/hisense/command': self._queue_command,
+        '/local_lan/key_exchange.json': _query_handlers.key_exchange_handler,
+        '/local_lan/commands.json': _query_handlers.command_handler,
+        '/local_lan/property/datapoint.json': _query_handlers.property_update_handler,
+        '/local_lan/property/datapoint/ack.json': _query_handlers.property_update_handler,
+        '/local_lan/node/property/datapoint.json': _query_handlers.property_update_handler,
+        '/local_lan/node/property/datapoint/ack.json': _query_handlers.property_update_handler,
+        # TODO: Handle these if needed.
+        # '/local_lan/node/conn_status.json': _query_handlers.connection_status_handler,
+        # '/local_lan/connect_status': _query_handlers.module_request_handler,
+        # '/local_lan/status.json': _query_handlers.setup_device_details_handler,
+        # '/local_lan/wifi_scan.json': _query_handlers.module_request_handler,
+        # '/local_lan/wifi_scan_results.json': _query_handlers.module_request_handler,
+        # '/local_lan/wifi_status.json': _query_handlers.module_request_handler,
+        # '/local_lan/regtoken.json': _query_handlers.module_request_handler,
+        # '/local_lan/wifi_stop_ap.json': _query_handlers.module_request_handler,
+      }
 
-  def _write_response(self, status: HTTPStatus, response: str):
-    self.do_HEAD(status)
-    self.wfile.write(response)
+    def _queue_command(self, path: str, query: dict, data: dict):
+        self._query_handlers.queue_command_handler(path, query, data)
+        with _keep_alive.run_lock:
+          _keep_alive.run_lock.notify()
 
-  def do_HEAD(self, code: HTTPStatus = HTTPStatus.OK) -> None:
-    """Return a JSON header."""
-    self.send_response(code)
-    if code == HTTPStatus.OK:
-      self.send_header('Content-type', 'application/json')
-    self.end_headers()
+    def _write_response(self, status: HTTPStatus, response: str):
+      self.do_HEAD(status)
+      self.wfile.write(response)
 
-  def do_GET(self) -> None:
-    """Accepts get requests."""
-    logging.debug('GET Request,\nPath: %s\n', self.path)
-    parsed_url = urlparse(self.path)
-    query = parse_qs(parsed_url.query)
-    handler = self._HANDLERS_MAP.get(parsed_url.path)
-    if handler:
-      try:
-        handler(self, parsed_url.path, query, {})
-        return
-      except:
-        logging.exception('Failed to parse property.')
-    self.do_HEAD(HTTPStatus.NOT_FOUND)
+    def do_HEAD(self, code: HTTPStatus = HTTPStatus.OK) -> None:
+      """Return a JSON header."""
+      self.send_response(code)
+      if code == HTTPStatus.OK:
+        self.send_header('Content-type', 'application/json')
+      self.end_headers()
 
-  def do_POST(self):
-    """Accepts post requests."""
-    content_length = int(self.headers['Content-Length'])
-    post_data = self.rfile.read(content_length)
-    logging.debug('POST request,\nPath: %s\nHeaders:\n%s\n\nBody:\n%s\n',
-                  str(self.path), str(self.headers), post_data.decode('utf-8'))
-    parsed_url = urlparse(self.path)
-    query = parse_qs(parsed_url.query)
-    data = json.loads(post_data)
-    handler = self._HANDLERS_MAP.get(parsed_url.path)
-    if handler:
-      try:
-        handler(self, parsed_url.path, query, data)
-        return
-      except:
-        logging.exception('Failed to parse property.')
-    self.do_HEAD(HTTPStatus.NOT_FOUND)
+    def do_GET(self) -> None:
+      """Accepts get requests."""
+      logging.debug('GET Request,\nPath: %s\n', self.path)
+      parsed_url = urlparse(self.path)
+      query = parse_qs(parsed_url.query)
+      handler = self._HANDLERS_MAP.get(parsed_url.path)
+      if handler:
+        try:
+          handler(self, parsed_url.path, query, {})
+          return
+        except:
+          logging.exception('Failed to parse property.')
+      self.do_HEAD(HTTPStatus.NOT_FOUND)
+
+    def do_POST(self):
+      """Accepts post requests."""
+      content_length = int(self.headers['Content-Length'])
+      post_data = self.rfile.read(content_length)
+      logging.debug('POST request,\nPath: %s\nHeaders:\n%s\n\nBody:\n%s\n',
+                    str(self.path), str(self.headers), post_data.decode('utf-8'))
+      parsed_url = urlparse(self.path)
+      query = parse_qs(parsed_url.query)
+      data = json.loads(post_data)
+      handler = self._HANDLERS_MAP.get(parsed_url.path)
+      if handler:
+        try:
+          handler(self, parsed_url.path, query, data)
+          return
+        except:
+          logging.exception('Failed to parse property.')
+      self.do_HEAD(HTTPStatus.NOT_FOUND)
+  return HTTPRequestHandler
 
 def ParseArguments() -> argparse.Namespace:
   """Parse command line arguments."""
@@ -242,7 +246,7 @@ if __name__ == '__main__':
   logger.setLevel(parsed_args.log_level)
   logger.addHandler(logging_handler)
 
-  config = Config() # TODO: Why it is not used?
+  config = Config(config_file=parsed_args.config) # TODO: Why it is not used?
   if parsed_args.device_type == 'ac':
     data = Data(properties=AcProperties())
   elif parsed_args.device_type == 'fgl':
@@ -264,6 +268,7 @@ if __name__ == '__main__':
       mqtt_client.username_pw_set(*parsed_args.mqtt_user.split(':',1))
     mqtt_client.connect(parsed_args.mqtt_host, parsed_args.mqtt_port)
     mqtt_client.loop_start()
+    data.change_listener = mqtt_client.mqtt_publish_update
 
   _keep_alive = None  # type: typing.Optional[KeepAliveThread]
 
@@ -273,8 +278,7 @@ if __name__ == '__main__':
   _keep_alive = KeepAliveThread(parsed_args.ip, parsed_args.port, data)
   _keep_alive.start()
 
-  request_handler = HTTPRequestHandler(device_controller)
-  httpd = HTTPServer(('', parsed_args.port), request_handler)
+  httpd = HTTPServer(('', parsed_args.port), MakeHttpRequestHandlerClass(config, data, device_controller))
   try:
     httpd.serve_forever()
   except KeyboardInterrupt:

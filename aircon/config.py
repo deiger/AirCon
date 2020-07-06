@@ -41,7 +41,8 @@ class Config:
   dev: Encryption
   _config_file: str
 
-  def __init__(self):
+  def __init__(self, config_file: str):
+    self._config_file = config_file
     with open(self._config_file, 'rb') as f:
       self.lan_config = LanConfig.from_json(f.read().decode('utf-8'))
     self._update_encryption()

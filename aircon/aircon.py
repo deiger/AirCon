@@ -22,14 +22,12 @@ HiSense server. In order to get that value, you'll need to run query_cli.py
 The code here relies on Python 3.7
 If running in Raspberry Pi, install Python 3.7 manually.
 """
-
 from dataclasses import fields
 import enum
 import random
 import string
 from Crypto.Cipher import AES
 
-from . import aircon
 from .error import Error
 from .properties import FastColdHeat
 from .store import Data

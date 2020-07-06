@@ -2,9 +2,9 @@ from dataclasses import dataclass
 import logging
 import queue
 import threading
+from typing import Callable
 
 from . import aircon
-from .mqtt_client import MqttClient
 from .properties import Properties
 
 @dataclass
@@ -17,7 +17,7 @@ class Data:
   updates_seq_no_lock = threading.Lock()
   properties: Properties
   properties_lock = threading.Lock()
-  _mqtt_client: MqttClient
+  change_listener: Callable[[str, str], None] = None
 
   def get_property(self, name: str):
     """Get a stored property."""
@@ -31,4 +31,5 @@ class Data:
       if value != old_value:
         setattr(self.properties, name, value)
         logging.debug('Updated properties: %s' % self.properties)
-      self._mqtt_client.mqtt_publish_update(name, value)
+      if (self.change_listener != None):
+        self.change_listener(name, value)
