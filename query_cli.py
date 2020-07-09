@@ -78,6 +78,10 @@ _SECRET_ID_EXTRA_MAP = {
 }
 _USER_AGENT = 'Dalvik/2.1.0 (Linux; U; Android 9.0; SM-G850F Build/LRX22G)'
 
+def escape_name(name: str):
+  safe_name = name.replace(' ', '_').lower()
+  return "".join(x for x in safe_name if x.isalnum())
+  
 if __name__ == '__main__':
   arg_parser = argparse.ArgumentParser(
       description='Command Line to query HiSense server.',
@@ -91,8 +95,8 @@ if __name__ == '__main__':
                           help='Password for the app login.')
   arg_parser.add_argument('-d', '--device', default=None,
                           help='Device name to fetch data for. If not set, takes the first.')
-  arg_parser.add_argument('--config', required=True,
-                          help='Config file to write to.')
+  arg_parser.add_argument('--prefix', required=False, default='config_',
+                          help='Config file prefix.')
   arg_parser.add_argument('--properties', type=bool, default=False,
                           help='Fetch the properties for the device.')
   args = arg_parser.parse_args()
@@ -194,48 +198,45 @@ if __name__ == '__main__':
     logging.error('No device is configured! Please configure a device first.')
     sys.exit(1)
   logging.info('Found devices: %r', devices)
-  if args.device:
-    for device in devices:
-      device = device
-      if device['device']['product_name'] == args.device:
-        break
-    else:
-      logging.error('No device named "%s" was found!', args.device)
-      sys.exit(1)
-  else:
-    device = devices[0]
-  dsn = device['device']['dsn']
-  conn.request('GET', '/apiv1/dsns/{}/lan.json'.format(dsn), headers=headers)
-  resp = conn.getresponse()
-  if resp.status != 200:
-    logging.error('Failed to get device data from Hisense server: %r', resp)
-    sys.exit(1)
-  resp_data = resp.read()
-  try:
-    resp_data = gzip.decompress(resp_data)
-  except OSError:
-    pass  # Not gzipped.
-  lanip = json.loads(resp_data)['lanip']
-  if args.properties:
-    conn.request('GET', '/apiv1/dsns/{}/properties.json'.format(dsn), headers=headers)
+  for device in devices:
+    if args.device and args.device != device['device']['product_name']:
+      continue
+    dsn = device['device']['dsn']
+    conn.request('GET', '/apiv1/dsns/{}/lan.json'.format(dsn), headers=headers)
     resp = conn.getresponse()
     if resp.status != 200:
-      logging.error('Failed to get properties data from Hisense server: %r', resp)
+      logging.error('Failed to get device data from Hisense server: %r', resp)
       sys.exit(1)
     resp_data = resp.read()
     try:
       resp_data = gzip.decompress(resp_data)
     except OSError:
       pass  # Not gzipped.
-    logging.info('Properties:\n%s', json.dumps(json.loads(resp_data), indent=2))
-  conn.close()
-  config = {
-    'lanip_key': lanip['lanip_key'],
-    'lanip_key_id': lanip['lanip_key_id'],
-    'random_1': '',
-    'time_1': 0,
-    'random_2': '',
-    'time_2': 0
-  }
-  with open(args.config, 'w') as f:
-    f.write(json.dumps(config))
+    lanip = json.loads(resp_data)['lanip']
+    properties = ''
+    if args.properties:
+      conn.request('GET', '/apiv1/dsns/{}/properties.json'.format(dsn), headers=headers)
+      resp = conn.getresponse()
+      if resp.status != 200:
+        logging.error('Failed to get properties data from Hisense server: %r', resp)
+        sys.exit(1)
+      resp_data = resp.read()
+      try:
+        resp_data = gzip.decompress(resp_data)
+      except OSError:
+        pass  # Not gzipped.
+      properties = 'Properties:\n%s', json.dumps(json.loads(resp_data), indent=2)
+    logging.info('Device %s has:\nIP address: %s\nlanip_key: %s\nlanip_key_id: %s\n%s\n', 
+                 device['device']['product_name'], device['device']['lan_ip'], 
+                 lanip['lanip_key'], lanip['lanip_key_id'], properties)
+    conn.close()
+    config = {
+      'lanip_key': lanip['lanip_key'],
+      'lanip_key_id': lanip['lanip_key_id'],
+      'random_1': '',
+      'time_1': 0,
+      'random_2': '',
+      'time_2': 0
+    }
+    with open(args.prefix + escape_name(device['device']['product_name']) + '.json', 'w') as f:
+      f.write(json.dumps(config))

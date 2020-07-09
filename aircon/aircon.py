@@ -20,7 +20,6 @@ The lanip_key, on the other hand, is generated only on the
 HiSense server. In order to get that value, you'll need to run query_cli.py
 
 The code here relies on Python 3.7
-If running in Raspberry Pi, install Python 3.7 manually.
 """
 from dataclasses import fields
 import enum
@@ -68,25 +67,39 @@ class DeviceController:
 
     # Handle turning on FastColdHeat
     if name == 't_temp_heatcold' and typed_value is FastColdHeat.ON:
-      self.queue_command('t_fan_speed', 'AUTO', True)
-      self.queue_command('t_fan_mute', 'OFF', True)
-      self.queue_command('t_sleep', 'STOP', True)
-      self.queue_command('t_temp_eight', 'OFF', True)
+      self.queue_command('t_fan_speed', 'AUTO')
+      self.queue_command('t_fan_mute', 'OFF')
+      self.queue_command('t_sleep', 'STOP')
+      self.queue_command('t_temp_eight', 'OFF')
 
   def queue_status(self) -> None:
     for data_field in fields(self._data.properties):
-        command = {
-          'cmds': [{
-            'cmd': {
-              'method': 'GET',
-              'resource': 'property.json?name=' + data_field.name,
-              'uri': '/local_lan/property/datapoint.json',
-              'data': '',
-              'cmd_id': self._next_command_id,
-            }
-          }]
-        }
-        self._next_command_id += 1
-        self._data.commands_queue.put_nowait((command, None))
-        # TODO: Check if it can be done in one request. 
-        # And if we can merge commands when queue has more elements
+      command = {
+        'cmds': [{
+          'cmd': {
+            'method': 'GET',
+            'resource': 'property.json?name=' + data_field.name,
+            'uri': '/local_lan/property/datapoint.json',
+            'data': '',
+            'cmd_id': self._next_command_id,
+          }
+        }]
+      }
+      self._next_command_id += 1
+      self._data.commands_queue.put_nowait((command, None))
+      # TODO: Check if it can be done in one request. 
+      # And if we can merge commands when queue has more elements
+
+  def queue_status_bulk(self) -> None:
+    command = {'cmds': []}
+    for data_field in fields(self._data.properties):
+      command['cmds'].append({
+        'cmd': {
+          'method': 'GET',
+          'resource': 'property.json?name=' + data_field.name,
+          'uri': '/local_lan/property/datapoint.json',
+          'data': '',
+          'cmd_id': self._next_command_id,
+        }})
+      self._next_command_id += 1
+    self._data.commands_queue.put_nowait((command, None))

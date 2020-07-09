@@ -35,18 +35,10 @@ class KeepAliveThread(threading.Thread):
     self._host = host
     self._port = port
     self._data = data
-    sock = None
-    try:
-      sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-      sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-      sock.connect(('10.255.255.255', 1))
-      local_ip = sock.getsockname()[0]
-    finally:
-      if sock:
-        sock.close()
+    local_ip = self._get_local_ip()
     self._headers = {
       'Accept': 'application/json',
-      'Connection': 'Keep-Alive',
+      'Connection': 'keep-alive',
       'Content-Type': 'application/json',
       'Host': self._host,
       'Accept-Encoding': 'gzip'
@@ -61,15 +53,27 @@ class KeepAliveThread(threading.Thread):
     }
     super(KeepAliveThread, self).__init__(name='Keep Alive thread')
 
+  def _get_local_ip(self):
+    sock = None
+    try:
+      sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+      sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+      sock.connect(('10.255.255.255', 1))
+      return sock.getsockname()[0]
+    finally:
+      if sock:
+        sock.close()
+
   @retry(exceptions=ConnectionError, delay=0.5, max_delay=20, backoff=1.5, logger=logging)
   def _establish_connection(self, conn: HTTPConnection) -> None:
     method = 'PUT' if self._alive else 'POST'
-    logging.debug('%s /local_reg.json %s', method, json.dumps(self._json))
+    logging.debug('[KeepAlive] %s /local_reg.json %s', method, json.dumps(self._json))
     try:
+      logging.debug('[KeepAlive] Sending data to %s. Data: %s', conn.host, json.dumps(self._json))
       conn.request(method, '/local_reg.json', json.dumps(self._json), self._headers)
       resp = conn.getresponse()
       if resp.status != HTTPStatus.ACCEPTED:
-        raise ConnectionError('Recieved invalid response for local_reg: ' + repr(resp))
+        raise ConnectionError('Recieved invalid response for local_reg: %d, %s', resp.status, resp.read())
       resp.read()
     except:
       self._alive = False
@@ -91,6 +95,7 @@ class KeepAliveThread(threading.Thread):
           self._establish_connection(conn)
         except:
           logging.exception('Failed to send local_reg keep alive to the AC.')
+        logging.debug('[KeepAlive] Waiting for notification or timeout %d', self._data.commands_queue.qsize())
         self._json['local_reg']['notify'] = int(
             self._data.commands_queue.qsize() > 0 or self.run_lock.wait(self._KEEP_ALIVE_INTERVAL))
 
@@ -118,26 +123,25 @@ class QueryStatusThread(threading.Thread):
       self._device_controller.queue_status()
       if _keep_alive:
         with _keep_alive.run_lock:
+          logging.debug('QueryStatusThread triggered KeepAlive notify')
           _keep_alive.run_lock.notify()
       time.sleep(self._STATUS_UPDATE_INTERVAL)
 
 def MakeHttpRequestHandlerClass(config: Config, data: Data, device_controller: DeviceController):
   class HTTPRequestHandler(BaseHTTPRequestHandler):
     """Handler for AC related HTTP requests."""
-    def __init__(self, *args, **kwargs):
-      super(HTTPRequestHandler, self).__init__(*args, **kwargs)
-
+    def __init__(self, request, client_address, server):
       self._query_handlers = QueryHandlers(config, data, device_controller, 
                                       self._write_response)
       self._HANDLERS_MAP = {
-        '/hisense/status': _query_handlers.get_status_handler,
+        '/hisense/status': self._query_handlers.get_status_handler,
         '/hisense/command': self._queue_command,
-        '/local_lan/key_exchange.json': _query_handlers.key_exchange_handler,
-        '/local_lan/commands.json': _query_handlers.command_handler,
-        '/local_lan/property/datapoint.json': _query_handlers.property_update_handler,
-        '/local_lan/property/datapoint/ack.json': _query_handlers.property_update_handler,
-        '/local_lan/node/property/datapoint.json': _query_handlers.property_update_handler,
-        '/local_lan/node/property/datapoint/ack.json': _query_handlers.property_update_handler,
+        '/local_lan/key_exchange.json': self._query_handlers.key_exchange_handler,
+        '/local_lan/commands.json': self._query_handlers.command_handler,
+        '/local_lan/property/datapoint.json': self._query_handlers.property_update_handler,
+        '/local_lan/property/datapoint/ack.json': self._query_handlers.property_update_handler,
+        '/local_lan/node/property/datapoint.json': self._query_handlers.property_update_handler,
+        '/local_lan/node/property/datapoint/ack.json': self._query_handlers.property_update_handler,
         # TODO: Handle these if needed.
         # '/local_lan/node/conn_status.json': _query_handlers.connection_status_handler,
         # '/local_lan/connect_status': _query_handlers.module_request_handler,
@@ -148,15 +152,18 @@ def MakeHttpRequestHandlerClass(config: Config, data: Data, device_controller: D
         # '/local_lan/regtoken.json': _query_handlers.module_request_handler,
         # '/local_lan/wifi_stop_ap.json': _query_handlers.module_request_handler,
       }
+      super(HTTPRequestHandler, self).__init__(request, client_address, server)
 
     def _queue_command(self, path: str, query: dict, data: dict):
         self._query_handlers.queue_command_handler(path, query, data)
         with _keep_alive.run_lock:
+          logging.debug("_queue_command triggered KeepAlive notify")
           _keep_alive.run_lock.notify()
 
     def _write_response(self, status: HTTPStatus, response: str):
       self.do_HEAD(status)
-      self.wfile.write(response)
+      if (response != None):
+        self.wfile.write(response)
 
     def do_HEAD(self, code: HTTPStatus = HTTPStatus.OK) -> None:
       """Return a JSON header."""
@@ -173,7 +180,7 @@ def MakeHttpRequestHandlerClass(config: Config, data: Data, device_controller: D
       handler = self._HANDLERS_MAP.get(parsed_url.path)
       if handler:
         try:
-          handler(self, parsed_url.path, query, {})
+          handler(parsed_url.path, query, {})
           return
         except:
           logging.exception('Failed to parse property.')
@@ -191,7 +198,7 @@ def MakeHttpRequestHandlerClass(config: Config, data: Data, device_controller: D
       handler = self._HANDLERS_MAP.get(parsed_url.path)
       if handler:
         try:
-          handler(self, parsed_url.path, query, data)
+          handler(parsed_url.path, query, data)
           return
         except:
           logging.exception('Failed to parse property.')
@@ -233,7 +240,8 @@ if __name__ == '__main__':
   if sys.platform == 'linux':
     logging_handler = logging.handlers.SysLogHandler(address='/dev/log')
   elif sys.platform == 'darwin':
-    logging_handler = logging.handlers.SysLogHandler(address='/var/run/syslog')
+    logging_handler = logging.StreamHandler(sys.stderr)
+    #logging_handler = logging.handlers.SysLogHandler(address='/var/run/syslog')
   elif sys.platform.lower() in ['windows', 'win32']:
     logging_handler = logging.handlers.SysLogHandler()
   else:  # Unknown platform, revert to stderr
@@ -245,8 +253,9 @@ if __name__ == '__main__':
   logger = logging.getLogger()
   logger.setLevel(parsed_args.log_level)
   logger.addHandler(logging_handler)
+  logging.info('Starting server')
 
-  config = Config(config_file=parsed_args.config) # TODO: Why it is not used?
+  config = Config(config_file=parsed_args.config)
   if parsed_args.device_type == 'ac':
     data = Data(properties=AcProperties())
   elif parsed_args.device_type == 'fgl':
