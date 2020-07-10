@@ -8,6 +8,7 @@ import logging
 import logging.handlers
 import paho.mqtt.client as mqtt
 from retry import retry
+import signal
 import socket
 import sys
 import threading
@@ -16,9 +17,11 @@ import _thread
 from urllib.parse import parse_qs, urlparse, ParseResult
 
 from . import aircon
+from .app_mappings import SECRET_MAP
 from .config import Config
 from .error import Error
 from .aircon import DeviceController
+from .discovery import perform_discovery
 from .properties import AcProperties, FglProperties, FglBProperties, HumidifierProperties
 from .store import Data
 from .mqtt_client import MqttClient
@@ -210,33 +213,49 @@ def ParseArguments() -> argparse.Namespace:
   arg_parser = argparse.ArgumentParser(
       description='JSON server for HiSense air conditioners.',
       allow_abbrev=False)
-  arg_parser.add_argument('-p', '--port', required=True, type=int,
-                          help='Port for the server.')
-  arg_parser.add_argument('--ip', required=True,
-                          help='IP address for the AC.')
-  arg_parser.add_argument('--config', required=True,
-                          help='LAN Config file.')
-  arg_parser.add_argument('--device_type', default='ac',
-                          choices={'ac', 'fgl', 'fgl_b', 'humidifier'},
-                          help='Device type (for systems other than Hisense A/C).')
-  arg_parser.add_argument('--mqtt_host', default=None,
-                          help='MQTT broker hostname or IP address.')
-  arg_parser.add_argument('--mqtt_port', type=int, default=1883,
-                          help='MQTT broker port.')
-  arg_parser.add_argument('--mqtt_client_id', default=None,
-                          help='MQTT client ID.')
-  arg_parser.add_argument('--mqtt_user', default=None,
-                          help='<user:password> for the MQTT channel.')
-  arg_parser.add_argument('--mqtt_topic', default='hisense_ac',
-                          help='MQTT topic.')
   arg_parser.add_argument('--log_level', default='WARNING',
                           choices={'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG'},
                           help='Minimal log level.')
+  subparsers = arg_parser.add_subparsers(dest='cmd',
+                                        help='Determines what server should do')
+  subparsers.required = True
+
+  parser_run = subparsers.add_parser('run', help='Runs the server to control the device')
+  parser_run.add_argument('-p', '--port', required=True, type=int,
+                          help='Port for the server.')
+  parser_run.add_argument('--ip', required=True,
+                          help='IP address for the AC.')
+  parser_run.add_argument('--config', required=True,
+                          help='LAN Config file.')
+  parser_run.add_argument('--device_type', default='ac',
+                          choices={'ac', 'fgl', 'fgl_b', 'humidifier'},
+                          help='Device type (for systems other than Hisense A/C).')
+  parser_run.add_argument('--mqtt_host', default=None,
+                          help='MQTT broker hostname or IP address.')
+  parser_run.add_argument('--mqtt_port', type=int, default=1883,
+                          help='MQTT broker port.')
+  parser_run.add_argument('--mqtt_client_id', default=None,
+                          help='MQTT client ID.')
+  parser_run.add_argument('--mqtt_user', default=None,
+                          help='<user:password> for the MQTT channel.')
+  parser_run.add_argument('--mqtt_topic', default='hisense_ac',
+                          help='MQTT topic.')
+
+  parser_discovery = subparsers.add_parser('discovery', help='Runs the device discovery')
+  parser_discovery.add_argument('app',
+                          choices=set(SECRET_MAP),
+                          help='The app used for the login.')
+  parser_discovery.add_argument('user', help='Username for the app login.')
+  parser_discovery.add_argument('passwd', help='Password for the app login.')
+  parser_discovery.add_argument('-d', '--device', default=None,
+                          help='Device name to fetch data for. If not set, takes all.')
+  parser_discovery.add_argument('--prefix', required=False, default='config_',
+                          help='Config file prefix.')
+  parser_discovery.add_argument('--properties', type=bool, default=False,
+                          help='Fetch the properties for the device.')
   return arg_parser.parse_args()
 
-if __name__ == '__main__':
-  parsed_args = ParseArguments()  # type: argparse.Namespace
-
+def setup_logger(log_level):
   if sys.platform == 'linux':
     logging_handler = logging.handlers.SysLogHandler(address='/dev/log')
   elif sys.platform == 'darwin':
@@ -251,10 +270,10 @@ if __name__ == '__main__':
                         '{filename}:{lineno}] {message}',
                          datefmt='%m%d %H:%M:%S', style='{'))
   logger = logging.getLogger()
-  logger.setLevel(parsed_args.log_level)
+  logger.setLevel(log_level)
   logger.addHandler(logging_handler)
-  logging.info('Starting server')
 
+def run(parsed_args):
   config = Config(config_file=parsed_args.config)
   if parsed_args.device_type == 'ac':
     data = Data(properties=AcProperties())
@@ -279,6 +298,7 @@ if __name__ == '__main__':
     mqtt_client.loop_start()
     data.change_listener = mqtt_client.mqtt_publish_update
 
+  global _keep_alive 
   _keep_alive = None  # type: typing.Optional[KeepAliveThread]
 
   query_status = QueryStatusThread(data, device_controller)
@@ -292,4 +312,33 @@ if __name__ == '__main__':
     httpd.serve_forever()
   except KeyboardInterrupt:
     pass
-  httpd.server_close()
+  finally:
+    httpd.server_close()
+
+def _escape_name(name: str):
+  safe_name = name.replace(' ', '_').lower()
+  return "".join(x for x in safe_name if x.isalnum())
+
+def discovery(parsed_args):
+  all_configs = perform_discovery(parsed_args.app, parsed_args.user, parsed_args.passwd, 
+                   parsed_args.prefix, parsed_args.device, parsed_args.properties)
+  for config in all_configs:
+    file_content = {
+      'lanip_key': config['lanip_key'],
+      'lanip_key_id': config['lanip_key_id'],
+      'random_1': '',
+      'time_1': 0,
+      'random_2': '',
+      'time_2': 0
+    }
+    with open(parsed_args.prefix + _escape_name(config['product_name']) + '.json', 'w') as f:
+      f.write(json.dumps(file_content))
+
+if __name__ == '__main__':
+  parsed_args = ParseArguments()  # type: argparse.Namespace
+  setup_logger(parsed_args.log_level)
+
+  if (parsed_args.cmd == 'run'):
+    run(parsed_args)
+  elif (parsed_args.cmd == 'discovery'):
+    discovery(parsed_args)

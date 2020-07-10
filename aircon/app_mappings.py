@@ -1,30 +1,15 @@
-#!/usr/bin/env python3.7
-"""
-App mappings for the HiSense servers query CLI.
-"""
 
-__author__ = 'droreiger@gmail.com (Dror Eiger)'
-
-import argparse
-import base64
-import gzip
-import json
-import logging
-import ssl
-import sys
-from http.client import HTTPSConnection
-
-_AYLA_USER_SERVERS = {
+AYLA_USER_SERVERS = {
   'us': 'user-field.aylanetworks.com',
   'eu': 'user-field-eu.aylanetworks.com',
   'cn': 'user-field.ayla.com.cn',
 }
-_AYLA_DEVICES_SERVERS = {
+AYLA_DEVICES_SERVERS = {
   'us': 'ads-field.aylanetworks.com',
   'eu': 'ads-eu.aylanetworks.com',
   'cn': 'ads-field.ayla.com.cn',
 }
-_SECRET_MAP = {
+SECRET_MAP = {
   'oem-us': b'\x1dgAPT\xd1\xa9\xec\xe2\xa2\x01\x19\xc0\x03X\x13j\xfc\xb5\x91',
   'mid-us': b'\xdeCx\xbe\x0cq8\x0b\x99\xb4Z\x93>\xfc\xcc\x9ag\x98\xf8\x14',
   'tornado-us': b'\x87O\xf2.&;X\xfb\xf6L\xfdRq\'\x0f\t6\x0c\xfd)',
@@ -46,7 +31,7 @@ _SECRET_MAP = {
   'hismart-eu': b'0\x07\xe9\x04a\xa6e\xc4\x1c\x08+"\r\x84w\x91\x8f\xa8)\x98',
   'hismart-us': b'\xd6+\x1f\xb0b\t\x19G\x87\x8c\xaak\xd0\xf8y\xf5\x933\xafp',
 }
-_SECRET_ID_MAP = {
+SECRET_ID_MAP = {
   'haxxair': 'HAXXAIR',
   'field-us': 'pactera-field-f624d97f-us',
   'fglair-cn': 'FGLairField-cn',
@@ -59,173 +44,10 @@ _SECRET_ID_MAP = {
   'hismart-eu': 'Hismart',
   'hismart-us': 'App1',
 }
-_SECRET_ID_EXTRA_MAP = {
+SECRET_ID_EXTRA_MAP = {
   'denali-us': 'iA',
   'hisense-eu': 'mw',
   'hisense-us': 'pg',
   'hismart-eu': 'fA',
   'hismart-us': 'Lg',
 }
-_USER_AGENT = 'Dalvik/2.1.0 (Linux; U; Android 9.0; SM-G850F Build/LRX22G)'
-
-if __name__ == '__main__':
-  arg_parser = argparse.ArgumentParser(
-      description='Command Line to query HiSense server.',
-      allow_abbrev=False)
-  arg_parser.add_argument('-a', '--app', required=True,
-                          choices=set(_SECRET_MAP),
-                          help='The app used for the login.')
-  arg_parser.add_argument('-u', '--user', required=True,
-                          help='Username for the app login.')
-  arg_parser.add_argument('-p', '--passwd', required=True,
-                          help='Password for the app login.')
-  arg_parser.add_argument('-d', '--device', default=None,
-                          help='Device name to fetch data for. If not set, takes the first.')
-  arg_parser.add_argument('--config', required=True,
-                          help='Config file to write to.')
-  arg_parser.add_argument('--properties', type=bool, default=False,
-                          help='Fetch the properties for the device.')
-  args = arg_parser.parse_args()
-  logging_handler = logging.StreamHandler(stream=sys.stderr)
-  logging_handler.setFormatter(
-      logging.Formatter(fmt='{levelname[0]}{asctime}.{msecs:03.0f}  '
-                        '{filename}:{lineno}] {message}',
-                         datefmt='%m%d %H:%M:%S', style='{'))
-  logger = logging.getLogger()
-  logger.setLevel('INFO')
-  logger.addHandler(logging_handler)
-  if args.app in _SECRET_ID_MAP:
-    app_prefix = _SECRET_ID_MAP[args.app]
-  else:
-    app_prefix = 'a-Hisense-{}-field'.format(args.app)
-  if args.app in _SECRET_ID_EXTRA_MAP:
-    app_id = '-'.join((app_prefix, _SECRET_ID_EXTRA_MAP[args.app], 'id'))
-  else:
-    app_id = '-'.join((app_prefix, 'id'))
-  secret = base64.b64encode(_SECRET_MAP[args.app]).decode('utf-8').rstrip('=').replace('+', '-').replace('/', '_')
-  app_secret = '-'.join((app_prefix, secret))
-  # Extract the region from the app ID (and fallback to US)
-  region = args.app[-2:]
-  if region not in _AYLA_USER_SERVERS:
-    region = 'us'
-  user_server = _AYLA_USER_SERVERS[region]
-  devices_server = _AYLA_DEVICES_SERVERS[region]
-  ssl_context = ssl.SSLContext()
-  ssl_context.verify_mode = ssl.CERT_NONE
-  ssl_context.check_hostname = False
-  ssl_context.load_default_certs()
-  conn = HTTPSConnection(user_server, context=ssl_context)
-  query = {
-    'user': {
-      'email': args.user,
-      'password': args.passwd,
-      'application': {
-        'app_id': app_id,
-        'app_secret': app_secret
-      }
-    }
-  }
-  headers = {
-    'Accept': 'application/json',
-    'Connection': 'Keep-Alive',
-    'Authorization': 'none',
-    'Content-Type': 'application/json',
-    'User-Agent': _USER_AGENT,
-    'Host': user_server,
-    'Accept-Encoding': 'gzip'
-  }
-  logging.debug('POST /users/sign_in.json, body=%r, headers=%r' % (json.dumps(query), headers))
-  conn.request('POST', '/users/sign_in.json', body=json.dumps(query), headers=headers)
-  resp = conn.getresponse()
-  if resp.status != 200:
-    logging.error('Failed to login to Hisense server:\nStatus %d: %r',
-                  resp.status, resp.reason)
-    sys.exit(1)
-  resp_data = resp.read()
-  try:
-    resp_data = gzip.decompress(resp_data)
-  except OSError:
-    pass  # Not gzipped.
-  try:
-    tokens = json.loads(resp_data)
-  except UnicodeDecodeError:
-    logging.exception('Failed to parse login tokens to Hisense server:\nData: %r',
-                      resp_data)
-    sys.exit(1)
-  conn.close()
-  conn = HTTPSConnection(devices_server, context=ssl_context)
-  headers = {
-    'Accept': 'application/json',
-    'Connection': 'Keep-Alive',
-    'Authorization': 'auth_token ' + tokens['access_token'],
-    'User-Agent': _USER_AGENT,
-    'Host': devices_server,
-    'Accept-Encoding': 'gzip'
-  }
-  logging.debug('GET /apiv1/devices.json, headers=%r' % headers)
-  conn.request('GET', '/apiv1/devices.json', headers=headers)
-  resp = conn.getresponse()
-  if resp.status != 200:
-    logging.error('Failed to get devices data from Hisense server:\nStatus %d: %r',
-                  resp.status, resp.reason)
-    sys.exit(1)
-  resp_data = resp.read()
-  try:
-    resp_data = gzip.decompress(resp_data)
-  except OSError:
-    pass  # Not gzipped.
-  try:
-    devices = json.loads(resp_data)
-  except UnicodeDecodeError:
-    logging.exception('Failed to parse devices data from Hisense server:\nData: %r',
-                      resp_data)
-    sys.exit(1)
-  if not devices:
-    logging.error('No device is configured! Please configure a device first.')
-    sys.exit(1)
-  logging.info('Found devices: %r', devices)
-  if args.device:
-    for device in devices:
-      device = device
-      if device['device']['product_name'] == args.device:
-        break
-    else:
-      logging.error('No device named "%s" was found!', args.device)
-      sys.exit(1)
-  else:
-    device = devices[0]
-  dsn = device['device']['dsn']
-  conn.request('GET', '/apiv1/dsns/{}/lan.json'.format(dsn), headers=headers)
-  resp = conn.getresponse()
-  if resp.status != 200:
-    logging.error('Failed to get device data from Hisense server: %r', resp)
-    sys.exit(1)
-  resp_data = resp.read()
-  try:
-    resp_data = gzip.decompress(resp_data)
-  except OSError:
-    pass  # Not gzipped.
-  lanip = json.loads(resp_data)['lanip']
-  if args.properties:
-    conn.request('GET', '/apiv1/dsns/{}/properties.json'.format(dsn), headers=headers)
-    resp = conn.getresponse()
-    if resp.status != 200:
-      logging.error('Failed to get properties data from Hisense server: %r', resp)
-      sys.exit(1)
-    resp_data = resp.read()
-    try:
-      resp_data = gzip.decompress(resp_data)
-    except OSError:
-      pass  # Not gzipped.
-    logging.info('Properties:\n%s', json.dumps(json.loads(resp_data), indent=2))
-  conn.close()
-  config = {
-    'lanip_key': lanip['lanip_key'],
-    'lanip_key_id': lanip['lanip_key_id'],
-    'random_1': '',
-    'time_1': 0,
-    'random_2': '',
-    'time_2': 0
-  }
-  with open(args.config, 'w') as f:
-    f.write(json.dumps(config))
