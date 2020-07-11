@@ -28,19 +28,19 @@ import string
 from Crypto.Cipher import AES
 
 from .error import Error
-from .properties import FastColdHeat
+from .properties import AcProperties, FastColdHeat, FglProperties, FglBProperties, HumidifierProperties
 from .store import Data
 
-class DeviceController:
+class BaseDevice:
   def __init__(self, data: Data):
-    self._data = data
+    self.data = data
     self._next_command_id = 0
 
   def queue_command(self, name: str, value) -> None:
-    if self._data.properties.get_read_only(name):
+    if self.data.properties.get_read_only(name):
       raise Error('Cannot update read-only property "{}".'.format(name))
-    data_type = self._data.properties.get_type(name)
-    base_type = self._data.properties.get_base_type(name)
+    data_type = self.data.properties.get_type(name)
+    base_type = self.data.properties.get_base_type(name)
     if issubclass(data_type, enum.Enum):
       data_value = data_type[value].value
     elif data_type is int and type(value) is str and '.' in value:
@@ -62,8 +62,8 @@ class DeviceController:
     # There are (usually) no acks on commands, so also queue an update to the
     # property, to be run once the command is sent.
     typed_value = data_type[value] if issubclass(data_type, enum.Enum) else data_value
-    property_updater = lambda: self._data.update_property(name, typed_value)
-    self._data.commands_queue.put_nowait((command, property_updater))
+    property_updater = lambda: self.data.update_property(name, typed_value)
+    self.data.commands_queue.put_nowait((command, property_updater))
 
     # Handle turning on FastColdHeat
     if name == 't_temp_heatcold' and typed_value is FastColdHeat.ON:
@@ -73,7 +73,7 @@ class DeviceController:
       self.queue_command('t_temp_eight', 'OFF')
 
   def queue_status(self) -> None:
-    for data_field in fields(self._data.properties):
+    for data_field in fields(self.data.properties):
       command = {
         'cmds': [{
           'cmd': {
@@ -86,20 +86,24 @@ class DeviceController:
         }]
       }
       self._next_command_id += 1
-      self._data.commands_queue.put_nowait((command, None))
-      # TODO: Check if it can be done in one request. 
-      # And if we can merge commands when queue has more elements
+      self.data.commands_queue.put_nowait((command, None))
 
-  def queue_status_bulk(self) -> None:
-    command = {'cmds': []}
-    for data_field in fields(self._data.properties):
-      command['cmds'].append({
-        'cmd': {
-          'method': 'GET',
-          'resource': 'property.json?name=' + data_field.name,
-          'uri': '/local_lan/property/datapoint.json',
-          'data': '',
-          'cmd_id': self._next_command_id,
-        }})
-      self._next_command_id += 1
-    self._data.commands_queue.put_nowait((command, None))
+class AcDevice(BaseDevice):
+  def __init__(self):
+    data = Data(properties=AcProperties())
+    super().__init__(data)
+
+class FglDevice(BaseDevice):
+  def __init__(self):
+    data = Data(properties=FglProperties())
+    super().__init__(data)
+
+class FglBProperties(BaseDevice):
+  def __init__(self):
+    data = Data(properties=FglBProperties())
+    super().__init__(data)
+
+class HumidifierDevice(BaseDevice):
+  def __init__(self):
+    data = Data(properties=HumidifierDevice())
+    super().__init__(data)

@@ -4,24 +4,22 @@ import logging
 import paho.mqtt.client as mqtt
 
 from . import aircon
-from .aircon import DeviceController
+from .aircon import BaseDevice
 from .store import Data
 from .properties import AcWorkMode
 
 class MqttClient(mqtt.Client):
-  def __init__(self, client_id: str, data: Data, mqtt_topics: dict,
-              device_controller: DeviceController):
+  def __init__(self, client_id: str, mqtt_topics: dict, device: BaseDevice):
     super(self, client_id=client_id, clean_session=True)
-    self._data = data
     self._mqtt_topics = mqtt_topics
-    self._device_controller = device_controller
+    self._device = device
 
     self.on_connect = self.mqtt_on_connect
     self.on_message = self.mqtt_on_message
 
   def mqtt_on_connect(self, client: mqtt.Client, userdata, flags, rc):
     client.subscribe([(self._mqtt_topics['sub'].format(data_field.name), 0)
-                      for data_field in fields(self._data.properties)])
+                      for data_field in fields(self._device.data.properties)])
     # Subscribe to subscription updates.
     client.subscribe('$SYS/broker/log/M/subscribe/#')
 
@@ -35,7 +33,7 @@ class MqttClient(mqtt.Client):
     if name == 't_work_mode' and payload == 'fan_only':
       payload = 'FAN'
     try:
-      self._device_controller.queue_command(name, payload.upper())
+      self._device.queue_command(name, payload.upper())
     except Exception:
       logging.exception('Failed to parse value %r for property %r',
                         payload.upper(), name)
@@ -46,7 +44,7 @@ class MqttClient(mqtt.Client):
     if topic not in self._mqtt_topics['pub']:
       return
     name = topic.rsplit('/', 2)[1]
-    self.mqtt_publish_update(name, self._data.get_property(name))
+    self.mqtt_publish_update(name, self._device.data.get_property(name))
 
   def mqtt_publish_update(self, name: str, value) -> None:
     if isinstance(value, enum.Enum):

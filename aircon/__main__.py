@@ -20,9 +20,8 @@ from . import aircon
 from .app_mappings import SECRET_MAP
 from .config import Config
 from .error import Error
-from .aircon import DeviceController
+from .aircon import BaseDevice, AcDevice, FglDevice, FglBProperties, HumidifierDevice
 from .discovery import perform_discovery
-from .properties import AcProperties, FglProperties, FglBProperties, HumidifierProperties
 from .store import Data
 from .mqtt_client import MqttClient
 from .query_handlers import QueryHandlers
@@ -112,30 +111,28 @@ class QueryStatusThread(threading.Thread):
   _STATUS_UPDATE_INTERVAL = 600.0
   _WAIT_FOR_EMPTY_QUEUE = 10.0
 
-  def __init__(self, data: Data, device_controller: DeviceController):
+  def __init__(self, device: BaseDevice):
     super(QueryStatusThread, self).__init__(name='Query Status thread')
-    self._data = data
-    self._device_controller = device_controller
+    self._device = device
 
   def run(self) -> None:
     while True:
       # In case the AC is stuck, and not fetching commands, avoid flooding
       # the queue with status updates.
-      while self._data.commands_queue.qsize() > 10:
+      while self._device.data.commands_queue.qsize() > 10:
         time.sleep(self._WAIT_FOR_EMPTY_QUEUE)
-      self._device_controller.queue_status()
+      self._device.queue_status()
       if _keep_alive:
         with _keep_alive.run_lock:
           logging.debug('QueryStatusThread triggered KeepAlive notify')
           _keep_alive.run_lock.notify()
       time.sleep(self._STATUS_UPDATE_INTERVAL)
 
-def MakeHttpRequestHandlerClass(config: Config, data: Data, device_controller: DeviceController):
+def MakeHttpRequestHandlerClass(config: Config, device: BaseDevice):
   class HTTPRequestHandler(BaseHTTPRequestHandler):
     """Handler for AC related HTTP requests."""
     def __init__(self, request, client_address, server):
-      self._query_handlers = QueryHandlers(config, data, device_controller, 
-                                      self._write_response)
+      self._query_handlers = QueryHandlers(config, device, self._write_response)
       self._HANDLERS_MAP = {
         '/hisense/status': self._query_handlers.get_status_handler,
         '/hisense/command': self._queue_command,
@@ -275,22 +272,20 @@ def setup_logger(log_level):
 def run(parsed_args):
   config = Config(config_file=parsed_args.config)
   if parsed_args.device_type == 'ac':
-    data = Data(properties=AcProperties())
+    device = AcDevice()
   elif parsed_args.device_type == 'fgl':
-    data = Data(properties=FglProperties())
+    device = FglDevice()
   elif parsed_args.device_type == 'fgl_b':
-    data = Data(properties=FglBProperties())
+    device = FglBDevice()
   elif parsed_args.device_type == 'humidifier':
-    data = Data(properties=HumidifierProperties())
+    device = HumidifierDevice()
   else:
     sys.exit(1)  # Should never get here.
-
-  device_controller = DeviceController(data)
 
   if parsed_args.mqtt_host:
     mqtt_topics = {'pub' : '/'.join((parsed_args.mqtt_topic, '{}', 'status')),
                   'sub' : '/'.join((parsed_args.mqtt_topic, '{}', 'command'))}
-    mqtt_client = MqttClient(parsed_args.mqtt_client_id, data, mqtt_topics, device_controller)
+    mqtt_client = MqttClient(parsed_args.mqtt_client_id, mqtt_topics, device)
     if parsed_args.mqtt_user:
       mqtt_client.username_pw_set(*parsed_args.mqtt_user.split(':',1))
     mqtt_client.connect(parsed_args.mqtt_host, parsed_args.mqtt_port)
@@ -300,13 +295,13 @@ def run(parsed_args):
   global _keep_alive 
   _keep_alive = None  # type: typing.Optional[KeepAliveThread]
 
-  query_status = QueryStatusThread(data, device_controller)
+  query_status = QueryStatusThread(device)
   query_status.start()
 
-  _keep_alive = KeepAliveThread(parsed_args.ip, parsed_args.port, data)
+  _keep_alive = KeepAliveThread(parsed_args.ip, parsed_args.port, device.data)
   _keep_alive.start()
 
-  httpd = HTTPServer(('', parsed_args.port), MakeHttpRequestHandlerClass(config, data, device_controller))
+  httpd = HTTPServer(('', parsed_args.port), MakeHttpRequestHandlerClass(config, device))
   try:
     httpd.serve_forever()
   except KeyboardInterrupt:

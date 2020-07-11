@@ -12,16 +12,15 @@ from typing import Callable
 
 from . import aircon
 from .config import Config, Encryption
-from .aircon import DeviceController
+from .aircon import BaseDevice
 from .error import Error
 from .store import Data
 
 class QueryHandlers:
-  def __init__(self, config: Config, data: Data, device_controler: DeviceController, 
+  def __init__(self, config: Config, device: BaseDevice, 
             writer: Callable[[HTTPStatus, str], None]):
     self._config = config
-    self._data = data
-    self._device_controller = device_controler
+    self._device = device
     self._writer = writer
 
   def key_exchange_handler(self, path: str, query: dict, data: dict) -> None:
@@ -60,11 +59,11 @@ class QueryHandlers:
     builds the JSON, encrypts and signs it, and sends it to the AC.
     """
     command = {}
-    with self._data.commands_seq_no_lock:
-      command['seq_no'] = self._data.commands_seq_no
-      self._data.commands_seq_no += 1
+    with self._device.data.commands_seq_no_lock:
+      command['seq_no'] = self._device.data.commands_seq_no
+      self._device.data.commands_seq_no += 1
     try:
-      command['data'], property_updater = self._data.commands_queue.get_nowait()
+      command['data'], property_updater = self._device.data.commands_queue.get_nowait()
     except queue.Empty:
       command['data'], property_updater = {}, None
     self._write_json(HTTPStatus.OK, self._encrypt_and_sign(command))
@@ -82,22 +81,22 @@ class QueryHandlers:
       self._write_json(HTTPStatus.BAD_REQUEST)
       return
     self._write_json(HTTPStatus.OK)
-    with self._data.updates_seq_no_lock:
+    with self._device.data.updates_seq_no_lock:
       # Every once in a while the sequence number is zeroed out, so accept it.
-      if self._data.updates_seq_no > update['seq_no'] and update['seq_no'] > 0:
+      if self._device.data.updates_seq_no > update['seq_no'] and update['seq_no'] > 0:
         logging.error('Stale update found %d. Last update used is %d.',
-                      update['seq_no'], self._data.updates_seq_no)
+                      update['seq_no'], self._device.data.updates_seq_no)
         return  # Old update
-      self._data.updates_seq_no = update['seq_no']
+      self._device.data.updates_seq_no = update['seq_no']
     try:
       if not update['data']:
         logging.debug('No value returned for seq_no %d, likely an unsupported property key.',
                       update['seq_no'])
         return
       name = update['data']['name']
-      data_type = self._data.properties.get_type(name)
+      data_type = self._device.data.properties.get_type(name)
       value = data_type(update['data']['value'])
-      self._data.update_property(name, value)
+      self._device.data.update_property(name, value)
     except:
       logging.exception('Failed to handle %s', update)
 
@@ -105,20 +104,20 @@ class QueryHandlers:
     """Handles get status request (by a smart home hub).
     Returns the current internally stored state of the AC.
     """
-    with self._data.properties_lock:
-      data = self._data.properties.to_dict()
+    with self._device.data.properties_lock:
+      data = self._device.data.properties.to_dict()
     self._write_json(HTTPStatus.OK, data)
 
   def queue_command_handler(self, path: str, query: dict, data: dict) -> None:
     """Handles queue command request (by a smart home hub).
     """
     try:
-      self._device_controller.queue_command(query['property'][0], query['value'][0])
+      self._device.queue_command(query['property'][0], query['value'][0])
     except:
       logging.exception('Failed to queue command.')
       self._write_json(HTTPStatus.BAD_REQUEST)
       return
-    self._write_json(HTTPStatus.OK, {'queued commands': self._data.commands_queue.qsize()})
+    self._write_json(HTTPStatus.OK, {'queued commands': self._device.data.commands_queue.qsize()})
 
   def _write_json(self, status: HTTPStatus, data: dict = None) -> None:
     """Send out the provided data dict as JSON."""
