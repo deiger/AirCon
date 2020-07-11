@@ -49,7 +49,7 @@ class BaseDevice:
     self._updates_seq_no = 0
     self._updates_seq_no_lock = threading.Lock()
 
-    self.change_listener: Callable[[str, str], None] = None
+    self.change_listener: Callable[[str, str], None]
 
   def get_all_properties(self) -> Properties:
     with self._properties_lock:
