@@ -20,9 +20,8 @@ from . import aircon
 from .app_mappings import SECRET_MAP
 from .config import Config
 from .error import Error
-from .aircon import BaseDevice, AcDevice, FglDevice, FglBProperties, HumidifierDevice
+from .aircon import BaseDevice, AcDevice, FglDevice, FglBDevice, HumidifierDevice
 from .discovery import perform_discovery
-from .store import Data
 from .mqtt_client import MqttClient
 from .query_handlers import QueryHandlers
 
@@ -31,12 +30,12 @@ class KeepAliveThread(threading.Thread):
   
   _KEEP_ALIVE_INTERVAL = 10.0
 
-  def __init__(self, host: str, port: int, data: Data):
+  def __init__(self, host: str, port: int, device: BaseDevice):
     self.run_lock = threading.Condition()
     self._alive = False
     self._host = host
     self._port = port
-    self._data = data
+    self._device = device
     local_ip = self._get_local_ip()
     self._headers = {
       'Accept': 'application/json',
@@ -97,9 +96,9 @@ class KeepAliveThread(threading.Thread):
           self._establish_connection(conn)
         except:
           logging.exception('Failed to send local_reg keep alive to the AC.')
-        logging.debug('[KeepAlive] Waiting for notification or timeout %d', self._data.commands_queue.qsize())
+        logging.debug('[KeepAlive] Waiting for notification or timeout %d', self._device.commands_queue.qsize())
         self._json['local_reg']['notify'] = int(
-            self._data.commands_queue.qsize() > 0 or self.run_lock.wait(self._KEEP_ALIVE_INTERVAL))
+            self._device.commands_queue.qsize() > 0 or self.run_lock.wait(self._KEEP_ALIVE_INTERVAL))
 
 class QueryStatusThread(threading.Thread):
   """Thread to preiodically query the status of all properties.
@@ -119,7 +118,7 @@ class QueryStatusThread(threading.Thread):
     while True:
       # In case the AC is stuck, and not fetching commands, avoid flooding
       # the queue with status updates.
-      while self._device.data.commands_queue.qsize() > 10:
+      while self._device.commands_queue.qsize() > 10:
         time.sleep(self._WAIT_FOR_EMPTY_QUEUE)
       self._device.queue_status()
       if _keep_alive:
@@ -290,7 +289,7 @@ def run(parsed_args):
       mqtt_client.username_pw_set(*parsed_args.mqtt_user.split(':',1))
     mqtt_client.connect(parsed_args.mqtt_host, parsed_args.mqtt_port)
     mqtt_client.loop_start()
-    data.change_listener = mqtt_client.mqtt_publish_update
+    device.change_listener = mqtt_client.mqtt_publish_update
 
   global _keep_alive 
   _keep_alive = None  # type: typing.Optional[KeepAliveThread]
@@ -298,7 +297,7 @@ def run(parsed_args):
   query_status = QueryStatusThread(device)
   query_status.start()
 
-  _keep_alive = KeepAliveThread(parsed_args.ip, parsed_args.port, device.data)
+  _keep_alive = KeepAliveThread(parsed_args.ip, parsed_args.port, device)
   _keep_alive.start()
 
   httpd = HTTPServer(('', parsed_args.port), MakeHttpRequestHandlerClass(config, device))

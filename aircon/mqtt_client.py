@@ -5,7 +5,6 @@ import paho.mqtt.client as mqtt
 
 from . import aircon
 from .aircon import BaseDevice
-from .store import Data
 from .properties import AcWorkMode
 
 class MqttClient(mqtt.Client):
@@ -19,7 +18,7 @@ class MqttClient(mqtt.Client):
 
   def mqtt_on_connect(self, client: mqtt.Client, userdata, flags, rc):
     client.subscribe([(self._mqtt_topics['sub'].format(data_field.name), 0)
-                      for data_field in fields(self._device.data.properties)])
+                      for data_field in fields(self._device.get_all_properties())])
     # Subscribe to subscription updates.
     client.subscribe('$SYS/broker/log/M/subscribe/#')
 
@@ -44,7 +43,7 @@ class MqttClient(mqtt.Client):
     if topic not in self._mqtt_topics['pub']:
       return
     name = topic.rsplit('/', 2)[1]
-    self.mqtt_publish_update(name, self._device.data.get_property(name))
+    self.mqtt_publish_update(name, self._device.get_property(name))
 
   def mqtt_publish_update(self, name: str, value) -> None:
     if isinstance(value, enum.Enum):

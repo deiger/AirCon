@@ -21,26 +21,79 @@ HiSense server. In order to get that value, you'll need to run query_cli.py
 
 The code here relies on Python 3.7
 """
+from copy import deepcopy
 from dataclasses import fields
 import enum
+import logging
 import random
 import string
+import threading
+from typing import Callable
+import queue
 from Crypto.Cipher import AES
 
 from .error import Error
-from .properties import AcProperties, FastColdHeat, FglProperties, FglBProperties, HumidifierProperties
-from .store import Data
+from .properties import AcProperties, FastColdHeat, FglProperties, FglBProperties, HumidifierProperties, Properties
 
 class BaseDevice:
-  def __init__(self, data: Data):
-    self.data = data
+  def __init__(self, properties: Properties):
+    self._properties = properties
+    self._properties_lock = threading.Lock()
+
     self._next_command_id = 0
 
+    self.commands_queue = queue.Queue()
+    self._commands_seq_no = 0
+    self._commands_seq_no_lock = threading.Lock()
+
+    self._updates_seq_no = 0
+    self._updates_seq_no_lock = threading.Lock()
+
+    self.change_listener: Callable[[str, str], None] = None
+
+  def get_all_properties(self) -> Properties:
+    with self._properties_lock:
+      return deepcopy(self._properties)
+
+  def get_property(self, name: str):
+    """Get a stored property."""
+    with self._properties_lock:
+      return getattr(self._properties, name)
+
+  def get_property_type(self, name: str):
+    return self._properties.get_type(name)
+
+  def update_property(self, name: str, value) -> None:
+    """Update the stored properties, if changed."""
+    with self._properties_lock:
+      old_value = getattr(self._properties, name)
+      if value != old_value:
+        setattr(self._properties, name, value)
+        logging.debug('Updated properties: %s' % self._properties)
+      if self.change_listener:
+        self.change_listener(name, value)
+
+  def get_command_seq_no(self) -> int:
+    with self._commands_seq_no_lock:
+      seq_no = self._commands_seq_no
+      self._commands_seq_no += 1
+      return seq_no
+
+  def is_update_valid(self, cur_update_no: int) -> bool:
+    with self._updates_seq_no_lock:
+      # Every once in a while the sequence number is zeroed out, so accept it.
+      if self._updates_seq_no > cur_update_no and cur_update_no > 0:
+        logging.error('Stale update found %d. Last update used is %d.',
+                      cur_update_no, self._updates_seq_no)
+        return False # Old update
+      self._updates_seq_no = cur_update_no
+      return True
+
   def queue_command(self, name: str, value) -> None:
-    if self.data.properties.get_read_only(name):
+    if self._properties.get_read_only(name):
       raise Error('Cannot update read-only property "{}".'.format(name))
-    data_type = self.data.properties.get_type(name)
-    base_type = self.data.properties.get_base_type(name)
+    data_type = self._properties.get_type(name)
+    base_type = self._properties.get_base_type(name)
     if issubclass(data_type, enum.Enum):
       data_value = data_type[value].value
     elif data_type is int and type(value) is str and '.' in value:
@@ -62,8 +115,8 @@ class BaseDevice:
     # There are (usually) no acks on commands, so also queue an update to the
     # property, to be run once the command is sent.
     typed_value = data_type[value] if issubclass(data_type, enum.Enum) else data_value
-    property_updater = lambda: self.data.update_property(name, typed_value)
-    self.data.commands_queue.put_nowait((command, property_updater))
+    property_updater = lambda: self.update_property(name, typed_value)
+    self.commands_queue.put_nowait((command, property_updater))
 
     # Handle turning on FastColdHeat
     if name == 't_temp_heatcold' and typed_value is FastColdHeat.ON:
@@ -73,7 +126,7 @@ class BaseDevice:
       self.queue_command('t_temp_eight', 'OFF')
 
   def queue_status(self) -> None:
-    for data_field in fields(self.data.properties):
+    for data_field in fields(self._properties):
       command = {
         'cmds': [{
           'cmd': {
@@ -86,24 +139,20 @@ class BaseDevice:
         }]
       }
       self._next_command_id += 1
-      self.data.commands_queue.put_nowait((command, None))
+      self.commands_queue.put_nowait((command, None))
 
 class AcDevice(BaseDevice):
   def __init__(self):
-    data = Data(properties=AcProperties())
-    super().__init__(data)
+    super().__init__(properties=AcProperties())
 
 class FglDevice(BaseDevice):
   def __init__(self):
-    data = Data(properties=FglProperties())
-    super().__init__(data)
+    super().__init__(properties=FglProperties())
 
-class FglBProperties(BaseDevice):
+class FglBDevice(BaseDevice):
   def __init__(self):
-    data = Data(properties=FglBProperties())
-    super().__init__(data)
+    super().__init__(properties=FglBProperties())
 
 class HumidifierDevice(BaseDevice):
   def __init__(self):
-    data = Data(properties=HumidifierDevice())
-    super().__init__(data)
+    super().__init__(properties=HumidifierDevice())
