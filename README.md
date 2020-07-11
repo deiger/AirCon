@@ -12,13 +12,13 @@ The module is installed in A/Cs and humidifiers that are either manufactured or 
 
 1. Air Conditioner with HiSense AEH-W4B1 or AEH-W4E1 installed.
 1. Have Python 3.7 installed. If using Raspberry Pi, either upgrade to Raspbian Buster, or manually install it in Raspbian Stretch.
-1. Install additional libraries:
+1. Download and install aircon module:
    ```bash
-   pip3.7 install dataclasses_json paho-mqtt pycryptodome retry
+   python3.7 setup.py install
    ```
 1. Configure the A/C with the dedicated app. Links to each app are available in the table below. Log into the app, associate the A/C and connect it to the network, as described in the app documentation.
 1. Once everything has been configured, the A/C can be blocked from connecting to the internet, as it will no longer be needed. Set it a static IP address in the router, and write it down.
-1. Download and run [query_cli.py](query_cli.py), to fetch the LAN keys that will allow connecting to the A/C. Pass it your login credentials, as well as the code for your app from the list below:
+1. Run discovery command to fetch the LAN keys that will allow connecting to the A/C. Pass it your login credentials, as well as the code for your app from the list below:
 
    | Code       | App Name            | App link
    |------------|---------------------|---------|
@@ -43,17 +43,20 @@ The module is installed in A/Cs and humidifiers that are either manufactured or 
 
    For example:
    ```bash
-   ./query_cli.py --user foo@example.com --passwd my_pass --app tornado-us --config config.json
+   python3.7 -m aircon discovery tornado-us foo@example.com my_pass --config config.json
    ```
    The CLI will generate a config file, that needs to be passed to the A/C control server below.
    If you have more than one A/C that you would like to control, create a separate config file for each A/C, and run a separate control process. You can select the A/C that the config is generated for by setting the `--device` flag to the device name you configured in the app.
 
 ## Run the A/C control server
 
-1. Download [hisense.py](hisense.py).
+1. Download and install aircon module:
+   ```bash
+   python3.7 setup.py install
+   ```
 1. Test out that you can run the server, e.g.:
    ```bash
-   ./hisense.py --port 8888 --ip 10.0.0.40 --config config.json --mqtt_host localhost
+   python3.7 -m aircon run --port 8888 --ip 10.0.0.40 --config config.json --mqtt_host localhost
    ```
    Parameters:
    - `--port` or `-p` - Port for the web server.
@@ -82,7 +85,7 @@ The module is installed in A/Cs and humidifiers that are either manufactured or 
    Pass the ownership to root. e.g.:
    ```bash
    sudo mkdir /usr/lib/hisense
-   sudo mv hisense.py config.json /usr/lib/hisense
+   sudo mv config.json /usr/lib/hisense
    sudo chown root:root /usr/lib/hisense/*
    ```
 1. Create a service configuration file (as root), e.g. `/lib/systemd/system/hisense.service`:
@@ -92,7 +95,7 @@ The module is installed in A/Cs and humidifiers that are either manufactured or 
    After=network.target
 
    [Service]
-   ExecStart=/usr/bin/python3.7 -u hisense.py --port 8888 --ip 10.0.0.40 --config config.json --mqtt_host localhost
+   ExecStart=/usr/bin/python3.7 -m aircon run --port 8888 --ip 10.0.0.40 --config config.json --mqtt_host localhost
    WorkingDirectory=/usr/lib/hisense
    StandardOutput=inherit
    StandardError=inherit

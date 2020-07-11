@@ -251,7 +251,7 @@ def ParseArguments() -> argparse.Namespace:
                           help='Device name to fetch data for. If not set, takes all.')
   parser_discovery.add_argument('--prefix', required=False, default='config_',
                           help='Config file prefix.')
-  parser_discovery.add_argument('--properties', type=bool, default=False,
+  parser_discovery.add_argument('--properties', action='store_true',
                           help='Fetch the properties for the device.')
   return arg_parser.parse_args()
 
@@ -259,8 +259,7 @@ def setup_logger(log_level):
   if sys.platform == 'linux':
     logging_handler = logging.handlers.SysLogHandler(address='/dev/log')
   elif sys.platform == 'darwin':
-    logging_handler = logging.StreamHandler(sys.stderr)
-    #logging_handler = logging.handlers.SysLogHandler(address='/var/run/syslog')
+    logging_handler = logging.handlers.SysLogHandler(address='/var/run/syslog')
   elif sys.platform.lower() in ['windows', 'win32']:
     logging_handler = logging.handlers.SysLogHandler()
   else:  # Unknown platform, revert to stderr
