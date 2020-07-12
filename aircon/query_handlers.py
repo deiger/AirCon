@@ -16,11 +16,13 @@ from .aircon import BaseDevice
 from .error import Error, KeyIdReplaced
 
 class QueryHandlers:
-  def __init__(self, device: BaseDevice, writer: Callable[[HTTPStatus, str], None]):
-    self._device = device
+  def __init__(self, devices: [BaseDevice], writer: Callable[[HTTPStatus, str], None]):
+    self._data = {}
+    for device in devices:
+      self._data[device.ip_address] = device
     self._writer = writer
 
-  def key_exchange_handler(self, path: str, query: dict, data: dict) -> None:
+  def key_exchange_handler(self, sender: str, path: str, query: dict, data: dict) -> None:
     """Handles a key exchange.
     Accepts the AC's random and time and pass its own.
     Note that a key encryption component is the lanip_key, mapped to the
@@ -33,7 +35,7 @@ class QueryHandlers:
       key = data['key_exchange']
       if key['ver'] != 1 or key['proto'] != 1 or key.get('sec'):
         raise KeyError()
-      updated_keys = self._device.update_key(key)
+      updated_keys = self._data[sender].update_key(key)
     except KeyError:
       logging.error('Invalid key exchange: %r', data)
       self._write_json(HTTPStatus.BAD_REQUEST)
@@ -44,33 +46,35 @@ class QueryHandlers:
       return
     self._write_json(HTTPStatus.OK, updated_keys)
 
-  def command_handler(self, path: str, query: dict, data: dict) -> None:
+  def command_handler(self, sender: str, path: str, query: dict, data: dict) -> None:
     """Handles a command request.
     Request arrives from the AC. takes a command from the queue,
     builds the JSON, encrypts and signs it, and sends it to the AC.
     """
     command = {}
-    command['seq_no'] = self._device.get_command_seq_no()
+    device = self._data[sender]
+    command['seq_no'] = device.get_command_seq_no()
     try:
-      command['data'], property_updater = self._device.commands_queue.get_nowait()
+      command['data'], property_updater = device.commands_queue.get_nowait()
     except queue.Empty:
       command['data'], property_updater = {}, None
-    self._write_json(HTTPStatus.OK, self._encrypt_and_sign(command))
+    self._write_json(HTTPStatus.OK, self._encrypt_and_sign(device, command))
     if property_updater:
       property_updater()
 
-  def property_update_handler(self, path: str, query: dict, data: dict) -> None:
+  def property_update_handler(self, sender: str, path: str, query: dict, data: dict) -> None:
     """Handles a property update request.
     Decrypts, validates, and pushes the value into the local properties store.
     """
+    device = self._data[sender]
     try:
-      update = self._decrypt_and_validate(data)
+      update = self._decrypt_and_validate(device, data)
     except Error:
       logging.exception('Failed to parse property.')
       self._write_json(HTTPStatus.BAD_REQUEST)
       return
     self._write_json(HTTPStatus.OK)
-    if not self._device.is_update_valid():
+    if not device.is_update_valid():
       return
     try:
       if not update['data']:
@@ -78,46 +82,47 @@ class QueryHandlers:
                       update['seq_no'])
         return
       name = update['data']['name']
-      data_type = self._device.get_property_type(name)
+      data_type = device.get_property_type(name)
       value = data_type(update['data']['value'])
-      self._device.update_property(name, value)
+      device.update_property(name, value)
     except:
       logging.exception('Failed to handle %s', update)
 
-  def get_status_handler(self, path: str, query: dict, data: dict) -> None:
+  def get_status_handler(self, sender: str, path: str, query: dict, data: dict) -> None:
     """Handles get status request (by a smart home hub).
     Returns the current internally stored state of the AC.
     """
-    data = self._device.get_all_properties().to_dict()
+    data = self._data[sender].get_all_properties().to_dict()
     self._write_json(HTTPStatus.OK, data)
 
-  def queue_command_handler(self, path: str, query: dict, data: dict) -> None:
+  def queue_command_handler(self, sender: str, path: str, query: dict, data: dict) -> None:
     """Handles queue command request (by a smart home hub).
     """
+    device = self._data[sender]
     try:
-      self._device.queue_command(query['property'][0], query['value'][0])
+      device.queue_command(query['property'][0], query['value'][0])
     except:
       logging.exception('Failed to queue command.')
       self._write_json(HTTPStatus.BAD_REQUEST)
       return
-    self._write_json(HTTPStatus.OK, {'queued commands': self._device.commands_queue.qsize()})
+    self._write_json(HTTPStatus.OK, {'queued commands': device.commands_queue.qsize()})
 
   def _write_json(self, status: HTTPStatus, data: dict = None) -> None:
     """Send out the provided data dict as JSON."""
     logging.debug('Response:\n%s', json.dumps(data))
     self._writer(status, json.dumps(data).encode('utf-8'))
 
-  def _encrypt_and_sign(self, data: dict) -> dict:
+  def _encrypt_and_sign(self, device: BaseDevice, data: dict) -> dict:
     text = json.dumps(data).encode('utf-8')
     logging.debug('Encrypting: %s', text.decode('utf-8'))
-    encryption = self._device.get_app_encryption
+    encryption = device.get_app_encryption
     return {
       "enc": base64.b64encode(encryption.cipher.encrypt(self.pad(text))).decode('utf-8'),
       "sign": base64.b64encode(Encryption.hmac_digest(encryption.sign_key, text)).decode('utf-8')
     }
 
-  def _decrypt_and_validate(self, data: dict) -> dict:
-    encryption = self._device.get_dev_encryption
+  def _decrypt_and_validate(self, device: BaseDevice, data: dict) -> dict:
+    encryption = device.get_dev_encryption
     text = self.unpad(encryption.cipher.decrypt(base64.b64decode(data['enc'])))
     sign = base64.b64encode(Encryption.hmac_digest(encryption.sign_key, text)).decode('utf-8')
     if sign != data['sign']:

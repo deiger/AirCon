@@ -1,6 +1,5 @@
 from Crypto.Cipher import AES
 from dataclasses import dataclass
-from dataclasses_json import dataclass_json
 import hmac
 import random
 import string

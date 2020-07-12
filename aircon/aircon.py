@@ -15,7 +15,7 @@ from .properties import AcProperties, FastColdHeat, FglProperties, FglBPropertie
 
 class BaseDevice:
   def __init__(self, ip_address: str, lanip_key: str, lanip_key_id: str, properties: Properties):
-    self._ip_address = ip_address
+    self.ip_address = ip_address
     self._config = Config(lanip_key, lanip_key_id)
     self._properties = properties
     self._properties_lock = threading.Lock()
