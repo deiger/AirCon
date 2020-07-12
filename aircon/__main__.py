@@ -129,11 +129,11 @@ class QueryStatusThread(threading.Thread):
           _keep_alive.run_lock.notify()
       time.sleep(self._STATUS_UPDATE_INTERVAL)
 
-def MakeHttpRequestHandlerClass(config: Config, device: BaseDevice):
+def MakeHttpRequestHandlerClass(device: BaseDevice):
   class HTTPRequestHandler(BaseHTTPRequestHandler):
     """Handler for AC related HTTP requests."""
     def __init__(self, request, client_address, server):
-      self._query_handlers = QueryHandlers(config, device, self._write_response)
+      self._query_handlers = QueryHandlers(device, self._write_response)
       self._HANDLERS_MAP = {
         '/hisense/status': self._query_handlers.get_status_handler,
         '/hisense/command': self._queue_command,
@@ -271,15 +271,14 @@ def setup_logger(log_level):
   logger.addHandler(logging_handler)
 
 def run(parsed_args):
-  config = Config(config_file=parsed_args.config)
   if parsed_args.device_type == 'ac':
-    device = AcDevice()
+    device = AcDevice(parsed_args.ip, parsed_args.config)
   elif parsed_args.device_type == 'fgl':
-    device = FglDevice()
+    device = FglDevice(parsed_args.ip, parsed_args.config)
   elif parsed_args.device_type == 'fgl_b':
-    device = FglBDevice()
+    device = FglBDevice(parsed_args.ip, parsed_args.config)
   elif parsed_args.device_type == 'humidifier':
-    device = HumidifierDevice()
+    device = HumidifierDevice(parsed_args.ip, parsed_args.config)
   else:
     sys.exit(1)  # Should never get here.
 
@@ -302,7 +301,7 @@ def run(parsed_args):
   _keep_alive = KeepAliveThread(parsed_args.ip, parsed_args.port, device)
   _keep_alive.start()
 
-  httpd = HTTPServer(('', parsed_args.port), MakeHttpRequestHandlerClass(config, device))
+  httpd = HTTPServer(('', parsed_args.port), MakeHttpRequestHandlerClass(device))
   try:
     httpd.serve_forever()
   except KeyboardInterrupt:

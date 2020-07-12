@@ -28,15 +28,19 @@ import logging
 import random
 import string
 import threading
+import time
 from typing import Callable
 import queue
 from Crypto.Cipher import AES
 
-from .error import Error
+from .config import Config, Encryption
+from .error import Error, KeyIdReplaced
 from .properties import AcProperties, FastColdHeat, FglProperties, FglBProperties, HumidifierProperties, Properties
 
 class BaseDevice:
-  def __init__(self, properties: Properties):
+  def __init__(self, ip_address: str, config_file: str, properties: Properties):
+    self._ip_address = ip_address
+    self._config = Config(config_file)
     self._properties = properties
     self._properties_lock = threading.Lock()
 
@@ -141,18 +145,38 @@ class BaseDevice:
       self._next_command_id += 1
       self.commands_queue.put_nowait((command, None))
 
+  def update_key(self, key: dict) -> dict:
+    self._config.lan_config.random_1 = key['random_1']
+    self._config.lan_config.time_1 = key['time_1']
+    if key['key_id'] != self._config.lan_config.lanip_key_id:
+      raise KeyIdReplaced('The key_id has been replaced!!', 
+                         'Old ID was {}; new ID is {}.'.format(
+                            self._config.lan_config.lanip_key_id, key['key_id']))
+    self._config.lan_config.random_2 = ''.join(
+        random.choices(string.ascii_letters + string.digits, k=16))
+    self._config.lan_config.time_2 = time.monotonic_ns() % 2**40
+    self._config.update()
+    return {'random_2': self._config.lan_config.random_2,
+          'time_2': self._config.lan_config.time_2}
+
+  def get_app_encryption(self) -> Encryption:
+    return self._config.app
+
+  def get_dev_encryption(self) -> Encryption:
+    return self._config.dev
+
 class AcDevice(BaseDevice):
-  def __init__(self):
-    super().__init__(properties=AcProperties())
+  def __init__(self, ip_address: str, config_file: str,):
+    super().__init__(ip_address, config_file, AcProperties())
 
 class FglDevice(BaseDevice):
-  def __init__(self):
-    super().__init__(properties=FglProperties())
+  def __init__(self, ip_address: str, config_file: str,):
+    super().__init__(ip_address, config_file, FglProperties())
 
 class FglBDevice(BaseDevice):
-  def __init__(self):
-    super().__init__(properties=FglBProperties())
+  def __init__(self, ip_address: str, config_file: str,):
+    super().__init__(ip_address, config_file, FglBProperties())
 
 class HumidifierDevice(BaseDevice):
-  def __init__(self):
-    super().__init__(properties=HumidifierDevice())
+  def __init__(self, ip_address: str, config_file: str,):
+    super().__init__(ip_address, config_file, HumidifierProperties())

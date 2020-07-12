@@ -13,12 +13,10 @@ from typing import Callable
 from . import aircon
 from .config import Config, Encryption
 from .aircon import BaseDevice
-from .error import Error
+from .error import Error, KeyIdReplaced
 
 class QueryHandlers:
-  def __init__(self, config: Config, device: BaseDevice, 
-            writer: Callable[[HTTPStatus, str], None]):
-    self._config = config
+  def __init__(self, device: BaseDevice, writer: Callable[[HTTPStatus, str], None]):
     self._device = device
     self._writer = writer
 
@@ -30,27 +28,21 @@ class QueryHandlers:
     server. Fortunately the lanip_key_id (and lanip_key) are static for a given
     AC.
     """
+    updated_keys = {}
     try:
       key = data['key_exchange']
       if key['ver'] != 1 or key['proto'] != 1 or key.get('sec'):
         raise KeyError()
-      self._config.lan_config.random_1 = key['random_1']
-      self._config.lan_config.time_1 = key['time_1']
+      updated_keys = self._device.update_key(key)
     except KeyError:
       logging.error('Invalid key exchange: %r', data)
       self._write_json(HTTPStatus.BAD_REQUEST)
       return
-    if key['key_id'] != self._config.lan_config.lanip_key_id:
-      logging.error('The key_id has been replaced!!\nOld ID was %d; new ID is %d.',
-                    self._config.lan_config.lanip_key_id, key['key_id'])
+    except KeyIdReplaced as e:
+      logging.error('{}\n{}'.format(e.title, e.message))
       self._write_json(HTTPStatus.NOT_FOUND)
       return
-    self._config.lan_config.random_2 = ''.join(
-        random.choices(string.ascii_letters + string.digits, k=16))
-    self._config.lan_config.time_2 = time.monotonic_ns() % 2**40
-    self._config.update()
-    self._write_json(HTTPStatus.OK, {"random_2": self._config.lan_config.random_2,
-                      "time_2": self._config.lan_config.time_2})
+    self._write_json(HTTPStatus.OK, updated_keys)
 
   def command_handler(self, path: str, query: dict, data: dict) -> None:
     """Handles a command request.
@@ -118,14 +110,16 @@ class QueryHandlers:
   def _encrypt_and_sign(self, data: dict) -> dict:
     text = json.dumps(data).encode('utf-8')
     logging.debug('Encrypting: %s', text.decode('utf-8'))
+    encryption = self._device.get_app_encryption
     return {
-      "enc": base64.b64encode(self._config.app.cipher.encrypt(self.pad(text))).decode('utf-8'),
-      "sign": base64.b64encode(Encryption.hmac_digest(self._config.app.sign_key, text)).decode('utf-8')
+      "enc": base64.b64encode(encryption.cipher.encrypt(self.pad(text))).decode('utf-8'),
+      "sign": base64.b64encode(Encryption.hmac_digest(encryption.sign_key, text)).decode('utf-8')
     }
 
   def _decrypt_and_validate(self, data: dict) -> dict:
-    text = self.unpad(self._config.dev.cipher.decrypt(base64.b64decode(data['enc'])))
-    sign = base64.b64encode(Encryption.hmac_digest(self._config.dev.sign_key, text)).decode('utf-8')
+    encryption = self._device.get_dev_encryption
+    text = self.unpad(encryption.cipher.decrypt(base64.b64decode(data['enc'])))
+    sign = base64.b64encode(Encryption.hmac_digest(encryption.sign_key, text)).decode('utf-8')
     if sign != data['sign']:
       raise Error('Invalid signature for %s!' % text.decode('utf-8'))
     logging.info('Decrypted: %s', text.decode('utf-8'))
