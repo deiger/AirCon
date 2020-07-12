@@ -287,6 +287,9 @@ def setup_logger(log_level):
   logger.addHandler(logging_handler)
 
 def run(parsed_args):
+  if (len(parsed_args.ip) != len(parsed_args.type) and len(parsed_args.ip) != len(parsed_args.config)):
+    raise ValueError("Each device has to have specified ip, type and config file")
+  
   devices = []
   for i in range(len(parsed_args.ip)):
     with open(parsed_args.config[i], 'rb') as f:
@@ -352,8 +355,6 @@ def discovery(parsed_args):
 if __name__ == '__main__':
   parsed_args = ParseArguments()  # type: argparse.Namespace
   setup_logger(parsed_args.log_level)
-  if (len(parsed_args.ip) != len(parsed_args.type) and len(parsed_args.ip) != len(parsed_args.config)):
-    raise ValueError("Each device has to have specified ip, type and config file")
 
   if (parsed_args.cmd == 'run'):
     run(parsed_args)
