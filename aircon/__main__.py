@@ -271,15 +271,20 @@ def setup_logger(log_level):
   logger.addHandler(logging_handler)
 
 def run(parsed_args):
+  with open(parsed_args.config, 'rb') as f:
+    data = json.load(f)
+  lanip_key = data['lanip_key']
+  lanip_key_id = data['lanip_key_id']
   if parsed_args.device_type == 'ac':
-    device = AcDevice(parsed_args.ip, parsed_args.config)
+    device = AcDevice(parsed_args.ip, lanip_key, lanip_key_id)
   elif parsed_args.device_type == 'fgl':
-    device = FglDevice(parsed_args.ip, parsed_args.config)
+    device = FglDevice(parsed_args.ip, lanip_key, lanip_key_id)
   elif parsed_args.device_type == 'fgl_b':
-    device = FglBDevice(parsed_args.ip, parsed_args.config)
+    device = FglBDevice(parsed_args.ip, lanip_key, lanip_key_id)
   elif parsed_args.device_type == 'humidifier':
-    device = HumidifierDevice(parsed_args.ip, parsed_args.config)
+    device = HumidifierDevice(parsed_args.ip, lanip_key, lanip_key_id)
   else:
+    logging.error('Unknown type of device: %s', parsed_args.device_type)
     sys.exit(1)  # Should never get here.
 
   if parsed_args.mqtt_host:
@@ -319,11 +324,7 @@ def discovery(parsed_args):
   for config in all_configs:
     file_content = {
       'lanip_key': config['lanip_key'],
-      'lanip_key_id': config['lanip_key_id'],
-      'random_1': '',
-      'time_1': 0,
-      'random_2': '',
-      'time_2': 0
+      'lanip_key_id': config['lanip_key_id']
     }
     with open(parsed_args.prefix + _escape_name(config['product_name']) + '.json', 'w') as f:
       f.write(json.dumps(file_content))

@@ -1,26 +1,3 @@
-"""
-Server for controlling HiSense Air Conditioner WiFi modules.
-These modules are embedded for example in the Israel Tornado ACs.
-This module is based on reverse engineering of the AC protocol,
-and is not affiliated with HiSense, Tornado or any other relevant
-company.
-
-In order to run this server, you need to provide it with the a
-config file, that likes like this:
-{"lanip_key": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
- "lanip_key_id":8888,
- "random_1":"YYYYYYYYYYYYYYYY",
- "time_1":201111111111111,
- "random_2":"XXXXXXXXXXXXXXXX",
- "time_2":111111111111}
-
-The random/time values are regenerated on key exchange when the
-server first starts talking with the AC, so is the lanip_key_id.
-The lanip_key, on the other hand, is generated only on the
-HiSense server. In order to get that value, you'll need to run query_cli.py
-
-The code here relies on Python 3.7
-"""
 from copy import deepcopy
 from dataclasses import fields
 import enum
@@ -28,19 +5,18 @@ import logging
 import random
 import string
 import threading
-import time
 from typing import Callable
 import queue
 from Crypto.Cipher import AES
 
 from .config import Config, Encryption
-from .error import Error, KeyIdReplaced
+from .error import Error
 from .properties import AcProperties, FastColdHeat, FglProperties, FglBProperties, HumidifierProperties, Properties
 
 class BaseDevice:
-  def __init__(self, ip_address: str, config_file: str, properties: Properties):
+  def __init__(self, ip_address: str, lanip_key: str, lanip_key_id: str, properties: Properties):
     self._ip_address = ip_address
-    self._config = Config(config_file)
+    self._config = Config(lanip_key, lanip_key_id)
     self._properties = properties
     self._properties_lock = threading.Lock()
 
@@ -146,18 +122,7 @@ class BaseDevice:
       self.commands_queue.put_nowait((command, None))
 
   def update_key(self, key: dict) -> dict:
-    self._config.lan_config.random_1 = key['random_1']
-    self._config.lan_config.time_1 = key['time_1']
-    if key['key_id'] != self._config.lan_config.lanip_key_id:
-      raise KeyIdReplaced('The key_id has been replaced!!', 
-                         'Old ID was {}; new ID is {}.'.format(
-                            self._config.lan_config.lanip_key_id, key['key_id']))
-    self._config.lan_config.random_2 = ''.join(
-        random.choices(string.ascii_letters + string.digits, k=16))
-    self._config.lan_config.time_2 = time.monotonic_ns() % 2**40
-    self._config.update()
-    return {'random_2': self._config.lan_config.random_2,
-          'time_2': self._config.lan_config.time_2}
+    return self._config.update(key)
 
   def get_app_encryption(self) -> Encryption:
     return self._config.app
@@ -166,17 +131,17 @@ class BaseDevice:
     return self._config.dev
 
 class AcDevice(BaseDevice):
-  def __init__(self, ip_address: str, config_file: str,):
-    super().__init__(ip_address, config_file, AcProperties())
+  def __init__(self, ip_address: str, lanip_key: str, lanip_key_id: str):
+    super().__init__(ip_address, lanip_key, lanip_key_id, AcProperties())
 
 class FglDevice(BaseDevice):
-  def __init__(self, ip_address: str, config_file: str,):
-    super().__init__(ip_address, config_file, FglProperties())
+  def __init__(self, ip_address: str, lanip_key: str, lanip_key_id: str):
+    super().__init__(ip_address, lanip_key, lanip_key_id, FglProperties())
 
 class FglBDevice(BaseDevice):
-  def __init__(self, ip_address: str, config_file: str,):
-    super().__init__(ip_address, config_file, FglBProperties())
+  def __init__(self, ip_address: str, lanip_key: str, lanip_key_id: str):
+    super().__init__(ip_address, lanip_key, lanip_key_id, FglBProperties())
 
 class HumidifierDevice(BaseDevice):
-  def __init__(self, ip_address: str, config_file: str,):
-    super().__init__(ip_address, config_file, HumidifierProperties())
+  def __init__(self, ip_address: str, lanip_key: str, lanip_key_id: str):
+    super().__init__(ip_address, lanip_key, lanip_key_id, HumidifierProperties())
