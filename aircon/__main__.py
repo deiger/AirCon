@@ -221,22 +221,25 @@ def ParseArguments() -> argparse.Namespace:
   parser_run = subparsers.add_parser('run', help='Runs the server to control the device')
   parser_run.add_argument('-p', '--port', required=True, type=int,
                           help='Port for the server.')
-  parser_run.add_argument('--ip', required=True,
+  group_device = parser_run.add_argument_group('Device', 'Arguments that are related to the device')
+  group_device.add_argument('--ip', required=True,
                           help='IP address for the AC.')
-  parser_run.add_argument('--config', required=True,
+  group_device.add_argument('--config', required=True,
                           help='LAN Config file.')
-  parser_run.add_argument('--device_type', default='ac',
+  group_device.add_argument('--device_type', default='ac',
                           choices={'ac', 'fgl', 'fgl_b', 'humidifier'},
                           help='Device type (for systems other than Hisense A/C).')
-  parser_run.add_argument('--mqtt_host', default=None,
+
+  group_mqtt = parser_run.add_argument_group('MQTT', 'Settings related to the MQTT')
+  group_mqtt.add_argument('--mqtt_host', default=None,
                           help='MQTT broker hostname or IP address.')
-  parser_run.add_argument('--mqtt_port', type=int, default=1883,
+  group_mqtt.add_argument('--mqtt_port', type=int, default=1883,
                           help='MQTT broker port.')
-  parser_run.add_argument('--mqtt_client_id', default=None,
+  group_mqtt.add_argument('--mqtt_client_id', default=None,
                           help='MQTT client ID.')
-  parser_run.add_argument('--mqtt_user', default=None,
+  group_mqtt.add_argument('--mqtt_user', default=None,
                           help='<user:password> for the MQTT channel.')
-  parser_run.add_argument('--mqtt_topic', default='hisense_ac',
+  group_mqtt.add_argument('--mqtt_topic', default='hisense_ac',
                           help='MQTT topic.')
 
   parser_discovery = subparsers.add_parser('discovery', help='Runs the device discovery')
