@@ -74,7 +74,7 @@ class QueryHandlers:
       self._write_json(HTTPStatus.BAD_REQUEST)
       return
     self._write_json(HTTPStatus.OK)
-    if not device.is_update_valid():
+    if not device.is_update_valid(update['seq_no']):
       return
     try:
       if not update['data']:
@@ -115,14 +115,14 @@ class QueryHandlers:
   def _encrypt_and_sign(self, device: BaseDevice, data: dict) -> dict:
     text = json.dumps(data).encode('utf-8')
     logging.debug('Encrypting: %s', text.decode('utf-8'))
-    encryption = device.get_app_encryption
+    encryption = device.get_app_encryption()
     return {
       "enc": base64.b64encode(encryption.cipher.encrypt(self.pad(text))).decode('utf-8'),
       "sign": base64.b64encode(Encryption.hmac_digest(encryption.sign_key, text)).decode('utf-8')
     }
 
   def _decrypt_and_validate(self, device: BaseDevice, data: dict) -> dict:
-    encryption = device.get_dev_encryption
+    encryption = device.get_dev_encryption()
     text = self.unpad(encryption.cipher.decrypt(base64.b64decode(data['enc'])))
     sign = base64.b64encode(Encryption.hmac_digest(encryption.sign_key, text)).decode('utf-8')
     if sign != data['sign']:

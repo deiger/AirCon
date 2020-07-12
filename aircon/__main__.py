@@ -104,9 +104,9 @@ class KeepAliveThread(threading.Thread):
         try:
           for entry in self._data:
             now = time.time()
-            if now - entry['timestamp'] >= self._KEEP_ALIVE_INTERVAL or entry['device'].commands_queue.qsize() > 0:
+            if now - entry['last_timestamp'] >= self._KEEP_ALIVE_INTERVAL or entry['device'].commands_queue.qsize() > 0:
               self._establish_connection(entry['conn'], entry['headers'], entry['device'])
-              entry['timestamp'] = now
+              entry['last_timestamp'] = now
         except:
           logging.exception('[KeepAlive] Failed to send local_reg keep alive to the AC.')
         logging.debug('[KeepAlive] Waiting for notification or timeout')
@@ -186,7 +186,7 @@ def MakeHttpRequestHandlerClass(devices: [BaseDevice]):
 
     def do_GET(self) -> None:
       """Accepts get requests."""
-      sender = self.headers['Host']
+      sender = self.client_address[0]
       logging.debug('GET Request from %s,\nPath: %s\n', sender, self.path)
       parsed_url = urlparse(self.path)
       query = parse_qs(parsed_url.query)
@@ -201,7 +201,7 @@ def MakeHttpRequestHandlerClass(devices: [BaseDevice]):
 
     def do_POST(self):
       """Accepts post requests."""
-      sender = self.headers['Host']
+      sender = self.client_address[0]
       content_length = int(self.headers['Content-Length'])
       post_data = self.rfile.read(content_length)
       logging.debug('POST request from %s,\nPath: %s\nHeaders:\n%s\n\nBody:\n%s\n',
@@ -289,7 +289,7 @@ def setup_logger(log_level):
 def run(parsed_args):
   if (len(parsed_args.ip) != len(parsed_args.type) and len(parsed_args.ip) != len(parsed_args.config)):
     raise ValueError("Each device has to have specified ip, type and config file")
-  
+
   devices = []
   for i in range(len(parsed_args.ip)):
     with open(parsed_args.config[i], 'rb') as f:
