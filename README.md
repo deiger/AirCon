@@ -117,52 +117,52 @@ The module is installed in A/Cs and humidifiers that are either manufactured or 
 
 Listed here are the properties available through the API:
 
-| Property         | Read Only | Values                                 | Comment                               |
-|------------------|-----------|----------------------------------------|---------------------------------------|
-| f_electricity    | x         | Integer                                |                                       |
-| f_e_arkgrille    | x         | 0, 1                                   |                                       |
-| f_e_incoiltemp   | x         | 0, 1                                   |                                       |
-| f_e_incom        | x         | 0, 1                                   |                                       |
-| f_e_indisplay    | x         | 0, 1                                   |                                       |
-| f_e_ineeprom     | x         | 0, 1                                   |                                       |
-| f_e_inele        | x         | 0, 1                                   |                                       |
-| f_e_infanmotor   | x         | 0, 1                                   |                                       |
-| f_e_inhumidity   | x         | 0, 1                                   |                                       |
-| f_e_inkeys       | x         | 0, 1                                   |                                       |
-| f_e_inlow        | x         | 0, 1                                   |                                       |
-| f_e_intemp       | x         | 0, 1                                   |                                       |
-| f_e_invzero      | x         | 0, 1                                   |                                       |
-| f_e_outcoiltemp  | x         | 0, 1                                   |                                       |
-| f_e_outeeprom    | x         | 0, 1                                   |                                       |
-| f_e_outgastemp   | x         | 0, 1                                   |                                       |
-| f_e_outmachine2  | x         | 0, 1                                   |                                       |
-| f_e_outmachine   | x         | 0, 1                                   |                                       |
-| f_e_outtemp      | x         | 0, 1                                   |                                       |
-| f_e_outtemplow   | x         | 0, 1                                   |                                       |
-| f_e_push         | x         | 0, 1                                   |                                       |
-| f_filterclean    | x         | 0, 1                                   | Does the filter require cleaning      |
-| f_humidity       | x         | Integer                                | Relative humidity percent             |
-| f_power_display  | x         | 0, 1                                   |                                       |
-| f_temp_in        | x         | Decimal                                | Environment temperature in Fahrenheit |
-| f_voltage        | x         | Integer                                |                                       |
-| t_backlight      |           | ON, OFF                                | Turn the display on/off               |
-| t_device_info    |           | 0, 1                                   |                                       |
-| t_display_power  |           | 0, 1                                   |                                       |
-| t_eco            |           | OFF, ON                                | Economy mode                          |
-| t_fan_leftright  |           | OFF, ON                                | Horizontal air flow                   |
-| t_fan_mute       |           | OFF, ON                                | Quite mode                            |
-| t_fan_power      |           | OFF, ON                                | Vertical air flow                     |
-| t_fan_speed      |           | AUTO, LOWER, LOW, MEDIUM, HIGH, HIGHER | Fan Speed                             |
-| t_ftkt_start     |           | Integer                                |                                       |
-| t_power          |           | OFF, ON                                | Power                                 |
-| t_run_mode       |           | OFF, ON                                | Double frequency                      |
-| t_setmulti_value |           | Integer                                |                                       |
-| t_sleep          |           | STOP, ONE, TWO, THREE, FOUR            | Sleep mode                            |
-| t_temp           |           | Integer                                | Temperature in Fahrenheit             |
-| t_temptype       |           | CELSIUS, FAHRENHEIT                    | Displayed temperature unit            |
-| t_temp_eight     |           | OFF, ON                                | Eight heat mode                       |
-| t_temp_heatcold  |           | OFF, ON                                | Fast cool heat                        |
-| t_work_mode      |           | FAN, HEAT, COOL, DRY, AUTO             | Work mode                             |
+| Property         | Read Only | Values                                 | Comment                                                                  |
+|------------------|-----------|----------------------------------------|--------------------------------------------------------------------------|
+| f_electricity    | x         | Integer                                |                                                                          |
+| f_e_arkgrille    | x         | 0, 1                                   | Alarm from cabinet grille protection                                     |
+| f_e_incoiltemp   | x         | 0, 1                                   | Indoor coil temperature sensor in fault                                  |
+| f_e_incom        | x         | 0, 1                                   | Indoor and outdoor communication in fault                                |
+| f_e_indisplay    | x         | 0, 1                                   | Communication faulty between indoor control panel and display panel      |
+| f_e_ineeprom     | x         | 0, 1                                   | Error in EEPROM of indoor control panel                                  |
+| f_e_inele        | x         | 0, 1                                   | Communication faulty between indoor control panel and indoor power panel |
+| f_e_infanmotor   | x         | 0, 1                                   | Indoor fan motor operation abnormal                                      |
+| f_e_inhumidity   | x         | 0, 1                                   | Indoor humidity sensor in fault                                          |
+| f_e_inkeys       | x         | 0, 1                                   | Communication faulty between indoor control panel and keyboard plate     |
+| f_e_inlow        | x         | 0, 1                                   |                                                                          |
+| f_e_intemp       | x         | 0, 1                                   | Indoor temperature sensor in fault                                       |
+| f_e_invzero      | x         | 0, 1                                   | Fault found from indoor voltage crossing zero detection                  |
+| f_e_outcoiltemp  | x         | 0, 1                                   | The temperature sensor in outdoor coil faulty                            |
+| f_e_outeeprom    | x         | 0, 1                                   | Outdoor EEPROM error                                                     |
+| f_e_outgastemp   | x         | 0, 1                                   | Exhaust temperature sensor faulty                                        |
+| f_e_outmachine2  | x         | 0, 1                                   |                                                                          |
+| f_e_outmachine   | x         | 0, 1                                   |                                                                          |
+| f_e_outtemp      | x         | 0, 1                                   | Outdoor ambient temperature sensor faulty                                |
+| f_e_outtemplow   | x         | 0, 1                                   |                                                                          |
+| f_e_push         | x         | 0, 1                                   | Communication faulty between WiFi control panel and indoor control panel |
+| f_filterclean    | x         | 0, 1                                   | Does the filter require cleaning                                         |
+| f_humidity       | x         | Integer                                | Relative humidity percent                                                |
+| f_power_display  | x         | 0, 1                                   |                                                                          |
+| f_temp_in        | x         | Decimal                                | Environment temperature in Fahrenheit                                    |
+| f_voltage        | x         | Integer                                |                                                                          |
+| t_backlight      |           | ON, OFF                                | Turn the display on/off                                                  |
+| t_device_info    |           | 0, 1                                   |                                                                          |
+| t_display_power  |           | 0, 1                                   |                                                                          |
+| t_eco            |           | OFF, ON                                | Economy mode                                                             |
+| t_fan_leftright  |           | OFF, ON                                | Horizontal air flow                                                      |
+| t_fan_mute       |           | OFF, ON                                | Quite mode                                                               |
+| t_fan_power      |           | OFF, ON                                | Vertical air flow                                                        |
+| t_fan_speed      |           | AUTO, LOWER, LOW, MEDIUM, HIGH, HIGHER | Fan Speed                                                                |
+| t_ftkt_start     |           | Integer                                |                                                                          |
+| t_power          |           | OFF, ON                                | Power                                                                    |
+| t_run_mode       |           | OFF, ON                                | Double frequency                                                         |
+| t_setmulti_value |           | Integer                                |                                                                          |
+| t_sleep          |           | STOP, ONE, TWO, THREE, FOUR            | Sleep mode                                                               |
+| t_temp           |           | Integer                                | Temperature in Fahrenheit                                                |
+| t_temptype       |           | CELSIUS, FAHRENHEIT                    | Displayed temperature unit                                               |
+| t_temp_eight     |           | OFF, ON                                | Eight heat mode                                                          |
+| t_temp_heatcold  |           | OFF, ON                                | Fast cool heat                                                           |
+| t_work_mode      |           | FAN, HEAT, COOL, DRY, AUTO             | Work mode                                                                |
 
 ## Multiple Air Conditioners
 
