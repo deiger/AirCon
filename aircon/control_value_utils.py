@@ -45,7 +45,7 @@ def get_temp_value(control: int) -> int:
   return (control >> 17) & 63
 
 def set_temp_value(control: int, value: int):
-  return (control & ~(3 << 16)) | (((value << 1) | 1) << 16)
+  return (control & ~(127 << 16)) | (((value << 1) | 1) << 16)
 
 def get_fan_power_value(control: int) -> AirFlow:
   int_val = (control >> 25) & 1
