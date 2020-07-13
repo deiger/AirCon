@@ -171,8 +171,8 @@ def MakeHttpRequestHandlerClass(devices: [BaseDevice]):
       }
       super(HTTPRequestHandler, self).__init__(request, client_address, server)
 
-    def _queue_command(self, path: str, query: dict, data: dict):
-        self._query_handlers.queue_command_handler(path, query, data)
+    def _queue_command(self, sender: str, path: str, query: dict, data: dict):
+        self._query_handlers.queue_command_handler(sender, path, query, data)
         with _keep_alive.run_lock:
           logging.debug("_queue_command triggered KeepAlive notify")
           _keep_alive.run_lock.notify()
