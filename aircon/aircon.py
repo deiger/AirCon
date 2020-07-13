@@ -140,7 +140,7 @@ class BaseDevice:
       elif name == 't_eco':
         return self.set_eco(value)
       elif name == 't_temp':
-        return self.set_temp(value)
+        return self.set_temperature(value)
       elif name == 't_fan_power':
         return self.set_fan_power(value)
       elif name == 't_fan_leftright':
