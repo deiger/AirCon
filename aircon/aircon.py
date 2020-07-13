@@ -10,8 +10,15 @@ import queue
 from Crypto.Cipher import AES
 
 from .config import Config, Encryption
+from .control_value_utils import (get_power_value, set_power_value, get_temp_value,
+    set_temp_value, get_work_mode_value, set_work_mode_value, get_fan_speed_value,
+    set_fan_speed_value, get_heat_cold_value, set_heat_cold_value, get_eco_value,
+    set_eco_value, get_fan_power_value, set_fan_power_value, get_fan_lr_value,
+    set_fan_lr_value, get_fan_mute_value, set_fan_mute_value, get_fan_temptype_value,
+    set_fan_temptype_value)
 from .error import Error
-from .properties import AcProperties, FastColdHeat, FglProperties, FglBProperties, HumidifierProperties, Properties
+from .properties import (AcProperties, AirFlow, Economy, FanSpeed, FastColdHeat, FglProperties, FglBProperties, 
+    HumidifierProperties, Properties, Power, AcWorkMode, Quiet, TemperatureUnit)
 
 class BaseDevice:
   def __init__(self, ip_address: str, lanip_key: str, lanip_key_id: str, properties: Properties):
@@ -133,6 +140,159 @@ class BaseDevice:
 class AcDevice(BaseDevice):
   def __init__(self, ip_address: str, lanip_key: str, lanip_key_id: str):
     super().__init__(ip_address, lanip_key, lanip_key_id, AcProperties())
+
+  def get_env_temp(self) -> int:
+    return self.get_property('f_temp_in')
+
+  def set_power(self, setting: Power) -> None:
+    control_value = self.get_property('t_control_value')
+    if (control_value):
+      control_value = set_power_value(control_value, setting)
+      self.queue_command('t_control_value', control_value)
+    else:
+      self.queue_command('t_power', setting)
+
+  def get_power(self) -> Power:
+    control_value = self.get_property('t_control_value')
+    if (control_value):
+      return get_power_value(control_value)
+    else:
+      return self.get_property('t_power')
+
+  def set_temperature(self, setting: int) -> None:
+    control_value = self.get_property('t_control_value')
+    if (control_value):
+      control_value = set_temp_value(control_value, setting)
+      self.queue_command('t_control_value', control_value)
+    else:
+      self.queue_command('t_temp', setting)
+
+  def get_temperature(self) -> int:
+    control_value = self.get_property('t_control_value')
+    if (control_value):
+      return get_temp_value(control_value)
+    else:
+      return self.get_property('t_temp')
+    
+  def set_work_mode(self, setting: AcWorkMode) -> None:
+    control_value = self.get_property('t_control_value')
+    if (control_value):
+      control_value = set_work_mode_value(control_value, setting)
+      self.queue_command('t_control_value', control_value)
+    else:
+      self.queue_command('t_work_mode', setting)
+
+  def get_work_mode(self) -> AcWorkMode:
+    control_value = self.get_property('t_control_value')
+    if (control_value):
+      return get_work_mode_value(control_value)
+    else:
+      return self.get_property('t_work_mode')
+
+  def set_fan_speed(self, setting: FanSpeed) -> None:
+    control_value = self.get_property('t_control_value')
+    if (control_value):
+      control_value = set_fan_speed_value(control_value, setting)
+      self.queue_command('t_control_value', control_value)
+    else:
+      self.queue_command('t_fan_speed', setting)
+
+  def get_fan_speed(self) -> FanSpeed:
+    control_value = self.get_property('t_control_value')
+    if (control_value):
+      return get_fan_speed_value(control_value)
+    else:
+      return self.get_property('t_fan_speed')
+
+  def set_fan_vertical(self, setting: AirFlow) -> None:
+    control_value = self.get_property('t_control_value')
+    if (control_value):
+      control_value = set_fan_power_value(control_value, setting)
+      self.queue_command('t_control_value', control_value)
+    else:
+      self.queue_command('t_fan_power', setting)
+
+  def get_fan_vertical(self) -> AirFlow:
+    control_value = self.get_property('t_control_value')
+    if (control_value):
+      return get_fan_power_value(control_value)
+    else:
+      return self.get_property('t_fan_power')
+
+  def set_fan_horizontal(self, setting: AirFlow) -> None:
+    control_value = self.get_property('t_control_value')
+    if (control_value):
+      control_value = set_fan_lr_value(control_value, setting)
+      self.queue_command('t_control_value', control_value)
+    else:
+      self.queue_command('t_fan_leftright', setting)
+
+  def get_fan_horizontal(self) -> AirFlow:
+    control_value = self.get_property('t_control_value')
+    if (control_value):
+      return get_fan_lr_value(control_value)
+    else:
+      return self.get_property('t_fan_leftright')
+
+  def set_fan_mute(self, setting: Quiet) -> None:
+    control_value = self.get_property('t_control_value')
+    if (control_value):
+      control_value = set_fan_mute_value(control_value, setting)
+      self.queue_command('t_control_value', control_value)
+    else:
+      self.queue_command('t_fan_mute', setting)
+
+  def get_fan_mute(self) -> Quiet:
+    control_value = self.get_property('t_control_value')
+    if (control_value):
+      return get_fan_mute_value(control_value)
+    else:
+      return self.get_property('t_fan_mute')
+
+  def set_fast_heat_cold(self, setting: FastColdHeat):
+    control_value = self.get_property('t_control_value')
+    if (control_value):
+      control_value = set_heat_cold_value(control_value, setting)
+      self.queue_command('t_control_value', control_value)
+    else:
+      self.queue_command('t_temp_heatcold', setting)
+
+  def get_fast_heat_cold(self) -> FastColdHeat:
+    control_value = self.get_property('t_control_value')
+    if (control_value):
+      return get_heat_cold_value(control_value)
+    else:
+      return self.get_property('t_temp_heatcold')
+
+  def set_eco_value(self, setting: Economy) -> None:
+    control_value = self.get_property('t_control_value')
+    if (control_value):
+      control_value = set_eco_value(control_value, setting)
+      self.queue_command('t_control_value', control_value)
+    else:
+      self.queue_command('t_eco', setting)
+    
+  def get_eco_value(self) -> Economy:
+    control_value = self.get_property('t_control_value')
+    if (control_value):
+      return get_eco_value(control_value)
+    else:
+      return self.get_property('t_eco')
+
+  def set_fan_temptype(self, setting: TemperatureUnit) -> None:
+    control_value = self.get_property('t_control_value')
+    if (control_value):
+      control_value = set_fan_temptype_value(control_value, setting)
+      self.queue_command('t_control_value', control_value)
+    else:
+      self.queue_command('t_fan_temptype', setting)
+
+  def get_fan_temptype(self) -> TemperatureUnit:
+    control_value = self.get_property('t_control_value')
+    if (control_value):
+      return get_fan_temptype_value(control_value)
+    else:
+      return self.get_property('t_fan_temptype')
 
 class FglDevice(BaseDevice):
   def __init__(self, ip_address: str, lanip_key: str, lanip_key_id: str):
