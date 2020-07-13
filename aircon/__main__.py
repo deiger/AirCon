@@ -101,16 +101,21 @@ class KeepAliveThread(threading.Thread):
           _thread.interrupt_main()
           return
       while True:
+        should_run_again = False
         try:
           for entry in self._data:
             now = time.time()
-            if now - entry['last_timestamp'] >= self._KEEP_ALIVE_INTERVAL or entry['device'].commands_queue.qsize() > 0:
+            queue_size = entry['device'].commands_queue.qsize()
+            if now - entry['last_timestamp'] >= self._KEEP_ALIVE_INTERVAL or queue_size > 0:
               self._establish_connection(entry['conn'], entry['headers'], entry['device'])
               entry['last_timestamp'] = now
+              if queue_size > 1:
+                should_run_again = True
         except:
           logging.exception('[KeepAlive] Failed to send local_reg keep alive to the AC.')
         logging.debug('[KeepAlive] Waiting for notification or timeout')
-        self.run_lock.wait(self._KEEP_ALIVE_INTERVAL)
+        if not should_run_again:
+          self.run_lock.wait(self._KEEP_ALIVE_INTERVAL)
 
 class QueryStatusThread(threading.Thread):
   """Thread to preiodically query the status of all properties.
