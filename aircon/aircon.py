@@ -81,20 +81,29 @@ class BaseDevice:
       raise Error('Cannot update read-only property "{}".'.format(name))
     data_type = self._properties.get_type(name)
     base_type = self._properties.get_base_type(name)
-    if issubclass(data_type, enum.Enum):
-      data_value = data_type[value].value
-    elif data_type is int and type(value) is str and '.' in value:
-      # Round rather than fail if the input is a float.
-      # This is commonly the case for temperatures converted by HA from Celsius.
-      data_value = round(float(value))
-    else:
-      data_value = data_type(value)
     
     if self.get_property('t_control_value'):
       # Device mode is set using control_value
+      if issubclass(data_type, enum.Enum):
+        data_value = data_type[value]
+      elif data_type is int and type(value) is str and '.' in value:
+        # Round rather than fail if the input is a float.
+        # This is commonly the case for temperatures converted by HA from Celsius.
+        data_value = round(float(value))
+      else:
+        data_value = data_type(value)
       data_value = self._convert_to_control_value(name, data_value)
       name = 't_control_value'
       base_type = self._properties.get_base_type('t_control_value')
+    else: 
+      if issubclass(data_type, enum.Enum):
+        data_value = data_type[value].value
+      elif data_type is int and type(value) is str and '.' in value:
+        # Round rather than fail if the input is a float.
+        # This is commonly the case for temperatures converted by HA from Celsius.
+        data_value = round(float(value))
+      else:
+        data_value = data_type(value)
 
     command = {
       'properties': [{
