@@ -89,6 +89,13 @@ class BaseDevice:
       data_value = round(float(value))
     else:
       data_value = data_type(value)
+    
+    if self.get_property('t_control_value'):
+      # Device mode is set using control_value
+      data_value = self._convert_to_control_value(name, data_value)
+      name = 't_control_value'
+      base_type = self._properties.get_base_type('t_control_value')
+
     command = {
       'properties': [{
         'property': {
@@ -111,6 +118,31 @@ class BaseDevice:
       self.queue_command('t_fan_mute', 'OFF')
       self.queue_command('t_sleep', 'STOP')
       self.queue_command('t_temp_eight', 'OFF')
+
+  def _convert_to_control_value(self, name: str, value) -> int:
+    if isinstance(self, AcDevice):
+      if name == 't_power':
+        return self.set_power(value)
+      elif name == 't_fan_speed':
+        return self.set_fan_speed(value)
+      elif name == 't_work_mode':
+        return self.set_work_mode(value)
+      elif name == 't_temp_heatcold':
+        return self.set_fast_heat_cold(value)
+      elif name == 't_eco':
+        return self.set_eco(value)
+      elif name == 't_temp':
+        return self.set_temp(value)
+      elif name == 't_fan_power':
+        return self.set_fan_power(value)
+      elif name == 't_fan_leftright':
+        return self.set_fan_vertical(value)
+      elif name == 't_fan_mute':
+        return self.set_fan_mute(value)
+      elif name == 't_fan_temptype':
+        return self.set_fan_temptype(value)
+    else:
+      return 0
 
   def queue_status(self) -> None:
     for data_field in fields(self._properties):
@@ -264,7 +296,7 @@ class AcDevice(BaseDevice):
     else:
       return self.get_property('t_temp_heatcold')
 
-  def set_eco_value(self, setting: Economy) -> None:
+  def set_eco(self, setting: Economy) -> None:
     control_value = self.get_property('t_control_value')
     if (control_value):
       control_value = set_eco_value(control_value, setting)
@@ -272,7 +304,7 @@ class AcDevice(BaseDevice):
     else:
       self.queue_command('t_eco', setting)
     
-  def get_eco_value(self) -> Economy:
+  def get_eco(self) -> Economy:
     control_value = self.get_property('t_control_value')
     if (control_value):
       return get_eco_value(control_value)
