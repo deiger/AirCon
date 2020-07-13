@@ -113,8 +113,8 @@ class KeepAliveThread(threading.Thread):
                 should_run_again = True
         except:
           logging.exception('[KeepAlive] Failed to send local_reg keep alive to the AC.')
-        logging.debug('[KeepAlive] Waiting for notification or timeout')
         if not should_run_again:
+          logging.debug('[KeepAlive] Waiting for notification or timeout')
           self.run_lock.wait(self._KEEP_ALIVE_INTERVAL)
 
 class QueryStatusThread(threading.Thread):

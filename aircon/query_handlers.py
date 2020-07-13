@@ -92,7 +92,13 @@ class QueryHandlers:
     """Handles get status request (by a smart home hub).
     Returns the current internally stored state of the AC.
     """
-    data = self._data[sender].get_all_properties().to_dict()
+    requested_device_ip = query['device_ip']
+    requested_device: BaseDevice
+    for device in self._data.values():
+      if device.ip_address == requested_device_ip:
+        requested_device = device
+        break
+    data = requested_device.get_all_properties().to_dict()
     self._write_json(HTTPStatus.OK, data)
 
   def queue_command_handler(self, sender: str, path: str, query: dict, data: dict) -> None:
