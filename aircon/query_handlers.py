@@ -103,7 +103,7 @@ class QueryHandlers:
   def queue_command_handler(self, sender: str, path: str, query: dict, data: dict) -> None:
     """Handles queue command request (by a smart home hub).
     """
-    device = self._data[sender]
+    device = self._data[query['device_ip'][0]]
     try:
       device.queue_command(query['property'][0], query['value'][0])
     except:
