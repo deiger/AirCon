@@ -71,10 +71,10 @@ def set_fan_mute_value(control: int, value: Quiet) -> None:
   int_val = value.value
   return (control & ~(3 << 28)) | (((int_val << 1) | 1) << 28) 
 
-def get_fan_temptype_value(control: int) -> TemperatureUnit:
+def get_temptype_value(control: int) -> TemperatureUnit:
   int_val = (control >> 31) & 1 
   return TemperatureUnit(int_val)
 
-def set_fan_temptype_value(control: int, value: TemperatureUnit) -> None:
+def set_temptype_value(control: int, value: TemperatureUnit) -> None:
   int_val = value.value
   return (control & ~(3 << 30)) | (((int_val << 1) | 1) << 30)

@@ -14,8 +14,8 @@ from .control_value_utils import (get_power_value, set_power_value, get_temp_val
     set_temp_value, get_work_mode_value, set_work_mode_value, get_fan_speed_value,
     set_fan_speed_value, get_heat_cold_value, set_heat_cold_value, get_eco_value,
     set_eco_value, get_fan_power_value, set_fan_power_value, get_fan_lr_value,
-    set_fan_lr_value, get_fan_mute_value, set_fan_mute_value, get_fan_temptype_value,
-    set_fan_temptype_value)
+    set_fan_lr_value, get_fan_mute_value, set_fan_mute_value, get_temptype_value,
+    set_temptype_value)
 from .error import Error
 from .properties import (AcProperties, AirFlow, Economy, FanSpeed, FastColdHeat, FglProperties, FglBProperties, 
     HumidifierProperties, Properties, Power, AcWorkMode, Quiet, TemperatureUnit)
@@ -148,8 +148,8 @@ class BaseDevice:
         return self.set_fan_horizontal(value)
       elif name == 't_fan_mute':
         return self.set_fan_mute(value)
-      elif name == 't_fan_temptype':
-        return self.set_fan_temptype(value)
+      elif name == 't_temptype':
+        return self.set_temptype(value)
     else:
       return 0
 
@@ -320,20 +320,20 @@ class AcDevice(BaseDevice):
     else:
       return self.get_property('t_eco')
 
-  def set_fan_temptype(self, setting: TemperatureUnit) -> None:
+  def set_temptype(self, setting: TemperatureUnit) -> None:
     control_value = self.get_property('t_control_value')
     if (control_value):
-      control_value = set_fan_temptype_value(control_value, setting)
+      control_value = set_temptype_value(control_value, setting)
       self.queue_command('t_control_value', control_value)
     else:
-      self.queue_command('t_fan_temptype', setting)
+      self.queue_command('t_temptype', setting)
 
-  def get_fan_temptype(self) -> TemperatureUnit:
+  def get_temptype(self) -> TemperatureUnit:
     control_value = self.get_property('t_control_value')
     if (control_value):
-      return get_fan_temptype_value(control_value)
+      return get_temptype_value(control_value)
     else:
-      return self.get_property('t_fan_temptype')
+      return self.get_property('t_temptype')
 
 class FglDevice(BaseDevice):
   def __init__(self, name: str, ip_address: str, lanip_key: str, lanip_key_id: str):
