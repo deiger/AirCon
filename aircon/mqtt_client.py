@@ -28,36 +28,38 @@ class MqttClient(mqtt.Client):
                 message.topic, message.payload)
     if message.topic.startswith('$SYS/broker/log/M/subscribe'):
       return self.mqtt_on_subscribe(message.payload)
-    name = message.topic.rsplit('/', 2)[2]
-    print('on message name = {}'.format(name))
+    dev_name = message.topic.rsplit('/', 3)[1]
+    prop_name = message.topic.rsplit('/', 3)[2]
+    print('topic = {}. on message name = {}'.format(message.topic, prop_name))
     payload = message.payload.decode('utf-8')
-    if name == 't_work_mode' and payload == 'fan_only':
+    if prop_name == 't_work_mode' and payload == 'fan_only':
       payload = 'FAN'
 
     for device in self._devices:
-      if device.name != name:
+      if device.name != dev_name:
         continue
       chosen_device = device
     
     try:
-      chosen_device.queue_command(name, payload.upper())
+      chosen_device.queue_command(prop_name, payload.upper())
     except Exception:
       logging.exception('Failed to parse value %r for property %r',
-                        payload.upper(), name)
+                        payload.upper(), prop_name)
 
   def mqtt_on_subscribe(self, payload: bytes):
     # The last segment in the space delimited string is the topic.
     topic = payload.decode('utf-8').rsplit(' ', 1)[-1]
     if topic not in self._mqtt_topics['pub']:
       return
-    name = topic.rsplit('/', 2)[2]
+    dev_name = topic.rsplit('/', 3)[1]
+    prop_name = topic.rsplit('/', 3)[2]
 
     for device in self._devices:
-      if device.name != name:
+      if device.name != dev_name:
         continue
       chosen_device = device
 
-    self.mqtt_publish_update(chosen_device.name, name, chosen_device.get_property(name))
+    self.mqtt_publish_update(chosen_device.name, prop_name, chosen_device.get_property(prop_name))
 
   def mqtt_publish_update(self, device_name: str, property_name: str, value) -> None:
     if isinstance(value, enum.Enum):
