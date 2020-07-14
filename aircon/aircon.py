@@ -21,7 +21,8 @@ from .properties import (AcProperties, AirFlow, Economy, FanSpeed, FastColdHeat,
     HumidifierProperties, Properties, Power, AcWorkMode, Quiet, TemperatureUnit)
 
 class BaseDevice:
-  def __init__(self, ip_address: str, lanip_key: str, lanip_key_id: str, properties: Properties):
+  def __init__(self, name: str, ip_address: str, lanip_key: str, lanip_key_id: str, properties: Properties):
+    self.name = name
     self.ip_address = ip_address
     self._config = Config(lanip_key, lanip_key_id)
     self._properties = properties
@@ -58,7 +59,7 @@ class BaseDevice:
         setattr(self._properties, name, value)
         logging.debug('Updated properties: %s' % self._properties)
       if self.change_listener:
-        self.change_listener(name, value)
+        self.change_listener(self.name, name, value)
 
   def get_command_seq_no(self) -> int:
     with self._commands_seq_no_lock:
@@ -178,8 +179,8 @@ class BaseDevice:
     return self._config.dev
 
 class AcDevice(BaseDevice):
-  def __init__(self, ip_address: str, lanip_key: str, lanip_key_id: str):
-    super().__init__(ip_address, lanip_key, lanip_key_id, AcProperties())
+  def __init__(self, name: str, ip_address: str, lanip_key: str, lanip_key_id: str):
+    super().__init__(name, ip_address, lanip_key, lanip_key_id, AcProperties())
 
   def get_env_temp(self) -> int:
     return self.get_property('f_temp_in')
@@ -335,13 +336,13 @@ class AcDevice(BaseDevice):
       return self.get_property('t_fan_temptype')
 
 class FglDevice(BaseDevice):
-  def __init__(self, ip_address: str, lanip_key: str, lanip_key_id: str):
-    super().__init__(ip_address, lanip_key, lanip_key_id, FglProperties())
+  def __init__(self, name: str, ip_address: str, lanip_key: str, lanip_key_id: str):
+    super().__init__(name, ip_address, lanip_key, lanip_key_id, FglProperties())
 
 class FglBDevice(BaseDevice):
-  def __init__(self, ip_address: str, lanip_key: str, lanip_key_id: str):
-    super().__init__(ip_address, lanip_key, lanip_key_id, FglBProperties())
+  def __init__(self, name: str, ip_address: str, lanip_key: str, lanip_key_id: str):
+    super().__init__(name, ip_address, lanip_key, lanip_key_id, FglBProperties())
 
 class HumidifierDevice(BaseDevice):
-  def __init__(self, ip_address: str, lanip_key: str, lanip_key_id: str):
-    super().__init__(ip_address, lanip_key, lanip_key_id, HumidifierProperties())
+  def __init__(self, name: str, ip_address: str, lanip_key: str, lanip_key_id: str):
+    super().__init__(name, ip_address, lanip_key, lanip_key_id, HumidifierProperties())

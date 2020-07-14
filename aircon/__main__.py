@@ -240,8 +240,6 @@ def ParseArguments() -> argparse.Namespace:
   parser_run.add_argument('-p', '--port', required=True, type=int,
                           help='Port for the server.')
   group_device = parser_run.add_argument_group('Device', 'Arguments that are related to the device')
-  group_device.add_argument('--ip', required=True, action='append',
-                          help='IP address for the AC.')
   group_device.add_argument('--config', required=True, action='append',
                           help='LAN Config file.')
   group_device.add_argument('--type', required=True, action='append',
@@ -292,32 +290,34 @@ def setup_logger(log_level):
   logger.addHandler(logging_handler)
 
 def run(parsed_args):
-  if (len(parsed_args.ip) != len(parsed_args.type) and len(parsed_args.ip) != len(parsed_args.config)):
-    raise ValueError("Each device has to have specified ip, type and config file")
+  if (len(parsed_args.type) != len(parsed_args.config)):
+    raise ValueError("Each device has to have specified type and config file")
 
   devices = []
-  for i in range(len(parsed_args.ip)):
+  for i in range(len(parsed_args.config)):
     with open(parsed_args.config[i], 'rb') as f:
       data = json.load(f)
+    name = data['name']
+    ip = data['lan_ip']
     lanip_key = data['lanip_key']
     lanip_key_id = data['lanip_key_id']
     if parsed_args.type[i] == 'ac':
-      device = AcDevice(parsed_args.ip[i], lanip_key, lanip_key_id)
+      device = AcDevice(name, ip, lanip_key, lanip_key_id)
     elif parsed_args.type[i] == 'fgl':
-      device = FglDevice(parsed_args.ip[i], lanip_key, lanip_key_id)
+      device = FglDevice(name, ip, lanip_key, lanip_key_id)
     elif parsed_args.type[i] == 'fgl_b':
-      device = FglBDevice(parsed_args.ip[i], lanip_key, lanip_key_id)
+      device = FglBDevice(name, ip, lanip_key, lanip_key_id)
     elif parsed_args.type[i] == 'humidifier':
-      device = HumidifierDevice(parsed_args.ip[i], lanip_key, lanip_key_id)
+      device = HumidifierDevice(name, ip, lanip_key, lanip_key_id)
     else:
       logging.error('Unknown type of device: %s', parsed_args.type[i])
       sys.exit(1)  # Should never get here.
     devices.append(device)
 
   if parsed_args.mqtt_host:
-    mqtt_topics = {'pub' : '/'.join((parsed_args.mqtt_topic, '{}', 'status')),
-                  'sub' : '/'.join((parsed_args.mqtt_topic, '{}', 'command'))}
-    mqtt_client = MqttClient(parsed_args.mqtt_client_id, mqtt_topics, device)
+    mqtt_topics = {'pub' : '/'.join((parsed_args.mqtt_topic, '{}', '{}', 'status')),
+                  'sub' : '/'.join((parsed_args.mqtt_topic, '{}', '{}', 'command'))}
+    mqtt_client = MqttClient(parsed_args.mqtt_client_id, mqtt_topics, devices)
     if parsed_args.mqtt_user:
       mqtt_client.username_pw_set(*parsed_args.mqtt_user.split(':',1))
     mqtt_client.connect(parsed_args.mqtt_host, parsed_args.mqtt_port)
@@ -351,6 +351,8 @@ def discovery(parsed_args):
                    parsed_args.prefix, parsed_args.device, parsed_args.properties)
   for config in all_configs:
     file_content = {
+      'name': config['product_name'],
+      'lan_ip': config['lan_ip'],
       'lanip_key': config['lanip_key'],
       'lanip_key_id': config['lanip_key_id']
     }
