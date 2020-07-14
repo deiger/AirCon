@@ -142,9 +142,9 @@ class BaseDevice:
       elif name == 't_temp':
         return self.set_temperature(value)
       elif name == 't_fan_power':
-        return self.set_fan_power(value)
-      elif name == 't_fan_leftright':
         return self.set_fan_vertical(value)
+      elif name == 't_fan_leftright':
+        return self.set_fan_horizontal(value)
       elif name == 't_fan_mute':
         return self.set_fan_mute(value)
       elif name == 't_fan_temptype':
