@@ -9,7 +9,7 @@ from .properties import AcWorkMode
 
 class MqttClient(mqtt.Client):
   def __init__(self, client_id: str, mqtt_topics: dict, device: BaseDevice):
-    super(self, client_id=client_id, clean_session=True)
+    super().__init__(self, client_id, True)
     self._mqtt_topics = mqtt_topics
     self._device = device
 
