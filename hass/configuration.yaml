@@ -17,11 +17,15 @@ climate:
     mode_command_topic: "hisense_ac/t_work_mode/command"
     mode_state_topic: "hisense_ac/t_work_mode/status"
     modes:
+      - "off"
       - "fan_only"
       - "heat"
       - "cool"
       - "dry"
       - "auto"
+    swing_modes:
+      - "on"
+      - "off"
     power_command_topic: "hisense_ac/t_power/command"
     power_state_topic: "hisense_ac/t_power/status"
     precision: 1.0
