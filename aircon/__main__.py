@@ -1,12 +1,11 @@
+from aiohttp import web
 import argparse
 import base64
 from http import HTTPStatus
 from http.client import HTTPConnection, InvalidURL
-from http.server import HTTPServer, BaseHTTPRequestHandler
 import json
 import logging
 import logging.handlers
-import paho.mqtt.client as mqtt
 from retry import retry
 import signal
 import socket
@@ -120,7 +119,7 @@ class KeepAliveThread(threading.Thread):
 class QueryStatusThread(threading.Thread):
   """Thread to preiodically query the status of all properties.
   
-  After start-up, essentailly all updates should be pushed to the server due
+  After start-up, essentially all updates should be pushed to the server due
   to the keep alive, so this is just a belt and suspenders.
   """
   
@@ -144,85 +143,6 @@ class QueryStatusThread(threading.Thread):
           logging.debug('QueryStatusThread triggered KeepAlive notify')
           _keep_alive.run_lock.notify()
       time.sleep(self._STATUS_UPDATE_INTERVAL)
-
-def MakeHttpRequestHandlerClass(devices: [BaseDevice]):
-  class HTTPRequestHandler(BaseHTTPRequestHandler):
-    """Handler for AC related HTTP requests."""
-    def __init__(self, request, client_address, server):
-      self._query_handlers = QueryHandlers(devices, self._write_response)
-      self._HANDLERS_MAP = {
-        '/hisense/status': self._query_handlers.get_status_handler,
-        '/hisense/command': self._queue_command,
-        '/local_lan/key_exchange.json': self._query_handlers.key_exchange_handler,
-        '/local_lan/commands.json': self._query_handlers.command_handler,
-        '/local_lan/property/datapoint.json': self._query_handlers.property_update_handler,
-        '/local_lan/property/datapoint/ack.json': self._query_handlers.property_update_handler,
-        '/local_lan/node/property/datapoint.json': self._query_handlers.property_update_handler,
-        '/local_lan/node/property/datapoint/ack.json': self._query_handlers.property_update_handler,
-        # TODO: Handle these if needed.
-        # '/local_lan/node/conn_status.json': _query_handlers.connection_status_handler,
-        # '/local_lan/connect_status': _query_handlers.module_request_handler,
-        # '/local_lan/status.json': _query_handlers.setup_device_details_handler,
-        # '/local_lan/wifi_scan.json': _query_handlers.module_request_handler,
-        # '/local_lan/wifi_scan_results.json': _query_handlers.module_request_handler,
-        # '/local_lan/wifi_status.json': _query_handlers.module_request_handler,
-        # '/local_lan/regtoken.json': _query_handlers.module_request_handler,
-        # '/local_lan/wifi_stop_ap.json': _query_handlers.module_request_handler,
-      }
-      super(HTTPRequestHandler, self).__init__(request, client_address, server)
-
-    def _queue_command(self, sender: str, path: str, query: dict, data: dict):
-        self._query_handlers.queue_command_handler(sender, path, query, data)
-        with _keep_alive.run_lock:
-          logging.debug("_queue_command triggered KeepAlive notify")
-          _keep_alive.run_lock.notify()
-
-    def _write_response(self, status: HTTPStatus, response: str):
-      self.do_HEAD(status)
-      if (response != None):
-        self.wfile.write(response)
-
-    def do_HEAD(self, code: HTTPStatus = HTTPStatus.OK) -> None:
-      """Return a JSON header."""
-      self.send_response(code)
-      if code == HTTPStatus.OK:
-        self.send_header('Content-type', 'application/json')
-      self.end_headers()
-
-    def do_GET(self) -> None:
-      """Accepts get requests."""
-      sender = self.client_address[0]
-      logging.debug('GET Request from %s,\nPath: %s\n', sender, self.path)
-      parsed_url = urlparse(self.path)
-      query = parse_qs(parsed_url.query)
-      handler = self._HANDLERS_MAP.get(parsed_url.path)
-      if handler:
-        try:
-          handler(sender, parsed_url.path, query, {})
-          return
-        except:
-          logging.exception('Failed to parse property.')
-      self.do_HEAD(HTTPStatus.NOT_FOUND)
-
-    def do_POST(self):
-      """Accepts post requests."""
-      sender = self.client_address[0]
-      content_length = int(self.headers['Content-Length'])
-      post_data = self.rfile.read(content_length)
-      logging.debug('POST request from %s,\nPath: %s\nHeaders:\n%s\n\nBody:\n%s\n',
-                    sender, str(self.path), str(self.headers), post_data.decode('utf-8'))
-      parsed_url = urlparse(self.path)
-      query = parse_qs(parsed_url.query)
-      data = json.loads(post_data)
-      handler = self._HANDLERS_MAP.get(parsed_url.path)
-      if handler:
-        try:
-          handler(sender, parsed_url.path, query, data)
-          return
-        except:
-          logging.exception('Failed to parse property.')
-      self.do_HEAD(HTTPStatus.NOT_FOUND)
-  return HTTPRequestHandler
 
 def ParseArguments() -> argparse.Namespace:
   """Parse command line arguments."""
@@ -289,6 +209,28 @@ def setup_logger(log_level):
   logger.setLevel(log_level)
   logger.addHandler(logging_handler)
 
+def setup_and_run_http_server(parsed_args, devices: [BaseDevice]):
+  # TODO: Handle these if needed.
+  # '/local_lan/node/conn_status.json': _query_handlers.connection_status_handler,
+  # '/local_lan/connect_status': _query_handlers.module_request_handler,
+  # '/local_lan/status.json': _query_handlers.setup_device_details_handler,
+  # '/local_lan/wifi_scan.json': _query_handlers.module_request_handler,
+  # '/local_lan/wifi_scan_results.json': _query_handlers.module_request_handler,
+  # '/local_lan/wifi_status.json': _query_handlers.module_request_handler,
+  # '/local_lan/regtoken.json': _query_handlers.module_request_handler,
+  # '/local_lan/wifi_stop_ap.json': _query_handlers.module_request_handler
+  query_handlers = QueryHandlers(devices)
+  app = web.Application()
+  app.add_routes([web.get('/hisense/status', query_handlers.get_status_handler),
+                  web.post('/hisense/command', query_handlers.queue_command_handler),
+                  web.post('/local_lan/key_exchange.json', query_handlers.key_exchange_handler),
+                  web.post('/local_lan/commands.json', query_handlers.command_handler),
+                  web.post('/local_lan/property/datapoint.json', query_handlers.property_update_handler),
+                  web.post('/local_lan/property/datapoint/ack.json', query_handlers.property_update_handler),
+                  web.post('/local_lan/node/property/datapoint.json', query_handlers.property_update_handler),
+                  web.post('/local_lan/node/property/datapoint/ack.json', query_handlers.property_update_handler)])
+  web.run_app(app, port = parsed_args.port)
+
 def run(parsed_args):
   if (len(parsed_args.type) != len(parsed_args.config)):
     raise ValueError("Each device has to have specified type and config file")
@@ -314,6 +256,7 @@ def run(parsed_args):
       sys.exit(1)  # Should never get here.
     devices.append(device)
 
+  mqtt_client = None
   if parsed_args.mqtt_host:
     mqtt_topics = {'pub' : '/'.join((parsed_args.mqtt_topic, '{}', '{}', 'status')),
                   'sub' : '/'.join((parsed_args.mqtt_topic, '{}', '{}', 'command'))}
@@ -334,13 +277,7 @@ def run(parsed_args):
   _keep_alive = KeepAliveThread(parsed_args.port, devices)
   _keep_alive.start()
 
-  httpd = HTTPServer(('', parsed_args.port), MakeHttpRequestHandlerClass(devices)) #TODO It should be a map of ip -> device
-  try:
-    httpd.serve_forever()
-  except KeyboardInterrupt:
-    pass
-  finally:
-    httpd.server_close()
+  setup_and_run_http_server(parsed_args, devices)
 
 def _escape_name(name: str):
   safe_name = name.replace(' ', '_').lower()

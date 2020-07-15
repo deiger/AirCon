@@ -24,13 +24,11 @@ class MqttClient(mqtt.Client):
     client.subscribe('$SYS/broker/log/M/subscribe/#')
 
   def mqtt_on_message(self, client: mqtt.Client, userdata, message: mqtt.MQTTMessage):
-    logging.info('MQTT message Topic: %r, Payload %r',
-                message.topic, message.payload)
+    logging.info('MQTT message Topic: {}, Payload {}'.format(message.topic, message.payload))
     if message.topic.startswith('$SYS/broker/log/M/subscribe'):
       return self.mqtt_on_subscribe(message.payload)
     dev_name = message.topic.rsplit('/', 3)[1]
     prop_name = message.topic.rsplit('/', 3)[2]
-    print('topic = {}. on message name = {}'.format(message.topic, prop_name))
     payload = message.payload.decode('utf-8')
     if prop_name == 't_work_mode' and payload == 'fan_only':
       payload = 'FAN'
@@ -43,8 +41,7 @@ class MqttClient(mqtt.Client):
     try:
       chosen_device.queue_command(prop_name, payload.upper())
     except Exception:
-      logging.exception('Failed to parse value %r for property %r',
-                        payload.upper(), prop_name)
+      logging.exception('Failed to parse value {} for property {}'.format(payload.upper(), prop_name))
 
   def mqtt_on_subscribe(self, payload: bytes):
     # The last segment in the space delimited string is the topic.
