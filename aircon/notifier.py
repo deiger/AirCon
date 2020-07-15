@@ -74,7 +74,7 @@ class Notifier:
           for entry in self._configurations:
             now = time.time()
             queue_size = entry.device.commands_queue.qsize()
-            if queue_size > 0:
+            if queue_size > 1:
               queues_empty = False
             if now - entry.last_timestamp >= self._KEEP_ALIVE_INTERVAL or queue_size > 0:
               await self._perform_request(entry)
@@ -88,6 +88,9 @@ class Notifier:
             #await self._wait_on_condition_with_timeout(self._condition, self._KEEP_ALIVE_INTERVAL)
           except concurrent.futures.TimeoutError:
             pass
+        else:
+          #TODO: Should it be here at all?
+          await asyncio.sleep(500) # give some time to clean up the queues
 
   @retry(retry=retry_if_exception_type(ConnectionError), wait=wait_incrementing(start=0.5, increment=1.5, max=10))
   async def _perform_request(self, config: _NotifyConfiguration) -> None:

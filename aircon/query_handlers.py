@@ -33,6 +33,7 @@ class QueryHandlers:
     updated_keys = {}
     post_data = await request.text()
     data = json.loads(post_data)
+    print('received data {}'.format(data))
     try:
       key = data['key_exchange']
       if key['ver'] != 1 or key['proto'] != 1 or key.get('sec'):
@@ -43,7 +44,7 @@ class QueryHandlers:
     except KeyIdReplaced as e:
       logging.error('{}\n{}'.format(e.title, e.message))
       return web.Response(status=HTTPStatus.NOT_FOUND.value)
-    return web.json_response(updated_keys, headers={'Content-Type': 'application/json'})
+    return web.json_response(updated_keys)
 
   async def command_handler(self, request: web.Request) -> web.Response:
     """Handles a command request.
@@ -54,14 +55,14 @@ class QueryHandlers:
     device = self._devices_map[request.remote]
     command['seq_no'] = device.get_command_seq_no()
     try:
-      print('Getting device commands')
+      print('Getting device command')
       command['data'], property_updater = device.commands_queue.get_nowait()
     except queue.Empty:
       print('Queue is empty!')
       command['data'], property_updater = {}, None
     if property_updater:
       property_updater() #TODO: should be async as well?
-    return web.json_response(self._encrypt_and_sign(device, command), headers={'Content-Type': 'application/json'})
+    return web.json_response(self._encrypt_and_sign(device, command))
 
   async def property_update_handler(self, request: web.Request) -> web.Response:
     """Handles a property update request.
@@ -101,7 +102,7 @@ class QueryHandlers:
         continue
       devices.append({'ip': device.ip_address, 
                      'props': device.get_all_properties().to_dict()})
-    return web.json_response({'devices': devices}, headers={'Content-Type': 'application/json'})
+    return web.json_response({'devices': devices})
 
   async def queue_command_handler(self, request: web.Request) -> web.Response:
     """Handles queue command request (by a smart home hub).
@@ -113,12 +114,13 @@ class QueryHandlers:
       device.queue_command(request.query['property'], request.query['value'])
     except:
       logging.exception('Failed to queue command.')
-      return web.Response(status=HTTPStatus.BAD_REQUEST.value)
-    return web.json_response({'queued_commands': device.commands_queue.qsize()}, headers={'Content-Type': 'application/json'})
+      raise web.HTTPBadRequest()
+    return web.json_response({'queued_commands': device.commands_queue.qsize()})
 
   def _encrypt_and_sign(self, device: BaseDevice, data: dict) -> dict:
-    text = json.dumps(data).encode('utf-8')
-    logging.debug('Encrypting: {}'.format(text.decode('utf-8')))
+    text = json.dumps(data)
+    logging.debug('Encrypting: {}'.format(text))
+    text = text.encode('utf-8')
     encryption = device.get_app_encryption()
     return {
       "enc": base64.b64encode(encryption.cipher.encrypt(self.pad(text))).decode('utf-8'),

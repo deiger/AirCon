@@ -7,9 +7,13 @@ import logging.handlers
 import sys
 import time
 
+import base64
+import math
+from Crypto.Cipher import AES
+
 from . import aircon
 from .app_mappings import SECRET_MAP
-from .config import Config
+from .config import Config, Encryption
 from .error import Error
 from .aircon import BaseDevice, AcDevice, FglDevice, FglBDevice, HumidifierDevice
 from .discovery import perform_discovery
@@ -110,7 +114,7 @@ async def setup_and_run_http_server(parsed_args, devices: [BaseDevice]):
   app.add_routes([web.get('/hisense/status', query_handlers.get_status_handler),
                   web.get('/hisense/command', query_handlers.queue_command_handler),
                   web.post('/local_lan/key_exchange.json', query_handlers.key_exchange_handler),
-                  web.post('/local_lan/commands.json', query_handlers.command_handler),
+                  web.get('/local_lan/commands.json', query_handlers.command_handler),
                   web.post('/local_lan/property/datapoint.json', query_handlers.property_update_handler),
                   web.post('/local_lan/property/datapoint/ack.json', query_handlers.property_update_handler),
                   web.post('/local_lan/node/property/datapoint.json', query_handlers.property_update_handler),
@@ -180,7 +184,45 @@ def discovery(parsed_args):
     with open(parsed_args.prefix + _escape_name(config['product_name']) + '.json', 'w') as f:
       f.write(json.dumps(file_content))
 
+def pad(data: bytes):
+  """Zero padding for AES data encryption (non standard)."""
+  new_size = math.ceil(len(data) / AES.block_size) * AES.block_size
+  return data.ljust(new_size, bytes([0]))
+
+def unpad(data: bytes):
+  """Remove Zero padding for AES data encryption (non standard)."""
+  return data.rstrip(bytes([0]))
+
+def encrypt_and_sign(config: Config, data: dict) -> dict:
+  text = json.dumps(data)
+  print('Encrypting: {}'.format(text))
+  text = text.encode('utf-8')
+  encryption = config.app
+  return {
+    "enc": base64.b64encode(encryption.cipher.encrypt(pad(text))).decode('utf-8'),
+    "sign": base64.b64encode(Encryption.hmac_digest(encryption.sign_key, text)).decode('utf-8')
+  }
+
+def decrypt_and_validate(config: Config, data: dict) -> dict:
+  encryption = config.dev
+  text = unpad(encryption.cipher.decrypt(base64.b64decode(data['enc'])))
+  sign = base64.b64encode(Encryption.hmac_digest(encryption.sign_key, text)).decode('utf-8')
+  if sign != data['sign']:
+    raise Error('Invalid signature for %s!' % text.decode('utf-8'))
+  print('Decrypted: {}'.format(text.decode('utf-8')))
+  return json.loads(text.decode('utf-8'))
+
 if __name__ == '__main__':
+  config = Config('0VCRvUxjRauuh6qNXvXozpfe2DmHWg==', 47278)
+  config.update({'key_id': '', 
+              'random_1': 'h6NRr4qt3YIEK9CE', 
+              'time_1': 4800724211594, 
+              'random_2': '3fkFv3itLvlBB60R', 
+              'time_2': 453067354660})
+
+  encrypted = encrypt_and_sign(config, {"seq_no": 36, "data": {"cmds": [{"cmd": {"method": "GET", "resource": "property.json?name=t_power", "uri": "/local_lan/property/datapoint.json", "data": "", "cmd_id": 36}}]}})
+  decrypted = decrypt_and_validate(config, encrypted)
+
   parsed_args = ParseArguments()  # type: argparse.Namespace
   setup_logger(parsed_args.log_level)
 
