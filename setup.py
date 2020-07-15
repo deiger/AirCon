@@ -23,7 +23,7 @@ setuptools.setup(
           'dataclasses_json',
           'pycryptodome',
           'paho-mqtt',
-          'retry'
+          'tenacity'
       ],
     classifiers=[
         "Programming Language :: Python :: 3",

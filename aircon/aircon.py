@@ -21,12 +21,14 @@ from .properties import (AcProperties, AirFlow, Economy, FanSpeed, FastColdHeat,
     HumidifierProperties, Properties, Power, AcWorkMode, Quiet, TemperatureUnit)
 
 class BaseDevice:
-  def __init__(self, name: str, ip_address: str, lanip_key: str, lanip_key_id: str, properties: Properties):
+  def __init__(self, name: str, ip_address: str, lanip_key: str, lanip_key_id: str, 
+              properties: Properties, notifier: Callable[[None], None]):
     self.name = name
     self.ip_address = ip_address
     self._config = Config(lanip_key, lanip_key_id)
     self._properties = properties
     self._properties_lock = threading.Lock()
+    self._queue_listener = notifier
 
     self._next_command_id = 0
 
@@ -37,7 +39,7 @@ class BaseDevice:
     self._updates_seq_no = 0
     self._updates_seq_no_lock = threading.Lock()
 
-    self.change_listener: Callable[[str, str], None] = None
+    self.property_change_listener: Callable[[str, str], None] = None
 
   def get_all_properties(self) -> Properties:
     with self._properties_lock:
@@ -58,8 +60,8 @@ class BaseDevice:
       if value != old_value:
         setattr(self._properties, name, value)
         logging.debug('Updated properties: %s' % self._properties)
-      if self.change_listener:
-        self.change_listener(self.name, name, value)
+      if self.property_change_listener:
+        self.property_change_listener(self.name, name, value)
 
   def get_command_seq_no(self) -> int:
     with self._commands_seq_no_lock:
@@ -113,6 +115,8 @@ class BaseDevice:
       self.queue_command('t_fan_mute', 'OFF')
       self.queue_command('t_sleep', 'STOP')
       self.queue_command('t_temp_eight', 'OFF')
+    
+    self._queue_listener()
 
   def _build_command(self, name: str, data_value: int):
     base_type = self._properties.get_base_type(name)
@@ -145,6 +149,7 @@ class BaseDevice:
       }
       self._next_command_id += 1
       self.commands_queue.put_nowait((command, None))
+    self._queue_listener()
 
   def update_key(self, key: dict) -> dict:
     return self._config.update(key)
@@ -156,8 +161,9 @@ class BaseDevice:
     return self._config.dev
 
 class AcDevice(BaseDevice):
-  def __init__(self, name: str, ip_address: str, lanip_key: str, lanip_key_id: str):
-    super().__init__(name, ip_address, lanip_key, lanip_key_id, AcProperties())
+  def __init__(self, name: str, ip_address: str, lanip_key: str, lanip_key_id: str,
+              notifier: Callable[[None], None]):
+    super().__init__(name, ip_address, lanip_key, lanip_key_id, AcProperties(), notifier)
 
   def get_env_temp(self) -> int:
     return self.get_property('f_temp_in')
@@ -338,13 +344,16 @@ class AcDevice(BaseDevice):
       raise ValueError()
 
 class FglDevice(BaseDevice):
-  def __init__(self, name: str, ip_address: str, lanip_key: str, lanip_key_id: str):
-    super().__init__(name, ip_address, lanip_key, lanip_key_id, FglProperties())
+  def __init__(self, name: str, ip_address: str, lanip_key: str, 
+              lanip_key_id: str, notifier: Callable[[None], None]):
+    super().__init__(name, ip_address, lanip_key, lanip_key_id, FglProperties(), notifier)
 
 class FglBDevice(BaseDevice):
-  def __init__(self, name: str, ip_address: str, lanip_key: str, lanip_key_id: str):
-    super().__init__(name, ip_address, lanip_key, lanip_key_id, FglBProperties())
+  def __init__(self, name: str, ip_address: str, lanip_key: str, 
+              lanip_key_id: str, notifier: Callable[[None], None]):
+    super().__init__(name, ip_address, lanip_key, lanip_key_id, FglBProperties(), notifier)
 
 class HumidifierDevice(BaseDevice):
-  def __init__(self, name: str, ip_address: str, lanip_key: str, lanip_key_id: str):
-    super().__init__(name, ip_address, lanip_key, lanip_key_id, HumidifierProperties())
+  def __init__(self, name: str, ip_address: str, lanip_key: str,
+              lanip_key_id: str, notifier: Callable[[None], None]):
+    super().__init__(name, ip_address, lanip_key, lanip_key_id, HumidifierProperties(), notifier)

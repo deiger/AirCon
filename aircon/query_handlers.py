@@ -31,17 +31,19 @@ class QueryHandlers:
     AC.
     """
     updated_keys = {}
-    data = await request.read()
+    post_data = await request.text()
+    data = json.loads(post_data)
     try:
       key = data['key_exchange']
       if key['ver'] != 1 or key['proto'] != 1 or key.get('sec'):
         logging.error('Invalid key exchange: {}'.format(data))
         raise web.HTTPBadRequest()
       updated_keys = self._devices_map[request.remote].update_key(key)
+      print('Returning keys: {}'.format(json.dumps(updated_keys)))
     except KeyIdReplaced as e:
       logging.error('{}\n{}'.format(e.title, e.message))
       return web.Response(status=HTTPStatus.NOT_FOUND.value)
-    return web.json_response(updated_keys)
+    return web.json_response(updated_keys, headers={'Content-Type': 'application/json'})
 
   async def command_handler(self, request: web.Request) -> web.Response:
     """Handles a command request.
@@ -52,24 +54,27 @@ class QueryHandlers:
     device = self._devices_map[request.remote]
     command['seq_no'] = device.get_command_seq_no()
     try:
+      print('Getting device commands')
       command['data'], property_updater = device.commands_queue.get_nowait()
     except queue.Empty:
+      print('Queue is empty!')
       command['data'], property_updater = {}, None
     if property_updater:
       property_updater() #TODO: should be async as well?
-    return web.json_response(self._encrypt_and_sign(device, command))
+    return web.json_response(self._encrypt_and_sign(device, command), headers={'Content-Type': 'application/json'})
 
   async def property_update_handler(self, request: web.Request) -> web.Response:
     """Handles a property update request.
     Decrypts, validates, and pushes the value into the local properties store.
     """
     device = self._devices_map[request.remote]
-    data = await request.read()
+    post_data = await request.text()
+    data = json.loads(post_data)
     try:
       update = self._decrypt_and_validate(device, data)
     except Error:
       logging.exception('Failed to parse property.')
-      return web.json_response(status=HTTPStatus.BAD_REQUEST.value)
+      return web.Response(status=HTTPStatus.BAD_REQUEST.value)
     response = web.Response()
     if not device.is_update_valid(update['seq_no']):
       return response
@@ -96,22 +101,24 @@ class QueryHandlers:
         continue
       devices.append({'ip': device.ip_address, 
                      'props': device.get_all_properties().to_dict()})
-    return web.json_response(data = {'devices': devices})
+    return web.json_response({'devices': devices}, headers={'Content-Type': 'application/json'})
 
   async def queue_command_handler(self, request: web.Request) -> web.Response:
     """Handles queue command request (by a smart home hub).
     """
-    device = self._devices_map[request.query['device_ip']]
+    device = self._devices_map.get(request.query.get('device_ip'))
+    if not device:
+      raise web.HTTPBadRequest()
     try:
       device.queue_command(request.query['property'], request.query['value'])
     except:
       logging.exception('Failed to queue command.')
       return web.Response(status=HTTPStatus.BAD_REQUEST.value)
-    return web.json_response({'queued_commands': device.commands_queue.qsize()})
+    return web.json_response({'queued_commands': device.commands_queue.qsize()}, headers={'Content-Type': 'application/json'})
 
   def _encrypt_and_sign(self, device: BaseDevice, data: dict) -> dict:
     text = json.dumps(data).encode('utf-8')
-    logging.debug('Encrypting: %s', text.decode('utf-8'))
+    logging.debug('Encrypting: {}'.format(text.decode('utf-8')))
     encryption = device.get_app_encryption()
     return {
       "enc": base64.b64encode(encryption.cipher.encrypt(self.pad(text))).decode('utf-8'),
