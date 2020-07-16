@@ -76,8 +76,8 @@ class QueryHandlers:
       return response
     try:
       if not update['data']:
-        logging.error('Unsupported update message = {}'.format(update['seq_no']))
-        return response #TODO: Should return error?
+        logging.debug('Requested property is not supported. = {}'.format(update['seq_no']))
+        return response
       name = update['data']['name']
       data_type = device.get_property_type(name)
       value = data_type(update['data']['value'])
@@ -95,7 +95,7 @@ class QueryHandlers:
     for device in self._devices_map.values():
       if 'device_ip' in request.query.keys() and device.ip_address != request.query['device_ip']:
         continue
-      devices.append({'ip': device.ip_address, 
+      devices.append({'ip': device.ip_address,
                      'props': device.get_all_properties().to_dict()})
     return web.json_response({'devices': devices})
 

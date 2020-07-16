@@ -314,33 +314,29 @@ def run(parsed_args):
     mqtt_client.connect(parsed_args.mqtt_host, parsed_args.mqtt_port)
     mqtt_client.loop_start()
     for device in devices:
-      device.change_listener = mqtt_client.mqtt_publish_update
+      device.property_change_listener = mqtt_client.mqtt_publish_update
 
-  global _keep_alive 
-  _keep_alive = None  # type: typing.Optional[KeepAliveThread]
-
-  query_status = QueryStatusThread(devices)
-  query_status.start()
-
-  _keep_alive = KeepAliveThread(parsed_args.port, devices)
-  _keep_alive.start()
-
-  httpd = HTTPServer(('', parsed_args.port), MakeHttpRequestHandlerClass(devices)) #TODO It should be a map of ip -> device
-  try:
-    httpd.serve_forever()
-  except KeyboardInterrupt:
-    pass
-  finally:
-    httpd.server_close()
+  await asyncio.gather(mqtt_loop(mqtt_client),
+                      setup_and_run_http_server(parsed_args, devices),
+                      query_status_worker(devices),
+                      notifier.start())
 
 def _escape_name(name: str):
   safe_name = name.replace(' ', '_').lower()
   return "".join(x for x in safe_name if x.isalnum())
 
-def discovery(parsed_args):
-  all_configs = perform_discovery(parsed_args.app, parsed_args.user, parsed_args.passwd, 
-                   parsed_args.prefix, parsed_args.device, parsed_args.properties)
+async def discovery(parsed_args):
+  all_configs = await perform_discovery(parsed_args.app, parsed_args.user, parsed_args.passwd,
+                   parsed_args.device, parsed_args.properties)
+  
   for config in all_configs:
+    properties_text = ''
+    if 'properties' in config.keys():
+      properties_text = 'Properties:\n{}'.format(json.dumps(config['properties'], indent=2))
+    print('Device {} has:\nIP address: {}\nlanip_key: {}\nlanip_key_id: {}\n{}\n'.format(
+              config['product_name'], config['lan_ip'],
+              config['lanip_key'], config['lanip_key_id'], properties_text))
+
     file_content = {
       'lanip_key': config['lanip_key'],
       'lanip_key_id': config['lanip_key_id']
@@ -357,4 +353,8 @@ if __name__ == '__main__':
   if (parsed_args.cmd == 'run'):
     run(parsed_args)
   elif (parsed_args.cmd == 'discovery'):
+<<<<<<< HEAD
     discovery(parsed_args)
+=======
+    asyncio.run(discovery(parsed_args))
+>>>>>>> Make discovery async
