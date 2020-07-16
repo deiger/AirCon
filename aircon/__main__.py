@@ -119,6 +119,12 @@ async def setup_and_run_http_server(parsed_args, devices: [BaseDevice]):
   site = web.TCPSite(runner, port=parsed_args.port)
   await site.start()
 
+async def mqtt_loop(mqtt_client: MqttClient):
+  _MQTT_LOOP_TIMEOUT = 1
+  while True:
+    mqtt_client.loop()
+    await asyncio.sleep(_MQTT_LOOP_TIMEOUT)
+
 async def run(parsed_args):
   if (len(parsed_args.type) != len(parsed_args.config)):
     raise ValueError("Each device has to have specified type and config file")
@@ -154,11 +160,11 @@ async def run(parsed_args):
     if parsed_args.mqtt_user:
       mqtt_client.username_pw_set(*parsed_args.mqtt_user.split(':',1))
     mqtt_client.connect(parsed_args.mqtt_host, parsed_args.mqtt_port)
-    mqtt_client.loop_start()
     for device in devices:
       device.property_change_listener = mqtt_client.mqtt_publish_update
   
-  await asyncio.gather(setup_and_run_http_server(parsed_args, devices),
+  await asyncio.gather(mqtt_loop(mqtt_client),
+                      setup_and_run_http_server(parsed_args, devices),
                       query_status_worker(devices),
                       notifier.start())
 
