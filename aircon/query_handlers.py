@@ -33,14 +33,12 @@ class QueryHandlers:
     updated_keys = {}
     post_data = await request.text()
     data = json.loads(post_data)
-    print('received data {}'.format(data))
     try:
       key = data['key_exchange']
       if key['ver'] != 1 or key['proto'] != 1 or key.get('sec'):
         logging.error('Invalid key exchange: {}'.format(data))
         raise web.HTTPBadRequest()
       updated_keys = self._devices_map[request.remote].update_key(key)
-      print('Returning keys: {}'.format(json.dumps(updated_keys)))
     except KeyIdReplaced as e:
       logging.error('{}\n{}'.format(e.title, e.message))
       return web.Response(status=HTTPStatus.NOT_FOUND.value)
@@ -55,10 +53,8 @@ class QueryHandlers:
     device = self._devices_map[request.remote]
     command['seq_no'] = device.get_command_seq_no()
     try:
-      print('Getting device command')
       command['data'], property_updater = device.commands_queue.get_nowait()
     except queue.Empty:
-      print('Queue is empty!')
       command['data'], property_updater = {}, None
     if property_updater:
       property_updater() #TODO: should be async as well?
