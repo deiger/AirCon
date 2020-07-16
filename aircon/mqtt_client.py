@@ -30,9 +30,13 @@ class MqttClient(mqtt.Client):
     dev_name = message.topic.rsplit('/', 3)[1]
     prop_name = message.topic.rsplit('/', 3)[2]
     payload = message.payload.decode('utf-8')
-    if prop_name == 't_work_mode' and payload == 'fan_only':
-      payload = 'FAN'
-
+    if prop_name == 't_work_mode':
+      if payload == 'fan_only':
+        payload = 'FAN'
+      elif payload == 'off':
+        prop_name = 't_power'
+        payload = 'OFF'
+    
     for device in self._devices:
       if device.name != dev_name:
         continue
