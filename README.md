@@ -80,13 +80,14 @@ The module is installed in A/Cs and humidifiers that are either manufactured or 
    curl -ik 'http://localhost:8888/hisense/command?property=t_power&value=ON'
    ```
 ## Run as a service
+Assuming your username is "pi"
 
 1. Create a dedicated directory for the script files, and move the files to it.
    Pass the ownership to root. e.g.:
    ```bash
    sudo mkdir /usr/lib/hisense
    sudo mv config.json /usr/lib/hisense
-   sudo chown root:root /usr/lib/hisense/*
+   sudo chown pi:pi /usr/lib/hisense/*
    ```
 1. Create a service configuration file (as root), e.g. `/lib/systemd/system/hisense.service`:
    ```INI
@@ -100,6 +101,7 @@ The module is installed in A/Cs and humidifiers that are either manufactured or 
    StandardOutput=inherit
    StandardError=inherit
    Restart=always
+   User=pi
 
    [Install]
    WantedBy=multi-user.target
