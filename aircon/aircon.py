@@ -27,7 +27,7 @@ class BaseDevice:
     self.ip_address = ip_address
     self._config = Config(lanip_key, lanip_key_id)
     self._properties = properties
-    self._properties_lock = threading.Lock()
+    self._properties_lock = threading.RLock()
     self._queue_listener = notifier
 
     self._next_command_id = 0
@@ -356,10 +356,10 @@ class AcDevice(BaseDevice):
     self.update_property('t_fan_speed', fan_speed)
 
     work_mode = get_work_mode_value(control_value)
-    self.update_property('t_fan_speed', work_mode)
+    self.update_property('t_work_mode', work_mode)
 
     temp_heatcold = get_heat_cold_value(control_value)
-    self.update_property('t_fan_speed', temp_heatcold)
+    self.update_property('t_heatcold', temp_heatcold)
 
     eco = get_eco_value(control_value)
     self.update_property('t_eco', eco)
