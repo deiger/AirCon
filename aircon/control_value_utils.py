@@ -2,7 +2,7 @@ from .properties import (AcWorkMode, AirFlow, Economy, FanSpeed,
     FastColdHeat, Quiet, Power, TemperatureUnit)
 
 def get_fan_speed_value(control: int) -> FanSpeed:
-  int_val = (control << 1) & 4
+  int_val = (control >> 1) & 15
   return FanSpeed(int_val)
 
 def set_fan_speed_value(control: int, value: FanSpeed) -> None:
