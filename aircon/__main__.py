@@ -326,9 +326,13 @@ def _escape_name(name: str):
   return "".join(x for x in safe_name if x.isalnum())
 
 async def discovery(parsed_args):
-  all_configs = await perform_discovery(parsed_args.app, parsed_args.user, parsed_args.passwd,
+  try:
+    all_configs = await perform_discovery(parsed_args.app, parsed_args.user, parsed_args.passwd,
                    parsed_args.device, parsed_args.properties)
-  
+  except Error:
+    print('Error occurred.')
+    sys.exit(1)
+
   for config in all_configs:
     properties_text = ''
     if 'properties' in config.keys():

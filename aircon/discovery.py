@@ -1,14 +1,12 @@
 import aiohttp
 import base64
-import gzip
 from http import HTTPStatus
-from http.client import HTTPSConnection
 import json
 import logging
 import ssl
-import sys
 
 from .app_mappings import *
+from .error import Error
 
 _USER_AGENT = 'Dalvik/2.1.0 (Linux; U; Android 9.0; SM-G850F Build/LRX22G)'
 
@@ -38,13 +36,13 @@ async def _sign_in(user: str, passwd: str, user_server: str, app_id: str, app_se
   async with session.request('POST', url, json=query, headers=headers, ssl=ssl_context) as resp:
     if resp.status != HTTPStatus.OK.value:
       logging.error('Failed to login to Hisense server:\nStatus {}: {}'.format(resp.status, resp.reason))
-      sys.exit(1)
+      raise Error()
     resp_data = await resp.text()
     try:
       tokens = json.loads(resp_data)
     except UnicodeDecodeError:
       logging.exception('Failed to parse login tokens to Hisense server:\nData: {}'.format(resp_data))
-      sys.exit(1)
+      raise Error()
     return tokens['access_token']
 
 async def _get_devices(devices_server: str, access_token: str, headers: dict, session: aiohttp.ClientSession, ssl_context: ssl.SSLContext):
@@ -53,16 +51,16 @@ async def _get_devices(devices_server: str, access_token: str, headers: dict, se
   async with session.get(url, headers=headers, ssl=ssl_context) as resp:
     if resp.status != HTTPStatus.OK.value:
       logging.error('Failed to get devices data from Hisense server:\nStatus {}: {}'.format(resp.status, resp.reason))
-      sys.exit(1)
+      raise Error()
     resp_data = await resp.text()
     try:
       devices = json.loads(resp_data)
     except UnicodeDecodeError:
       logging.exception('Failed to parse devices data from Hisense server:\nData: {}'.format(resp_data))
-      sys.exit(1)
+      raise Error()
     if not devices:
       logging.error('No device is configured! Please configure a device first.')
-      sys.exit(1)
+      raise Error()
     return devices
 
 async def _get_lanip(devices_server: str, dsn: str, headers: dict, session: aiohttp.ClientSession, ssl_context: ssl.SSLContext):
@@ -70,7 +68,7 @@ async def _get_lanip(devices_server: str, dsn: str, headers: dict, session: aioh
   async with session.get(url, headers=headers, ssl=ssl_context) as resp:
     if resp.status != HTTPStatus.OK.value:
       logging.error('Failed to get device data from Hisense server: %r', resp)
-      sys.exit(1)
+      raise Error()
     resp_data = await resp.text()
     return json.loads(resp_data)['lanip']
 
@@ -79,7 +77,7 @@ async def _get_device_properties(devices_server: str, dsn: str, headers: dict, s
   async with session.get(url, headers=headers, ssl=ssl_context) as resp:
     if resp.status != HTTPStatus.OK.value:
       logging.error('Failed to get properties data from Hisense server: %r', resp)
-      sys.exit(1)
+      raise Error()
     resp_data = await resp.text()
     return json.loads(resp_data)
 
