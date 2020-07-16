@@ -26,8 +26,7 @@ async def query_status_worker(devices: [BaseDevice]):
     for device in devices:
       while device.commands_queue.qsize() > 10:
         await asyncio.sleep(_WAIT_FOR_EMPTY_QUEUE)
-      print('I should put some tasks here, but for gods sake...')
-      #device.queue_status()
+      device.queue_status()
     await asyncio.sleep(_STATUS_UPDATE_INTERVAL)
 
 def ParseArguments() -> argparse.Namespace:
