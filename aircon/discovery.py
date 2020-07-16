@@ -84,7 +84,7 @@ async def _get_device_properties(devices_server: str, dsn: str, headers: dict, s
     return json.loads(resp_data)
 
 async def perform_discovery(app: str, user: str, passwd: str,
-                     device_filter: str, properties_filter: bool) -> dict:
+                     device_filter: str = None, properties_filter: bool = False) -> dict:
   if app in SECRET_ID_MAP:
     app_prefix = SECRET_ID_MAP[app]
   else:
@@ -104,7 +104,7 @@ async def perform_discovery(app: str, user: str, passwd: str,
     region = 'us'
   user_server = AYLA_USER_SERVERS[region]
   devices_server = AYLA_DEVICES_SERVERS[region]
-  
+
   ssl_context = ssl.SSLContext()
   ssl_context.verify_mode = ssl.CERT_NONE
   ssl_context.check_hostname = False
