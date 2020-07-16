@@ -329,7 +329,7 @@ async def discovery(parsed_args):
   try:
     all_configs = await perform_discovery(parsed_args.app, parsed_args.user, parsed_args.passwd,
                    parsed_args.device, parsed_args.properties)
-  except Error:
+  except:
     print('Error occurred.')
     sys.exit(1)
 
