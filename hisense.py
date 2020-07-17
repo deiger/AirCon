@@ -54,7 +54,6 @@ import threading
 import time
 import typing
 from urllib.parse import parse_qs, urlparse, ParseResult
-import _thread
 
 from Crypto.Cipher import AES
 
@@ -505,14 +504,14 @@ class KeepAliveThread(threading.Thread):
         conn = HTTPConnection(_parsed_args.ip, timeout=5)
       except InvalidURL:
         logging.exception('Invalid IP provided.')
-        _thread.interrupt_main()
+        _httpd.shutdown()
         return
       while True:
         try:
           self._establish_connection(conn)
         except:
           logging.exception('Failed to send local_reg keep alive to the AC.')
-          _thread.interrupt_main()
+          _httpd.shutdown()
           return
         self._json['local_reg']['notify'] = int(
             _data.commands_queue.qsize() > 0 or self.run_lock.wait(self._KEEP_ALIVE_INTERVAL))
@@ -869,9 +868,9 @@ if __name__ == '__main__':
   _keep_alive = KeepAliveThread()
   _keep_alive.start()
 
-  httpd = HTTPServer(('', _parsed_args.port), HTTPRequestHandler)
+  _httpd = HTTPServer(('', _parsed_args.port), HTTPRequestHandler)
   try:
-    httpd.serve_forever()
+    _httpd.serve_forever()
   except KeyboardInterrupt:
     pass
-  httpd.server_close()
+  _httpd.server_close()
