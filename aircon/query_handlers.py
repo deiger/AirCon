@@ -40,7 +40,7 @@ class QueryHandlers:
       updated_keys = self._devices_map[request.remote].update_key(key)
     except KeyIdReplaced as e:
       logging.error('{}\n{}'.format(e.title, e.message))
-      return web.Response(status=HTTPStatus.NOT_FOUND.value)
+      raise web.HTTPNotFound()
     return web.json_response(updated_keys)
 
   async def command_handler(self, request: web.Request) -> web.Response:
@@ -49,7 +49,9 @@ class QueryHandlers:
     builds the JSON, encrypts and signs it, and sends it to the AC.
     """
     command = {}
-    device = self._devices_map[request.remote]
+    device = self._devices_map.get(request.remote)
+    if not device:
+      raise web.HTTPNotFound()
     command['seq_no'] = device.get_command_seq_no()
     try:
       command['data'], property_updater = device.commands_queue.get_nowait()
@@ -63,14 +65,16 @@ class QueryHandlers:
     """Handles a property update request.
     Decrypts, validates, and pushes the value into the local properties store.
     """
-    device = self._devices_map[request.remote]
+    device = self._devices_map.get(request.remote)
+    if not device:
+      raise web.HTTPNotFound()
     post_data = await request.text()
     data = json.loads(post_data)
     try:
       update = self._decrypt_and_validate(device, data)
     except Error:
       logging.exception('Failed to parse property.')
-      return web.Response(status=HTTPStatus.BAD_REQUEST.value)
+      raise web.HTTPBadRequest()
     response = web.Response()
     if not device.is_update_valid(update['seq_no']):
       return response
