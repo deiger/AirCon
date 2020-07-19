@@ -98,7 +98,8 @@ class Notifier:
                                 timeout=self._KEEP_ALIVE_INTERVAL,
                             )
                             # await self._wait_on_condition_with_timeout(self._condition, self._KEEP_ALIVE_INTERVAL)
-                        except concurrent.futures.TimeoutError:
+                        except asyncio.exceptions.TimeoutError:
+                            logging.error("Timed out...")
                             pass
                     else:
                         # give some time to clean up the queues
