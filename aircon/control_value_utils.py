@@ -1,6 +1,9 @@
 from .properties import (AcWorkMode, AirFlow, Economy, FanSpeed, 
     FastColdHeat, Quiet, Power, TemperatureUnit)
 
+def clear_up_change_flags_value(control: int) -> int:
+  return control & 2868817502
+
 def get_fan_speed_value(control: int) -> FanSpeed:
   int_val = (control >> 1) & 15
   return FanSpeed(int_val)

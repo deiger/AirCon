@@ -15,7 +15,7 @@ from .control_value_utils import (get_power_value, set_power_value, get_temp_val
     set_fan_speed_value, get_heat_cold_value, set_heat_cold_value, get_eco_value,
     set_eco_value, get_fan_power_value, set_fan_power_value, get_fan_lr_value,
     set_fan_lr_value, get_fan_mute_value, set_fan_mute_value, get_temptype_value,
-    set_temptype_value)
+    set_temptype_value, clear_up_change_flags_value)
 from .error import Error
 from .properties import (AcProperties, AirFlow, Economy, FanSpeed, FastColdHeat, FglProperties, FglBProperties, 
     HumidifierProperties, Properties, Power, AcWorkMode, Quiet, TemperatureUnit)
@@ -59,7 +59,7 @@ class BaseDevice:
       old_value = getattr(self._properties, name)
       if value != old_value:
         setattr(self._properties, name, value)
-        logging.debug('Updated properties: %s' % self._properties)
+        #logging.debug('Updated properties: %s' % self._properties)
         if name == 't_control_value':
           self._update_controlled_properties(value)
       if self.property_change_listener:
@@ -190,8 +190,10 @@ class AcDevice(BaseDevice):
 
   def set_temperature(self, setting: int) -> None:
     control_value = self.get_property('t_control_value')
+    control_value = clear_up_change_flags_value(control_value)
     if (control_value):
       control_value = set_temp_value(control_value, setting)
+      print('post set temp = ', control_value)
       self.queue_command('t_control_value', control_value)
     else:
       self.queue_command('t_temp', setting)
