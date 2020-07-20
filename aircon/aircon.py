@@ -193,7 +193,6 @@ class AcDevice(BaseDevice):
     control_value = clear_up_change_flags_value(control_value)
     if (control_value):
       control_value = set_temp_value(control_value, setting)
-      print('post set temp = ', control_value)
       self.queue_command('t_control_value', control_value)
     else:
       self.queue_command('t_temp', setting)
