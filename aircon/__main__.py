@@ -1,3 +1,5 @@
+import aiohttp
+from aiohttp import web
 import argparse
 import base64
 from http import HTTPStatus
@@ -225,12 +227,13 @@ async def run(parsed_args):
         for device in devices:
             device.property_change_listener = mqtt_client.mqtt_publish_update
 
-    await asyncio.gather(
-        mqtt_loop(mqtt_client),
-        setup_and_run_http_server(parsed_args, devices),
-        query_status_worker(devices),
-        notifier.start(),
-    )
+    async with aiohttp.ClientSession(conn_timeout=5.0) as session:
+        await asyncio.gather(
+            mqtt_loop(mqtt_client),
+            setup_and_run_http_server(parsed_args, devices),
+            query_status_worker(devices),
+            notifier.start(session),
+        )
 
 
 def _escape_name(name: str):
@@ -239,17 +242,19 @@ def _escape_name(name: str):
 
 
 async def discovery(parsed_args):
-    try:
-        all_configs = await perform_discovery(
-            parsed_args.app,
-            parsed_args.user,
-            parsed_args.passwd,
-            parsed_args.device,
-            parsed_args.properties,
-        )
-    except:
-        print("Error occurred.")
-        sys.exit(1)
+    async with aiohttp.ClientSession(conn_timeout=5.0) as session:
+        try:
+            all_configs = await perform_discovery(
+                session,
+                parsed_args.app,
+                parsed_args.user,
+                parsed_args.passwd,
+                parsed_args.device,
+                parsed_args.properties,
+            )
+        except:
+            print("Error occurred.")
+            sys.exit(1)
 
     for config in all_configs:
         properties_text = ""

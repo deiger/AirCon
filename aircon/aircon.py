@@ -37,6 +37,7 @@ from .error import Error
 from .properties import (
     AcProperties,
     AirFlow,
+    AirFlowState,
     Economy,
     FanSpeed,
     FastColdHeat,
@@ -63,6 +64,7 @@ class BaseDevice:
     ):
         self.name = name
         self.ip_address = ip_address
+        self.alive = False
         self._config = Config(lanip_key, lanip_key_id)
         self._properties = properties
         self._properties_lock = threading.RLock()
@@ -264,9 +266,13 @@ class AcDevice(BaseDevice):
     def set_work_mode(self, setting: AcWorkMode) -> None:
         control_value = self.get_property("t_control_value")
         if control_value:
+            if get_power_value(control_value) == Power.OFF:
+                control_value = set_power_value(control_value, Power.ON)
             control_value = set_work_mode_value(control_value, setting)
             self.queue_command("t_control_value", control_value)
         else:
+            if self.get_property("t_power"):
+                self.queue_command("t_power", Power.ON)
             self.queue_command("t_work_mode", setting)
 
     def get_work_mode(self) -> AcWorkMode:
@@ -380,6 +386,36 @@ class AcDevice(BaseDevice):
             return get_temptype_value(control_value)
         else:
             return self.get_property("t_temptype")
+
+    def set_swing(self, setting: AirFlowState) -> None:
+        control_value = self.get_property("t_control_value")
+        if control_value:
+            if setting == AirFlowState.OFF:
+                control_value = set_fan_power_value(control_value, AirFlow.OFF)
+                control_value = set_fan_lr_value(control_value, AirFlow.OFF)
+            elif setting == AirFlowState.VERTICAL_ONLY:
+                control_value = set_fan_power_value(control_value, AirFlow.ON)
+                control_value = set_fan_lr_value(control_value, AirFlow.OFF)
+            elif setting == AirFlowState.HORIZONTAL_ONLY:
+                control_value = set_fan_power_value(control_value, AirFlow.OFF)
+                control_value = set_fan_lr_value(control_value, AirFlow.ON)
+            elif setting == AirFlowState.VERTICAL_AND_HORIZONTAL:
+                control_value = set_fan_power_value(control_value, AirFlow.ON)
+                control_value = set_fan_lr_value(control_value, AirFlow.ON)
+            self.queue_command("t_control_value", control_value)
+        else:
+            if setting == AirFlowState.OFF:
+                self.queue_command("t_fan_speed", AirFlow.OFF)
+                self.queue_command("t_fan_leftright", AirFlow.OFF)
+            elif setting == AirFlowState.VERTICAL_ONLY:
+                self.queue_command("t_fan_speed", AirFlow.ON)
+                self.queue_command("t_fan_leftright", AirFlow.OFF)
+            elif setting == AirFlowState.HORIZONTAL_ONLY:
+                self.queue_command("t_fan_speed", AirFlow.OFF)
+                self.queue_command("t_fan_leftright", AirFlow.ON)
+            elif setting == AirFlowState.VERTICAL_AND_HORIZONTAL:
+                self.queue_command("t_fan_speed", AirFlow.ON)
+                self.queue_command("t_fan_leftright", AirFlow.ON)
 
     def _convert_to_control_value(self, name: str, value) -> int:
         if name == "t_power":

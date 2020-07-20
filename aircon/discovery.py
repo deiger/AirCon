@@ -129,6 +129,7 @@ async def _get_device_properties(
 
 
 async def perform_discovery(
+    session: aiohttp.ClientSession,
     app: str,
     user: str,
     passwd: str,
@@ -166,38 +167,37 @@ async def perform_discovery(
     ssl_context.check_hostname = False
     ssl_context.load_default_certs()
 
-    async with aiohttp.ClientSession() as session:
-        access_token = await _sign_in(
-            user, passwd, user_server, app_id, app_secret, session, ssl_context
-        )
+    access_token = await _sign_in(
+        user, passwd, user_server, app_id, app_secret, session, ssl_context
+    )
 
-        result = []
-        headers = {
-            "Accept": "application/json",
-            "Connection": "Keep-Alive",
-            "Authorization": "auth_token " + access_token,
-            "User-Agent": _USER_AGENT,
-            "Host": devices_server,
-            "Accept-Encoding": "gzip",
-        }
-        devices = await _get_devices(
-            devices_server, access_token, headers, session, ssl_context
-        )
-        logging.debug("Found devices: %r", devices)
-        for device in devices:
-            device_data = device["device"]
-            if device_filter and device_filter != device_data["product_name"]:
-                continue
-            dsn = device_data["dsn"]
-            lanip = await _get_lanip(devices_server, dsn, headers, session, ssl_context)
-            if properties_filter:
-                props = await _get_device_properties(
-                    devices_server, dsn, headers, session, ssl_context
-                )
-                device_data["properties"] = props
+    result = []
+    headers = {
+        "Accept": "application/json",
+        "Connection": "Keep-Alive",
+        "Authorization": "auth_token " + access_token,
+        "User-Agent": _USER_AGENT,
+        "Host": devices_server,
+        "Accept-Encoding": "gzip",
+    }
+    devices = await _get_devices(
+        devices_server, access_token, headers, session, ssl_context
+    )
+    logging.debug("Found devices: %r", devices)
+    for device in devices:
+        device_data = device["device"]
+        if device_filter and device_filter != device_data["product_name"]:
+            continue
+        dsn = device_data["dsn"]
+        lanip = await _get_lanip(devices_server, dsn, headers, session, ssl_context)
+        if properties_filter:
+            props = await _get_device_properties(
+                devices_server, dsn, headers, session, ssl_context
+            )
+            device_data["properties"] = props
 
-            device_data["lanip_key"] = lanip["lanip_key"]
-            device_data["lanip_key_id"] = lanip["lanip_key_id"]
-            result.append(device_data)
-        return result
+        device_data["lanip_key"] = lanip["lanip_key"]
+        device_data["lanip_key_id"] = lanip["lanip_key_id"]
+        result.append(device_data)
+    return result
 
