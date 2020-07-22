@@ -225,7 +225,7 @@ async def run(parsed_args):
             mqtt_client.username_pw_set(*parsed_args.mqtt_user.split(":", 1))
         mqtt_client.connect(parsed_args.mqtt_host, parsed_args.mqtt_port)
         for device in devices:
-            device.property_change_listener = mqtt_client.mqtt_publish_update
+            device.add_property_change_listener(mqtt_client.mqtt_publish_update)
 
     async with aiohttp.ClientSession(conn_timeout=5.0) as session:
         await asyncio.gather(

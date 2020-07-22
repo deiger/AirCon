@@ -5,7 +5,7 @@ import logging
 import random
 import string
 import threading
-from typing import Callable
+from typing import Callable, List
 import queue
 from Crypto.Cipher import AES
 
@@ -79,7 +79,17 @@ class BaseDevice:
         self._updates_seq_no = 0
         self._updates_seq_no_lock = threading.Lock()
 
-        self.property_change_listener: Callable[[str, str], None] = None
+        self._property_change_listeners = []  # type List[Callable[[str, Any], None]]
+
+    def add_property_change_listener(self, listener: Callable[[str, Any], None]):
+        self._property_change_listeners.append(listener)
+
+    def remove_property_change_listener(self, listener: Callable[[str, Any], None]):
+        self._property_change_listeners.remove(listener)
+
+    def _notify_listeners(self, prop_name: str, value):
+        for listener in self._property_change_listeners:
+            listener(self.name, prop_name, value)
 
     def get_all_properties(self) -> Properties:
         with self._properties_lock:
@@ -102,8 +112,7 @@ class BaseDevice:
                 # logging.debug("Updated properties: %s" % self._properties)
                 if name == "t_control_value":
                     self._update_controlled_properties(value)
-            if self.property_change_listener:
-                self.property_change_listener(self.name, name, value)
+            self._notify_listeners(name, value)
 
     def _update_controlled_properties(self, control_value: int):
         raise NotImplementedError()
@@ -237,8 +246,7 @@ class AcDevice(BaseDevice):
     @availabile.setter
     def availabile(self, value: bool):
         self._availabile = value
-        if self.property_change_listener:
-            self.property_change_listener(self.name, "availabile", value)
+        self._notify_listeners("available", value)
 
     def get_env_temp(self) -> int:
         return self.get_property("f_temp_in")
