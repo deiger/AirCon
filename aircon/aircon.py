@@ -5,7 +5,7 @@ import logging
 import random
 import string
 import threading
-from typing import Callable, List
+from typing import Any, Callable, List
 import queue
 from Crypto.Cipher import AES
 
@@ -64,7 +64,7 @@ class BaseDevice:
     ):
         self.name = name
         self.ip_address = ip_address
-        self.alive = False
+        self._available = False
         self._config = Config(lanip_key, lanip_key_id)
         self._properties = properties
         self._properties_lock = threading.RLock()
@@ -86,6 +86,15 @@ class BaseDevice:
 
     def remove_property_change_listener(self, listener: Callable[[str, Any], None]):
         self._property_change_listeners.remove(listener)
+
+    @property
+    def available(self) -> bool:
+        return self._available
+
+    @available.setter
+    def available(self, value: bool):
+        self._available = value
+        self._notify_listeners("available", value)
 
     def _notify_listeners(self, prop_name: str, value):
         for listener in self._property_change_listeners:
@@ -238,15 +247,6 @@ class AcDevice(BaseDevice):
         super().__init__(
             name, ip_address, lanip_key, lanip_key_id, AcProperties(), notifier
         )
-
-    @property
-    def availabile(self) -> bool:
-        return self._availabile
-
-    @availabile.setter
-    def availabile(self, value: bool):
-        self._availabile = value
-        self._notify_listeners("available", value)
 
     def get_env_temp(self) -> int:
         return self.get_property("f_temp_in")
