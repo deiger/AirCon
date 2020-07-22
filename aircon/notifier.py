@@ -78,7 +78,6 @@ class Notifier:
             while self._running:
                 queues_empty = True
                 for entry in self._configurations:
-                    print("Getting entry for ", entry.device.name)
                     now = time.time()
                     queue_size = entry.device.commands_queue.qsize()
                     if queue_size > 1:
@@ -104,7 +103,7 @@ class Notifier:
                         await self._wait_on_condition_with_timeout(
                             self._condition, self._KEEP_ALIVE_INTERVAL
                         )
-                    except asyncio.exceptions.TimeoutError:
+                    except concurrent.futures._base.TimeoutError:
                         pass
                 else:
                     # give some time to clean up the queues
@@ -122,7 +121,7 @@ class Notifier:
     async def _perform_request(
         self, session: aiohttp.ClientSession, config: _NotifyConfiguration
     ) -> None:
-        method = "PUT" if config.device.alive else "POST"
+        method = "PUT" if config.device.available else "POST"
         self._json["local_reg"]["notify"] = int(
             config.device.commands_queue.qsize() > 0
         )
@@ -133,7 +132,6 @@ class Notifier:
                     method, url, json.dumps(self._json)
                 )
             )
-            print("Session request")
             async with session.request(
                 method,
                 url,
@@ -154,9 +152,9 @@ class Notifier:
                         )
                     )
         except:
-            config.device.alive = False
+            config.device.available = False
             raise
-        config.device.alive = True
+        config.device.available = True
 
     @staticmethod
     async def _wait_on_condition_with_timeout(

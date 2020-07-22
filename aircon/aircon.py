@@ -230,6 +230,16 @@ class AcDevice(BaseDevice):
             name, ip_address, lanip_key, lanip_key_id, AcProperties(), notifier
         )
 
+    @property
+    def availabile(self) -> bool:
+        return self._availabile
+
+    @availabile.setter
+    def availabile(self, value: bool):
+        self._availabile = value
+        if self.property_change_listener:
+            self.property_change_listener(self.name, "availabile", value)
+
     def get_env_temp(self) -> int:
         return self.get_property("f_temp_in")
 
