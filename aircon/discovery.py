@@ -2,11 +2,13 @@ import aiohttp
 import base64
 from http import HTTPStatus
 import json
-import logging
+from logging import getLogger
 import ssl
 
 from .app_mappings import *
 from .error import AuthFailed, Error, NoDevicesConfigured
+
+_LOGGER = getLogger(__name__)
 
 _USER_AGENT = "Dalvik/2.1.0 (Linux; U; Android 9.0; SM-G850F Build/LRX22G)"
 
@@ -37,14 +39,14 @@ async def _sign_in(
         "Accept-Encoding": "gzip",
     }
     url = "https://{}/users/sign_in.json".format(user_server)
-    logging.debug(
+    _LOGGER.debug(
         "POST {}, body={}, headers={}".format(url, json.dumps(query), headers)
     )
     async with session.request(
         "POST", url, json=query, headers=headers, ssl=ssl_context
     ) as resp:
         if resp.status != HTTPStatus.OK.value:
-            logging.error(
+            _LOGGER.error(
                 "Failed to login to Hisense server:\nStatus {}: {}".format(
                     resp.status, resp.reason
                 )
@@ -54,7 +56,7 @@ async def _sign_in(
         try:
             tokens = json.loads(resp_data)
         except UnicodeDecodeError:
-            logging.exception(
+            _LOGGER.exception(
                 "Failed to parse login tokens to Hisense server:\nData: {}".format(
                     resp_data
                 )
@@ -71,10 +73,10 @@ async def _get_devices(
     ssl_context: ssl.SSLContext,
 ):
     url = "https://{}/apiv1/devices.json".format(devices_server)
-    logging.debug("GET {}, headers={}".format(url, headers))
+    _LOGGER.debug("GET {}, headers={}".format(url, headers))
     async with session.get(url, headers=headers, ssl=ssl_context) as resp:
         if resp.status != HTTPStatus.OK.value:
-            logging.error(
+            _LOGGER.error(
                 "Failed to get devices data from Hisense server:\nStatus {}: {}".format(
                     resp.status, resp.reason
                 )
@@ -84,14 +86,14 @@ async def _get_devices(
         try:
             devices = json.loads(resp_data)
         except UnicodeDecodeError:
-            logging.exception(
+            _LOGGER.exception(
                 "Failed to parse devices data from Hisense server:\nData: {}".format(
                     resp_data
                 )
             )
             raise Error
         if not devices:
-            logging.error("No device is configured! Please configure a device first.")
+            _LOGGER.error("No device is configured! Please configure a device first.")
             raise NoDevicesConfigured
         return devices
 
@@ -106,7 +108,7 @@ async def _get_lanip(
     url = "https://{}/apiv1/dsns/{}/lan.json".format(devices_server, dsn)
     async with session.get(url, headers=headers, ssl=ssl_context) as resp:
         if resp.status != HTTPStatus.OK.value:
-            logging.error("Failed to get device data from Hisense server: %r", resp)
+            _LOGGER.error("Failed to get device data from Hisense server: %r", resp)
             raise Error
         resp_data = await resp.text()
         return json.loads(resp_data)["lanip"]
@@ -122,7 +124,7 @@ async def _get_device_properties(
     url = "https://{}/apiv1/dsns/{}/properties.json".format(devices_server, dsn)
     async with session.get(url, headers=headers, ssl=ssl_context) as resp:
         if resp.status != HTTPStatus.OK.value:
-            logging.error("Failed to get properties data from Hisense server: %r", resp)
+            _LOGGER.error("Failed to get properties data from Hisense server: %r", resp)
             raise Error
         resp_data = await resp.text()
         return json.loads(resp_data)
@@ -183,7 +185,7 @@ async def perform_discovery(
     devices = await _get_devices(
         devices_server, access_token, headers, session, ssl_context
     )
-    logging.debug("Found devices: %r", devices)
+    _LOGGER.debug("Found devices: %r", devices)
     for device in devices:
         device_data = device["device"]
         if device_filter and device_filter != device_data["product_name"]:

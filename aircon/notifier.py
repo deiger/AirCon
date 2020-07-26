@@ -4,7 +4,7 @@ import concurrent
 from dataclasses import dataclass
 from http import HTTPStatus
 import json
-import logging
+from logging import getLogger
 import socket
 from tenacity import retry, retry_if_exception_type, wait_incrementing
 import time
@@ -12,12 +12,13 @@ import threading
 
 from .aircon import BaseDevice
 
+_LOGGER = getLogger(__name__)
+
 
 @dataclass
 class _NotifyConfiguration:
     device: BaseDevice
     headers: dict
-    alive: bool
     last_timestamp: int
 
 
@@ -61,7 +62,7 @@ class Notifier:
                 "Host": device.ip_address,
                 "Accept-Encoding": "gzip",
             }
-            self._configurations.append(_NotifyConfiguration(device, headers, False, 0))
+            self._configurations.append(_NotifyConfiguration(device, headers, 0))
 
     async def _notify(self):
         async with self._condition:
@@ -90,12 +91,12 @@ class Notifier:
                             await self._perform_request(session, entry)
                             entry.last_timestamp = now
                         except:
-                            logging.exception(
+                            _LOGGER.exception(
                                 "[KeepAlive] Failed to send local_reg keep alive to the AC."
                             )
 
                 if queues_empty:
-                    logging.debug("[KeepAlive] Waiting for notification or timeout")
+                    _LOGGER.debug("[KeepAlive] Waiting for notification or timeout")
                     try:
                         # await asyncio.wait_for(
                         #     self._condition.wait(), timeout=self._KEEP_ALIVE_INTERVAL,
@@ -109,7 +110,7 @@ class Notifier:
                         pass
                 else:
                     # give some time to clean up the queues
-                    logging.debug("Queues are not empty.")
+                    _LOGGER.debug("Queues are not empty.")
                     await asyncio.sleep(self._TIME_TO_HANDLE_REQUESTS)
 
     async def stop(self):
@@ -129,7 +130,7 @@ class Notifier:
         )
         url = "http://{}/local_reg.json".format(config.device.ip_address)
         try:
-            logging.debug(
+            _LOGGER.debug(
                 "[KeepAlive] Sending {} {} {}".format(
                     method, url, json.dumps(self._json)
                 )
@@ -143,7 +144,7 @@ class Notifier:
             ) as resp:
                 if resp.status != HTTPStatus.ACCEPTED.value:
                     resp_data = await resp.text()
-                    logging.error(
+                    _LOGGER.error(
                         "[KeepAlive] Sending local_reg failed: {}, {}".format(
                             resp.status, resp_data
                         )

@@ -1,7 +1,7 @@
 from copy import deepcopy
 from dataclasses import fields
 import enum
-import logging
+from logging import getLogger
 import random
 import string
 import threading
@@ -50,6 +50,8 @@ from .properties import (
     Quiet,
     TemperatureUnit,
 )
+
+_LOGGER = getLogger(__name__)
 
 
 class BaseDevice:
@@ -118,7 +120,7 @@ class BaseDevice:
             old_value = getattr(self._properties, name)
             if value != old_value:
                 setattr(self._properties, name, value)
-                # logging.debug("Updated properties: %s" % self._properties)
+                # _LOGGER.debug("Updated properties: %s" % self._properties)
                 if name == "t_control_value":
                     self._update_controlled_properties(value)
             self._notify_listeners(name, value)
@@ -136,7 +138,7 @@ class BaseDevice:
         with self._updates_seq_no_lock:
             # Every once in a while the sequence number is zeroed out, so accept it.
             if self._updates_seq_no > cur_update_no and cur_update_no > 0:
-                logging.error(
+                _LOGGER.error(
                     "Stale update found %d. Last update used is %d.",
                     cur_update_no,
                     self._updates_seq_no,
@@ -468,7 +470,7 @@ class AcDevice(BaseDevice):
         elif name == "t_temptype":
             return self.set_temptype(value)
         else:
-            logging.error("Cannot convert to control value property {}".format(name))
+            _LOGGER.error("Cannot convert to control value property {}".format(name))
             raise ValueError()
 
     def _update_controlled_properties(self, control_value: int):
