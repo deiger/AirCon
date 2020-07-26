@@ -1,3 +1,5 @@
+from numbers import Number
+
 from .properties import (
     AcWorkMode,
     AirFlow,
@@ -11,7 +13,7 @@ from .properties import (
 
 
 def clear_up_change_flags_value(control: int) -> int:
-  return control & 2868817502
+    return control & 2868817502
 
 
 def get_fan_speed_value(control: int) -> FanSpeed:
@@ -68,8 +70,8 @@ def get_temp_value(control: int) -> int:
     return (control >> 17) & 63
 
 
-def set_temp_value(control: int, value: int) -> None:
-    return (control & ~(127 << 16)) | (((value << 1) | 1) << 16)
+def set_temp_value(control: int, value: Number) -> None:
+    return (control & ~(127 << 16)) | (((int(value) << 1) | 1) << 16)
 
 
 def get_fan_power_value(control: int) -> AirFlow:
