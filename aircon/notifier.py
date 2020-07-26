@@ -105,6 +105,8 @@ class Notifier:
                         )
                     except concurrent.futures._base.TimeoutError:
                         pass
+                    except asyncio.exceptions.TimeoutError:
+                        pass
                 else:
                     # give some time to clean up the queues
                     logging.debug("Queues are not empty.")
