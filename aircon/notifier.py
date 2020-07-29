@@ -20,11 +20,13 @@ class _NotifyConfiguration:
     device: BaseDevice
     headers: dict
     last_timestamp: int
+    failure_cnt: int
 
 
 class Notifier:
     _KEEP_ALIVE_INTERVAL = 10.0
     _TIME_TO_HANDLE_REQUESTS = 100e-3
+    _FAILURE_THRESHOLD = 5
 
     def __init__(self, port: int):
         self._configurations = []
@@ -155,9 +157,13 @@ class Notifier:
                         )
                     )
         except:
-            config.device.available = False
+            config.failure_cnt += 1
+            if config.failure_cnt == self._FAILURE_THRESHOLD:
+                config.device.available = False
             raise
-        config.device.available = True
+        if config.failure_cnt != 0:
+            config.failure_cnt = 0
+            config.device.available = True
 
     @staticmethod
     async def _wait_on_condition_with_timeout(
