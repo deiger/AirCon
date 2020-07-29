@@ -64,7 +64,7 @@ class Notifier:
                 "Host": device.ip_address,
                 "Accept-Encoding": "gzip",
             }
-            self._configurations.append(_NotifyConfiguration(device, headers, 0))
+            self._configurations.append(_NotifyConfiguration(device, headers, 0, -1))
 
     async def _notify(self):
         async with self._condition:
@@ -119,6 +119,12 @@ class Notifier:
         self._running = False
         await self._notify()
 
+    @staticmethod
+    def _is_device_available(config: _NotifyConfiguration):
+        if config.device.available:
+            return config.failure_cnt == 0
+        return False
+
     @retry(
         retry=retry_if_exception_type(ConnectionError),
         wait=wait_incrementing(start=0.5, increment=1.5, max=10),
@@ -126,7 +132,7 @@ class Notifier:
     async def _perform_request(
         self, session: aiohttp.ClientSession, config: _NotifyConfiguration
     ) -> None:
-        method = "PUT" if config.device.available else "POST"
+        method = "PUT" if self._is_device_available(config) else "POST"
         self._json["local_reg"]["notify"] = int(
             config.device.commands_queue.qsize() > 0
         )
