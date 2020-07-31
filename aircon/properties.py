@@ -352,10 +352,10 @@ class AcProperties(Properties):
         },
     )  # SleepMode
     t_temp: int = field(
-        default=81, metadata={"base_type": "integer", "read_only": False}
+        default=None, metadata={"base_type": "integer", "read_only": False}
     )  # CurrentTemperature
     t_temptype: TemperatureUnit = field(
-        default=TemperatureUnit.FAHRENHEIT,
+        default=None,
         metadata={
             "base_type": "boolean",
             "read_only": False,

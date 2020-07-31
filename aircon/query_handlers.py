@@ -32,18 +32,28 @@ class QueryHandlers:
         server. Fortunately the lanip_key_id (and lanip_key) are static for a given
         AC.
         """
+        device = self._devices_map.get(request.remote)
+        if not device:
+            raise web.HTTPNotFound()
         updated_keys = {}
         post_data = await request.text()
         data = json.loads(post_data)
         try:
             key = data["key_exchange"]
             if key["ver"] != 1 or key["proto"] != 1 or key.get("sec"):
-                _LOGGER.error("Invalid key exchange: {}".format(data))
+                _LOGGER.error(
+                    "[Key_exchange][%s] Invalid key exchange: %s",
+                    device.ip_address,
+                    data,
+                )
                 raise web.HTTPBadRequest()
-            updated_keys = self._devices_map[request.remote].update_key(key)
+            updated_keys = device.update_key(key)
         except KeyIdReplaced as e:
-            _LOGGER.error("{}\n{}".format(e.title, e.message))
+            _LOGGER.error(
+                "[Key_exchange][%s] %s\n%s", device.ip_address, e.title, e.message
+            )
             raise web.HTTPNotFound()
+        _LOGGER.debug("[Key_exchange][%s] Sending updated keys", device.ip_address)
         return web.json_response(updated_keys)
 
     async def command_handler(self, request: web.Request) -> web.Response:
@@ -54,6 +64,7 @@ class QueryHandlers:
         command = {}
         device = self._devices_map.get(request.remote)
         if not device:
+            _LOGGER.debug("[Command][%s] Device not registered", device.ip_address)
             raise web.HTTPNotFound()
         command["seq_no"] = device.get_command_seq_no()
         try:
@@ -62,6 +73,28 @@ class QueryHandlers:
             command["data"], property_updater = {}, None
         if property_updater:
             property_updater()  # TODO: should be async as well?
+
+        if (
+            "cmds" in command["data"].keys()
+            and "property.json" in command["data"]["cmds"][0]["cmd"]["resource"]
+        ):
+            property_name = command["data"]["cmds"][0]["cmd"]["resource"].split("=")[-1]
+            _LOGGER.debug(
+                "[Command][%s] Sending GET_PROPERTY named '%s'",
+                device.ip_address,
+                property_name,
+            )
+        elif "properties" in command.keys():
+            _LOGGER.debug(
+                "[Command][%s] Sending SET_PROPERTY command for '%s', value '%s'",
+                device.ip_address,
+                command["properties"][0]["property"]["name"],
+                command["properties"][0]["property"]["value"],
+            )
+        else:
+            _LOGGER.debug(
+                "[Command][%s] Sending command '%s'", device.ip_address, command
+            )
         return web.json_response(self._encrypt_and_sign(device, command))
 
     async def property_update_handler(self, request: web.Request) -> web.Response:
@@ -70,29 +103,50 @@ class QueryHandlers:
         """
         device = self._devices_map.get(request.remote)
         if not device:
+            _LOGGER.debug(
+                "[Property_update][%s] Device not registered", device.ip_address
+            )
             raise web.HTTPNotFound()
         post_data = await request.text()
         data = json.loads(post_data)
         try:
             update = self._decrypt_and_validate(device, data)
         except Error:
-            _LOGGER.exception("Failed to parse property.")
+            _LOGGER.exception(
+                "[Property_update][%s] Failed to parse property update.",
+                device.ip_address,
+            )
             raise web.HTTPBadRequest()
         response = web.Response()
         if not device.is_update_valid(update["seq_no"]):
+            _LOGGER.debug(
+                "[Property_update][%s] Invalid seq number received.", device.ip_address
+            )
             return response
         try:
             if not update["data"]:
                 _LOGGER.debug(
-                    "Requested property is not supported. = {}".format(update["seq_no"])
+                    "[Property_update][%s] Requested property is not supported.",
+                    device.ip_address,
                 )
                 return response
             name = update["data"]["name"]
             data_type = device.get_property_type(name)
             value = data_type(update["data"]["value"])
             device.update_property(name, value)
+            _LOGGER.debug(
+                "[Property_update][%s] Property '%s' set to '%s'",
+                device.ip_address,
+                name,
+                value,
+            )
         except Exception as ex:
-            _LOGGER.error("Failed to handle {}. Exception = {}".format(update, ex))
+            _LOGGER.error(
+                "[Property_update][%s] Failed to handle %s. Exception = %s",
+                device.ip_address,
+                update,
+                ex,
+            )
             # TODO: Should return internal error?
         return response
 
@@ -123,13 +177,12 @@ class QueryHandlers:
         try:
             device.queue_command(request.query["property"], request.query["value"])
         except:
-            _LOGGER.exception("Failed to queue command.")
+            _LOGGER.exception("[Queue_command] Failed to queue command.")
             raise web.HTTPBadRequest()
         return web.json_response({"queued_commands": device.commands_queue.qsize()})
 
     def _encrypt_and_sign(self, device: BaseDevice, data: dict) -> dict:
         text = json.dumps(data)
-        _LOGGER.debug("Encrypting: {}".format(text))
         text = text.encode("utf-8")
         encryption = device.get_app_encryption()
         return {
@@ -149,7 +202,6 @@ class QueryHandlers:
         ).decode("utf-8")
         if sign != data["sign"]:
             raise Error("Invalid signature for %s!" % text.decode("utf-8"))
-        _LOGGER.info("Decrypted: %s", text.decode("utf-8"))
         return json.loads(text.decode("utf-8"))
 
     @staticmethod
