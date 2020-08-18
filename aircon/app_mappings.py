@@ -1,18 +1,8 @@
 #!/usr/bin/env python3.7
 """
-Small command line program to query HiSense servers.
-Generates a small config file, to control the AC locally.
-
-After configuring the AC from your phone, pass the username, password
-and application type to this script, in order to be able to control
-the device locally.
-
-Note that this script needs to be run only once. The generated config
-file needs to be passed to the hisense server script, to continuously
-control the AC.
-
-The --app flag depends on your AC.
+App mappings for the HiSense servers query CLI.
 """
+
 __author__ = 'droreiger@gmail.com (Dror Eiger)'
 
 import argparse
