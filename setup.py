@@ -10,13 +10,13 @@ with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
 setuptools.setup(
     name='aircon',
     version=aircon.__version__,
-    description='Python interface for Hisense AEH-W4E1 module',
+    description='Interface for controlling Air Conditioners, e.g. with HiSense modules.',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/karlkar/AirCon',
+    url='https://github.com/deiger/AirCon',
     author='Dror Eiger',
     author_email='droreiger@gmail.com',
-    license='Apache 2.0',
+    license='GPL 3.0',
     packages=setuptools.find_packages(),
     install_requires=[
           'aiohttp==3.6.2',
