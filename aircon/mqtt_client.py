@@ -3,7 +3,6 @@ import enum
 import logging
 import paho.mqtt.client as mqtt
 
-from . import aircon
 from .aircon import BaseDevice
 from .properties import AcWorkMode
 

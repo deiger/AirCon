@@ -11,7 +11,6 @@ import string
 import time
 from typing import Callable
 
-from . import aircon
 from .config import Config, Encryption
 from .aircon import BaseDevice
 from .error import Error, KeyIdReplaced
