@@ -1,37 +1,6 @@
-#!/usr/bin/env python3.7
-"""
-Properties for the air conditioner module server.
-"""
-
-__author__ = 'droreiger@gmail.com (Dror Eiger)'
-
-import argparse
-import base64
-from dataclasses import dataclass, field, fields
+from dataclasses import dataclass, field
 from dataclasses_json import dataclass_json
 import enum
-import hmac
-from http.client import HTTPConnection, InvalidURL
-from http.server import HTTPServer, BaseHTTPRequestHandler
-from http import HTTPStatus
-import json
-import logging
-import logging.handlers
-import math
-import paho.mqtt.client as mqtt
-import queue
-import random
-from retry import retry
-import socket
-import string
-import sys
-import threading
-import time
-import typing
-from urllib.parse import parse_qs, urlparse, ParseResult
-
-from Crypto.Cipher import AES
-
 
 class AirFlowState(enum.IntEnum):
   OFF = 0
@@ -146,8 +115,6 @@ class FglFanSpeed(enum.IntEnum):
   HIGH = 3
   AUTO = 4
 
-
-
 class Properties(object):
   @classmethod
   def _get_metadata(cls, attr: str):
@@ -164,7 +131,6 @@ class Properties(object):
   @classmethod
   def get_read_only(cls, attr: str):
     return cls._get_metadata(attr)['read_only']
-
 
 @dataclass_json
 @dataclass
@@ -206,7 +172,7 @@ class AcProperties(Properties):
   t_fan_leftright: AirFlow = field(default=AirFlow.OFF, metadata={'base_type': 'boolean', 'read_only': False,
     'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: AirFlow[x]}})  # HorizontalAirFlow
   t_fan_mute: Quiet = field(default=Quiet.OFF, metadata={'base_type': 'boolean', 'read_only': False,
-    'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: Quite[x]}})  # QuiteModeStatus
+    'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: Quiet[x]}})  # QuietModeStatus
   t_fan_power: AirFlow = field(default=AirFlow.OFF, metadata={'base_type': 'boolean', 'read_only': False,
     'dataclasses_json': {'encoder': lambda x: x.name, 'decoder': lambda x: AirFlow[x]}})  # VerticalAirFlow
   t_fan_speed: FanSpeed = field(default=FanSpeed.AUTO, metadata={'base_type': 'integer', 'read_only': False,

@@ -1,62 +1,115 @@
-#!/usr/bin/env python3.7
-"""
-Server for controlling HiSense Air Conditioner WiFi modules.
-These modules are embedded for example in the Israel Tornado ACs.
-This module is based on reverse engineering of the AC protocol,
-and is not affiliated with HiSense, Tornado or any other relevant
-company.
-
-In order to run this server, you need to provide it with the a
-config file, that likes like this:
-{"lanip_key": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
- "lanip_key_id":8888,
- "random_1":"YYYYYYYYYYYYYYYY",
- "time_1":201111111111111,
- "random_2":"XXXXXXXXXXXXXXXX",
- "time_2":111111111111}
-
-The random/time values are regenerated on key exchange when the
-server first starts talking with the AC, so is the lanip_key_id.
-The lanip_key, on the other hand, is generated only on the
-HiSense server. In order to get that value, you'll need to either
-sniff the TLS-encrypted network traffic, or fetch and unencrypt
-the string locally stored by the app cache (using a rooted device).
-
-The code here relies on Python 3.7
-If running in Raspberry Pi, install Python 3.7 manually.
-Also install additional libraries:
-pip3.7 install dataclasses_json paho-mqtt pycryptodome retry
-"""
-
-__author__ = 'droreiger@gmail.com (Dror Eiger)'
-
 import argparse
 import base64
-from dataclasses import dataclass, field, fields
-from dataclasses_json import dataclass_json
-import enum
-import hmac
+from http import HTTPStatus
 from http.client import HTTPConnection, InvalidURL
 from http.server import HTTPServer, BaseHTTPRequestHandler
-from http import HTTPStatus
 import json
 import logging
 import logging.handlers
-import math
 import paho.mqtt.client as mqtt
-import queue
-import random
 from retry import retry
+import signal
 import socket
-import string
 import sys
 import threading
 import time
-import typing
+import _thread
 from urllib.parse import parse_qs, urlparse, ParseResult
 
-from Crypto.Cipher import AES
+from .app_mappings import SECRET_MAP
+from .config import Config
+from .error import Error
+from .aircon import BaseDevice, AcDevice, FglDevice, FglBDevice, HumidifierDevice
+from .discovery import perform_discovery
+from .mqtt_client import MqttClient
+from .query_handlers import QueryHandlers
 
+class KeepAliveThread(threading.Thread):
+  """Thread to preiodically generate keep-alive requests."""
+  
+  _KEEP_ALIVE_INTERVAL = 10.0
+
+  def __init__(self, port: int, devices: [BaseDevice]):
+    self.run_lock = threading.Condition()
+    self._alive = False
+    self._data = []
+    
+    for device in devices:
+      header = {
+        'Accept': 'application/json',
+        'Connection': 'keep-alive',
+        'Content-Type': 'application/json',
+        'Host': device.ip_address,
+        'Accept-Encoding': 'gzip'
+      }
+      self._data.append({
+        'device': device,
+        'headers': header,
+        'conn': None,
+        'last_timestamp': 0
+      })
+
+    local_ip = self._get_local_ip()
+    self._json = {
+      'local_reg': {
+        'ip': local_ip,
+        'notify': 0,
+        'port': port,
+        'uri': "/local_lan"
+      }
+    }
+    super(KeepAliveThread, self).__init__(name='Keep Alive thread')
+
+  def _get_local_ip(self):
+    sock = None
+    try:
+      sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+      sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+      sock.connect(('10.255.255.255', 1))
+      return sock.getsockname()[0]
+    finally:
+      if sock:
+        sock.close()
+
+  @retry(exceptions=ConnectionError, delay=0.5, max_delay=20, backoff=1.5, logger=logging)
+  def _establish_connection(self, conn: HTTPConnection, headers: dict, device: BaseDevice) -> None:
+    method = 'PUT' if self._alive else 'POST'
+    self._json['local_reg']['notify'] = int(device.commands_queue.qsize() > 0)
+    logging.debug('[KeepAlive] %s %s/local_reg.json %s', method, conn.host, json.dumps(self._json))
+    try:
+      conn.request(method, '/local_reg.json', json.dumps(self._json), headers)
+      resp = conn.getresponse()
+      if resp.status != HTTPStatus.ACCEPTED:
+        raise ConnectionError('Recieved invalid response for local_reg: %d, %s', resp.status, resp.read())
+      resp.read()
+    except:
+      self._alive = False
+      raise
+    finally:
+      conn.close()
+    self._alive = True
+
+  def run(self) -> None:
+    with self.run_lock:
+      for entry in self._data:
+        try:
+          conn = HTTPConnection(entry['device'].ip_address, timeout=5)
+          entry['conn'] = conn
+        except InvalidURL:
+          logging.exception('[KeepAlive] Invalid IP provided.')
+          _thread.interrupt_main()
+          return
+      while True:
+        try:
+          for entry in self._data:
+            now = time.time()
+            if now - entry['timestamp'] >= self._KEEP_ALIVE_INTERVAL or entry['device'].commands_queue.qsize() > 0:
+              self._establish_connection(entry['conn'], entry['headers'], entry['device'])
+              entry['timestamp'] = now
+        except:
+          logging.exception('[KeepAlive] Failed to send local_reg keep alive to the AC.')
+        logging.debug('[KeepAlive] Waiting for notification or timeout')
+        self.run_lock.wait(self._KEEP_ALIVE_INTERVAL)
 
 class QueryStatusThread(threading.Thread):
   """Thread to preiodically query the status of all properties.
@@ -68,255 +121,154 @@ class QueryStatusThread(threading.Thread):
   _STATUS_UPDATE_INTERVAL = 600.0
   _WAIT_FOR_EMPTY_QUEUE = 10.0
 
-  def __init__(self):
-    self._next_command_id = 0
+  def __init__(self, devices: [BaseDevice]):
     super(QueryStatusThread, self).__init__(name='Query Status thread')
+    self._devices = devices
 
   def run(self) -> None:
     while True:
       # In case the AC is stuck, and not fetching commands, avoid flooding
       # the queue with status updates.
-      while _data.commands_queue.qsize() > 10:
-        time.sleep(self._WAIT_FOR_EMPTY_QUEUE)
-      for data_field in fields(_data.properties):
-        command = {
-          'cmds': [{
-            'cmd': {
-              'method': 'GET',
-              'resource': 'property.json?name=' + data_field.name,
-              'uri': '/local_lan/property/datapoint.json',
-              'data': '',
-              'cmd_id': self._next_command_id,
-            }
-          }]
-        }
-        self._next_command_id += 1
-        _data.commands_queue.put_nowait((command, None))
+      for device in self._devices:
+        while device.commands_queue.qsize() > 10:
+          time.sleep(self._WAIT_FOR_EMPTY_QUEUE)
+        device.queue_status()
       if _keep_alive:
         with _keep_alive.run_lock:
+          logging.debug('QueryStatusThread triggered KeepAlive notify')
           _keep_alive.run_lock.notify()
       time.sleep(self._STATUS_UPDATE_INTERVAL)
 
+def MakeHttpRequestHandlerClass(devices: [BaseDevice]):
+  class HTTPRequestHandler(BaseHTTPRequestHandler):
+    """Handler for AC related HTTP requests."""
+    def __init__(self, request, client_address, server):
+      self._query_handlers = QueryHandlers(devices, self._write_response)
+      self._HANDLERS_MAP = {
+        '/hisense/status': self._query_handlers.get_status_handler,
+        '/hisense/command': self._queue_command,
+        '/local_lan/key_exchange.json': self._query_handlers.key_exchange_handler,
+        '/local_lan/commands.json': self._query_handlers.command_handler,
+        '/local_lan/property/datapoint.json': self._query_handlers.property_update_handler,
+        '/local_lan/property/datapoint/ack.json': self._query_handlers.property_update_handler,
+        '/local_lan/node/property/datapoint.json': self._query_handlers.property_update_handler,
+        '/local_lan/node/property/datapoint/ack.json': self._query_handlers.property_update_handler,
+        # TODO: Handle these if needed.
+        # '/local_lan/node/conn_status.json': _query_handlers.connection_status_handler,
+        # '/local_lan/connect_status': _query_handlers.module_request_handler,
+        # '/local_lan/status.json': _query_handlers.setup_device_details_handler,
+        # '/local_lan/wifi_scan.json': _query_handlers.module_request_handler,
+        # '/local_lan/wifi_scan_results.json': _query_handlers.module_request_handler,
+        # '/local_lan/wifi_status.json': _query_handlers.module_request_handler,
+        # '/local_lan/regtoken.json': _query_handlers.module_request_handler,
+        # '/local_lan/wifi_stop_ap.json': _query_handlers.module_request_handler,
+      }
+      super(HTTPRequestHandler, self).__init__(request, client_address, server)
 
-class HTTPRequestHandler(BaseHTTPRequestHandler):
-  """Handler for AC related HTTP requests."""
+    def _queue_command(self, path: str, query: dict, data: dict):
+        self._query_handlers.queue_command_handler(path, query, data)
+        with _keep_alive.run_lock:
+          logging.debug("_queue_command triggered KeepAlive notify")
+          _keep_alive.run_lock.notify()
 
-  def do_HEAD(self, code: HTTPStatus = HTTPStatus.OK) -> None:
-    """Return a JSON header."""
-    self.send_response(code)
-    if code == HTTPStatus.OK:
-      self.send_header('Content-type', 'application/json')
-    self.end_headers()
+    def _write_response(self, status: HTTPStatus, response: str):
+      self.do_HEAD(status)
+      if (response != None):
+        self.wfile.write(response)
 
-  def do_GET(self) -> None:
-    """Accepts get requests."""
-    logging.debug('GET Request,\nPath: %s\n', self.path)
-    parsed_url = urlparse(self.path)
-    query = parse_qs(parsed_url.query)
-    handler = self._HANDLERS_MAP.get(parsed_url.path)
-    if handler:
-      try:
-        handler(self, parsed_url.path, query, {})
-        return
-      except:
-        logging.exception('Failed to parse property.')
-    self.do_HEAD(HTTPStatus.NOT_FOUND)
+    def do_HEAD(self, code: HTTPStatus = HTTPStatus.OK) -> None:
+      """Return a JSON header."""
+      self.send_response(code)
+      if code == HTTPStatus.OK:
+        self.send_header('Content-type', 'application/json')
+      self.end_headers()
 
-  def do_POST(self):
-    """Accepts post requests."""
-    content_length = int(self.headers['Content-Length'])
-    post_data = self.rfile.read(content_length)
-    logging.debug('POST request,\nPath: %s\nHeaders:\n%s\n\nBody:\n%s\n',
-                  str(self.path), str(self.headers), post_data.decode('utf-8'))
-    parsed_url = urlparse(self.path)
-    query = parse_qs(parsed_url.query)
-    data = json.loads(post_data)
-    handler = self._HANDLERS_MAP.get(parsed_url.path)
-    if handler:
-      try:
-        handler(self, parsed_url.path, query, data)
-        return
-      except:
-        logging.exception('Failed to parse property.')
-    self.do_HEAD(HTTPStatus.NOT_FOUND)
-
-  def key_exchange_handler(self, path: str, query: dict, data: dict) -> None:
-    """Handles a key exchange.
-    Accepts the AC's random and time and pass its own.
-    Note that a key encryption component is the lanip_key, mapped to the
-    lanip_key_id provided by the AC. This secret part is provided by HiSense
-    server. Fortunately the lanip_key_id (and lanip_key) are static for a given
-    AC.
-    """
-    try:
-      key = data['key_exchange']
-      if key['ver'] != 1 or key['proto'] != 1 or key.get('sec'):
-        raise KeyError()
-      _config.lan_config.random_1 = key['random_1']
-      _config.lan_config.time_1 = key['time_1']
-    except KeyError:
-      logging.error('Invalid key exchange: %r', data)
-      self.do_HEAD(HTTPStatus.BAD_REQUEST)
-      return
-    if key['key_id'] != _config.lan_config.lanip_key_id:
-      logging.error('The key_id has been replaced!!\nOld ID was %d; new ID is %d.',
-                    _config.lan_config.lanip_key_id, key['key_id'])
+    def do_GET(self) -> None:
+      """Accepts get requests."""
+      sender = self.headers['Host']
+      logging.debug('GET Request from %s,\nPath: %s\n', sender, self.path)
+      parsed_url = urlparse(self.path)
+      query = parse_qs(parsed_url.query)
+      handler = self._HANDLERS_MAP.get(parsed_url.path)
+      if handler:
+        try:
+          handler(sender, parsed_url.path, query, {})
+          return
+        except:
+          logging.exception('Failed to parse property.')
       self.do_HEAD(HTTPStatus.NOT_FOUND)
-      return
-    _config.lan_config.random_2 = ''.join(
-        random.choices(string.ascii_letters + string.digits, k=16))
-    _config.lan_config.time_2 = time.monotonic_ns() % 2**40
-    _config.update()
-    self.do_HEAD(HTTPStatus.OK)
-    self._write_json({"random_2": _config.lan_config.random_2,
-                      "time_2": _config.lan_config.time_2})
 
-  def command_handler(self, path: str, query: dict, data: dict) -> None:
-    """Handles a command request.
-    Request arrives from the AC. takes a command from the queue,
-    builds the JSON, encrypts and signs it, and sends it to the AC.
-    """
-    command = {}
-    with _data.commands_seq_no_lock:
-      command['seq_no'] = _data.commands_seq_no
-      _data.commands_seq_no += 1
-    try:
-      command['data'], property_updater = _data.commands_queue.get_nowait()
-    except queue.Empty:
-      command['data'], property_updater = {}, None
-    self.do_HEAD(HTTPStatus.OK)
-    self._write_json(self._encrypt_and_sign(command))
-    if property_updater:
-      property_updater()
-
-  def property_update_handler(self, path: str, query: dict, data: dict) -> None:
-    """Handles a property update request.
-    Decrypts, validates, and pushes the value into the local properties store.
-    """
-    try:
-      update = self._decrypt_and_validate(data)
-    except Error:
-      logging.exception('Failed to parse property.')
-      self.do_HEAD(HTTPStatus.BAD_REQUEST)
-      return
-    self.do_HEAD(HTTPStatus.OK)
-    with _data.updates_seq_no_lock:
-      # Every once in a while the sequence number is zeroed out, so accept it.
-      if _data.updates_seq_no > update['seq_no'] and update['seq_no'] > 0:
-        logging.error('Stale update found %d. Last update used is %d.',
-                      (update['seq_no'], _data.updates_seq_no))
-        return  # Old update
-      _data.updates_seq_no = update['seq_no']
-    try:
-      if not update['data']:
-        logging.debug('No value returned for seq_no %d, likely an unsupported property key.',
-                      update['seq_no'])
-        return
-      name = update['data']['name']
-      data_type = _data.properties.get_type(name)
-      value = data_type(update['data']['value'])
-      _data.update_property(name, value)
-    except:
-      logging.exception('Failed to handle %s', update)
-
-  def get_status_handler(self, path: str, query: dict, data: dict) -> None:
-    """Handles get status request (by a smart home hub).
-    Returns the current internally stored state of the AC.
-    """
-    with _data.properties_lock:
-      data = _data.properties.to_dict()
-    self.do_HEAD(HTTPStatus.OK)
-    self._write_json(data)
-
-  def queue_command_handler(self, path: str, query: dict, data: dict) -> None:
-    """Handles queue command request (by a smart home hub).
-    """
-    try:
-      queue_command(query['property'][0], query['value'][0])
-    except:
-      logging.exception('Failed to queue command.')
-      self.do_HEAD(HTTPStatus.BAD_REQUEST)
-      return
-    self.do_HEAD(HTTPStatus.OK)
-    self._write_json({'queued commands': _data.commands_queue.qsize()})
-
-  @staticmethod
-  def _encrypt_and_sign(data: dict) -> dict:
-    text = json.dumps(data).encode('utf-8')
-    logging.debug('Encrypting: %s', text.decode('utf-8'))
-    return {
-      "enc": base64.b64encode(_config.app.cipher.encrypt(pad(text))).decode('utf-8'),
-      "sign": base64.b64encode(Encryption.hmac_digest(_config.app.sign_key, text)).decode('utf-8')
-    }
-
-  @staticmethod
-  def _decrypt_and_validate(data: dict) -> dict:
-    text = unpad(_config.dev.cipher.decrypt(base64.b64decode(data['enc'])))
-    sign = base64.b64encode(Encryption.hmac_digest(_config.dev.sign_key, text)).decode('utf-8')
-    if sign != data['sign']:
-      raise Error('Invalid signature for %s!' % text.decode('utf-8'))
-    logging.info('Decrypted: %s', text.decode('utf-8'))
-    return json.loads(text.decode('utf-8'))
-
-  def _write_json(self, data: dict) -> None:
-    """Send out the provided data dict as JSON."""
-    logging.debug('Response:\n%s', json.dumps(data))
-    self.wfile.write(json.dumps(data).encode('utf-8'))
-
-  _HANDLERS_MAP = {
-    '/hisense/status': get_status_handler,
-    '/hisense/command': queue_command_handler,
-    '/local_lan/key_exchange.json': key_exchange_handler,
-    '/local_lan/commands.json': command_handler,
-    '/local_lan/property/datapoint.json': property_update_handler,
-    '/local_lan/property/datapoint/ack.json': property_update_handler,
-    '/local_lan/node/property/datapoint.json': property_update_handler,
-    '/local_lan/node/property/datapoint/ack.json': property_update_handler,
-    # TODO: Handle these if needed.
-    # '/local_lan/node/conn_status.json': connection_status_handler,
-    # '/local_lan/connect_status': module_request_handler,
-    # '/local_lan/status.json': setup_device_details_handler,
-    # '/local_lan/wifi_scan.json': module_request_handler,
-    # '/local_lan/wifi_scan_results.json': module_request_handler,
-    # '/local_lan/wifi_status.json': module_request_handler,
-    # '/local_lan/regtoken.json': module_request_handler,
-    # '/local_lan/wifi_stop_ap.json': module_request_handler,
-  }
-
+    def do_POST(self):
+      """Accepts post requests."""
+      sender = self.headers['Host']
+      content_length = int(self.headers['Content-Length'])
+      post_data = self.rfile.read(content_length)
+      logging.debug('POST request from %s,\nPath: %s\nHeaders:\n%s\n\nBody:\n%s\n',
+                    sender, str(self.path), str(self.headers), post_data.decode('utf-8'))
+      parsed_url = urlparse(self.path)
+      query = parse_qs(parsed_url.query)
+      data = json.loads(post_data)
+      handler = self._HANDLERS_MAP.get(parsed_url.path)
+      if handler:
+        try:
+          handler(sender, parsed_url.path, query, data)
+          return
+        except:
+          logging.exception('Failed to parse property.')
+      self.do_HEAD(HTTPStatus.NOT_FOUND)
+  return HTTPRequestHandler
 
 def ParseArguments() -> argparse.Namespace:
   """Parse command line arguments."""
   arg_parser = argparse.ArgumentParser(
       description='JSON server for HiSense air conditioners.',
       allow_abbrev=False)
-  arg_parser.add_argument('-p', '--port', required=True, type=int,
-                          help='Port for the server.')
-  arg_parser.add_argument('--ip', required=True,
-                          help='IP address for the AC.')
-  arg_parser.add_argument('--config', required=True,
-                          help='LAN Config file.')
-  arg_parser.add_argument('--device_type', default='ac',
-                          choices={'ac', 'fgl', 'fgl_b', 'humidifier'},
-                          help='Device type (for systems other than Hisense A/C).')
-  arg_parser.add_argument('--mqtt_host', default=None,
-                          help='MQTT broker hostname or IP address.')
-  arg_parser.add_argument('--mqtt_port', type=int, default=1883,
-                          help='MQTT broker port.')
-  arg_parser.add_argument('--mqtt_client_id', default=None,
-                          help='MQTT client ID.')
-  arg_parser.add_argument('--mqtt_user', default=None,
-                          help='<user:password> for the MQTT channel.')
-  arg_parser.add_argument('--mqtt_topic', default='hisense_ac',
-                          help='MQTT topic.')
   arg_parser.add_argument('--log_level', default='WARNING',
                           choices={'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG'},
                           help='Minimal log level.')
+  subparsers = arg_parser.add_subparsers(dest='cmd',
+                                         help='Determines what server should do')
+  subparsers.required = True
+
+  parser_run = subparsers.add_parser('run', help='Runs the server to control the device')
+  parser_run.add_argument('-p', '--port', required=True, type=int,
+                          help='Port for the server.')
+  group_device = parser_run.add_argument_group('Device', 'Arguments that are related to the device')
+  group_device.add_argument('--ip', required=True, action='append',
+                            help='IP address for the AC.')
+  group_device.add_argument('--config', required=True, action='append',
+                            help='LAN Config file.')
+  group_device.add_argument('--type', required=True, action='append',
+                            choices={'ac', 'fgl', 'fgl_b', 'humidifier'},
+                            help='Device type (for systems other than Hisense A/C).')
+
+  group_mqtt = parser_run.add_argument_group('MQTT', 'Settings related to the MQTT')
+  group_mqtt.add_argument('--mqtt_host', default=None,
+                          help='MQTT broker hostname or IP address.')
+  group_mqtt.add_argument('--mqtt_port', type=int, default=1883,
+                          help='MQTT broker port.')
+  group_mqtt.add_argument('--mqtt_client_id', default=None,
+                          help='MQTT client ID.')
+  group_mqtt.add_argument('--mqtt_user', default=None,
+                          help='<user:password> for the MQTT channel.')
+  group_mqtt.add_argument('--mqtt_topic', default='hisense_ac',
+                          help='MQTT topic.')
+
+  parser_discovery = subparsers.add_parser('discovery', help='Runs the device discovery')
+  parser_discovery.add_argument('app',
+                                choices=set(SECRET_MAP),
+                                help='The app used for the login.')
+  parser_discovery.add_argument('user', help='Username for the app login.')
+  parser_discovery.add_argument('passwd', help='Password for the app login.')
+  parser_discovery.add_argument('-d', '--device', default=None,
+                                help='Device name to fetch data for. If not set, takes all.')
+  parser_discovery.add_argument('--prefix', required=False, default='config_',
+                                help='Config file prefix.')
+  parser_discovery.add_argument('--properties', action='store_true',
+                                help='Fetch the properties for the device.')
   return arg_parser.parse_args()
 
-
-if __name__ == '__main__':
-  _parsed_args = ParseArguments()  # type: argparse.Namespace
-
+def setup_logger(log_level):
   if sys.platform == 'linux':
     logging_handler = logging.handlers.SysLogHandler(address='/dev/log')
   elif sys.platform == 'darwin':
@@ -330,46 +282,79 @@ if __name__ == '__main__':
                         '{filename}:{lineno}] {message}',
                          datefmt='%m%d %H:%M:%S', style='{'))
   logger = logging.getLogger()
-  logger.setLevel(_parsed_args.log_level)
+  logger.setLevel(log_level)
   logger.addHandler(logging_handler)
 
-  _config = Config()
-  if _parsed_args.device_type == 'ac':
-    _data = Data(properties=AcProperties())
-  elif _parsed_args.device_type == 'fgl':
-    _data = Data(properties=FglProperties())
-  elif _parsed_args.device_type == 'fgl_b':
-    _data = Data(properties=FglBProperties())
-  elif _parsed_args.device_type == 'humidifier':
-    _data = Data(properties=HumidifierProperties())
-  else:
-    sys.exit(1)  # Should never get here.
+def run(parsed_args):
+  devices = []
+  for i in range(len(parsed_args.ip)):
+    with open(parsed_args.config[i], 'rb') as f:
+      data = json.load(f)
+    lanip_key = data['lanip_key']
+    lanip_key_id = data['lanip_key_id']
+    if parsed_args.type[i] == 'ac':
+      device = AcDevice(parsed_args.ip[i], lanip_key, lanip_key_id)
+    elif parsed_args.type[i] == 'fgl':
+      device = FglDevice(parsed_args.ip[i], lanip_key, lanip_key_id)
+    elif parsed_args.type[i] == 'fgl_b':
+      device = FglBDevice(parsed_args.ip[i], lanip_key, lanip_key_id)
+    elif parsed_args.type[i] == 'humidifier':
+      device = HumidifierDevice(parsed_args.ip[i], lanip_key, lanip_key_id)
+    else:
+      logging.error('Unknown type of device: %s', parsed_args.type[i])
+      sys.exit(1)  # Should never get here.
+    devices.append(device)
 
-  _mqtt_client = None  # type: typing.Optional[mqtt.Client]
-  _mqtt_topics = {}  # type: typing.Dict[str, str]
-  if _parsed_args.mqtt_host:
-    _mqtt_topics['pub'] = '/'.join((_parsed_args.mqtt_topic, '{}', 'status'))
-    _mqtt_topics['sub'] = '/'.join((_parsed_args.mqtt_topic, '{}', 'command'))
-    _mqtt_client = mqtt.Client(client_id=_parsed_args.mqtt_client_id,
-                               clean_session=True)
-    _mqtt_client.on_connect = mqtt_on_connect
-    _mqtt_client.on_message = mqtt_on_message
-    if _parsed_args.mqtt_user:
-      _mqtt_client.username_pw_set(*_parsed_args.mqtt_user.split(':',1))
-    _mqtt_client.connect(_parsed_args.mqtt_host, _parsed_args.mqtt_port)
-    _mqtt_client.loop_start()
+  if parsed_args.mqtt_host:
+    mqtt_topics = {'pub' : '/'.join((parsed_args.mqtt_topic, '{}', 'status')),
+                  'sub' : '/'.join((parsed_args.mqtt_topic, '{}', 'command'))}
+    mqtt_client = MqttClient(parsed_args.mqtt_client_id, mqtt_topics, device)
+    if parsed_args.mqtt_user:
+      mqtt_client.username_pw_set(*parsed_args.mqtt_user.split(':',1))
+    mqtt_client.connect(parsed_args.mqtt_host, parsed_args.mqtt_port)
+    mqtt_client.loop_start()
+    for device in devices:
+      device.change_listener = mqtt_client.mqtt_publish_update
 
+  global _keep_alive 
   _keep_alive = None  # type: typing.Optional[KeepAliveThread]
 
-  query_status = QueryStatusThread()
+  query_status = QueryStatusThread(devices)
   query_status.start()
 
-  _keep_alive = KeepAliveThread()
+  _keep_alive = KeepAliveThread(parsed_args.port, devices)
   _keep_alive.start()
 
-  _httpd = HTTPServer(('', _parsed_args.port), HTTPRequestHandler)
+  httpd = HTTPServer(('', parsed_args.port), MakeHttpRequestHandlerClass(devices)) #TODO It should be a map of ip -> device
   try:
-    _httpd.serve_forever()
+    httpd.serve_forever()
   except KeyboardInterrupt:
     pass
-  _httpd.server_close()
+  finally:
+    httpd.server_close()
+
+def _escape_name(name: str):
+  safe_name = name.replace(' ', '_').lower()
+  return "".join(x for x in safe_name if x.isalnum())
+
+def discovery(parsed_args):
+  all_configs = perform_discovery(parsed_args.app, parsed_args.user, parsed_args.passwd, 
+                   parsed_args.prefix, parsed_args.device, parsed_args.properties)
+  for config in all_configs:
+    file_content = {
+      'lanip_key': config['lanip_key'],
+      'lanip_key_id': config['lanip_key_id']
+    }
+    with open(parsed_args.prefix + _escape_name(config['product_name']) + '.json', 'w') as f:
+      f.write(json.dumps(file_content))
+
+if __name__ == '__main__':
+  parsed_args = ParseArguments()  # type: argparse.Namespace
+  setup_logger(parsed_args.log_level)
+  if (len(parsed_args.ip) != len(parsed_args.type) and len(parsed_args.ip) != len(parsed_args.config)):
+    raise ValueError("Each device has to have specified ip, type and config file")
+
+  if (parsed_args.cmd == 'run'):
+    run(parsed_args)
+  elif (parsed_args.cmd == 'discovery'):
+    discovery(parsed_args)
