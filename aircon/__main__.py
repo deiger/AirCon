@@ -227,7 +227,7 @@ def ParseArguments() -> argparse.Namespace:
                           choices={'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG'},
                           help='Minimal log level.')
   subparsers = arg_parser.add_subparsers(dest='cmd',
-                                        help='Determines what server should do')
+                                         help='Determines what server should do')
   subparsers.required = True
 
   parser_run = subparsers.add_parser('run', help='Runs the server to control the device')
@@ -235,12 +235,12 @@ def ParseArguments() -> argparse.Namespace:
                           help='Port for the server.')
   group_device = parser_run.add_argument_group('Device', 'Arguments that are related to the device')
   group_device.add_argument('--ip', required=True, action='append',
-                          help='IP address for the AC.')
+                            help='IP address for the AC.')
   group_device.add_argument('--config', required=True, action='append',
-                          help='LAN Config file.')
+                            help='LAN Config file.')
   group_device.add_argument('--type', required=True, action='append',
-                          choices={'ac', 'fgl', 'fgl_b', 'humidifier'},
-                          help='Device type (for systems other than Hisense A/C).')
+                            choices={'ac', 'fgl', 'fgl_b', 'humidifier'},
+                            help='Device type (for systems other than Hisense A/C).')
 
   group_mqtt = parser_run.add_argument_group('MQTT', 'Settings related to the MQTT')
   group_mqtt.add_argument('--mqtt_host', default=None,
@@ -256,16 +256,16 @@ def ParseArguments() -> argparse.Namespace:
 
   parser_discovery = subparsers.add_parser('discovery', help='Runs the device discovery')
   parser_discovery.add_argument('app',
-                          choices=set(SECRET_MAP),
-                          help='The app used for the login.')
+                                choices=set(SECRET_MAP),
+                                help='The app used for the login.')
   parser_discovery.add_argument('user', help='Username for the app login.')
   parser_discovery.add_argument('passwd', help='Password for the app login.')
   parser_discovery.add_argument('-d', '--device', default=None,
-                          help='Device name to fetch data for. If not set, takes all.')
+                                help='Device name to fetch data for. If not set, takes all.')
   parser_discovery.add_argument('--prefix', required=False, default='config_',
-                          help='Config file prefix.')
+                                help='Config file prefix.')
   parser_discovery.add_argument('--properties', action='store_true',
-                          help='Fetch the properties for the device.')
+                                help='Fetch the properties for the device.')
   return arg_parser.parse_args()
 
 def setup_logger(log_level):

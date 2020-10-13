@@ -10,7 +10,7 @@ import queue
 from Crypto.Cipher import AES
 
 from .config import Config, Encryption
-from .control_value_utils import (get_power_value, set_power_value, get_temp_value,
+from .control_value import (get_power_value, set_power_value, get_temp_value,
     set_temp_value, get_work_mode_value, set_work_mode_value, get_fan_speed_value,
     set_fan_speed_value, get_heat_cold_value, set_heat_cold_value, get_eco_value,
     set_eco_value, get_fan_power_value, set_fan_power_value, get_fan_lr_value,
