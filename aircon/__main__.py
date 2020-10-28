@@ -52,6 +52,12 @@ def ParseArguments() -> argparse.Namespace:
         choices={"CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"},
         help="Minimal log level.",
     )
+    arg_parser.add_argument(
+        "app", choices=set(SECRET_MAP), help="The app used for the login."
+    )
+    arg_parser.add_argument("user", help="Username for the app login.")
+    arg_parser.add_argument("passwd", help="Password for the app login.")
+
     subparsers = arg_parser.add_subparsers(
         dest="cmd", help="Determines what server should do"
     )
@@ -93,11 +99,6 @@ def ParseArguments() -> argparse.Namespace:
     parser_discovery = subparsers.add_parser(
         "discovery", help="Runs the device discovery"
     )
-    parser_discovery.add_argument(
-        "app", choices=set(SECRET_MAP), help="The app used for the login."
-    )
-    parser_discovery.add_argument("user", help="Username for the app login.")
-    parser_discovery.add_argument("passwd", help="Password for the app login.")
     parser_discovery.add_argument(
         "-d",
         "--device",
@@ -180,10 +181,11 @@ async def setup_and_run_http_server(parsed_args, devices: [BaseDevice]):
 
 
 async def mqtt_loop(mqtt_client: MqttClient):
-    _MQTT_LOOP_TIMEOUT = 1
-    while True:
-        mqtt_client.loop()
-        await asyncio.sleep(_MQTT_LOOP_TIMEOUT)
+    if mqtt_client:
+        _MQTT_LOOP_TIMEOUT = 1
+        while True:
+            mqtt_client.loop()
+            await asyncio.sleep(_MQTT_LOOP_TIMEOUT)
 
 
 async def run(parsed_args):
@@ -228,7 +230,7 @@ async def run(parsed_args):
         for device in devices:
             device.add_property_change_listener(mqtt_client.mqtt_publish_update)
 
-    async with aiohttp.ClientSession(conn_timeout=5.0) as session:
+    async with aiohttp.ClientSession(timeout=5.0) as session:
         await asyncio.gather(
             mqtt_loop(mqtt_client),
             setup_and_run_http_server(parsed_args, devices),
