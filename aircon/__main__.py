@@ -1,6 +1,7 @@
 import aiohttp
 from aiohttp import web
 import argparse
+import asyncio
 import base64
 from http import HTTPStatus
 from http.client import HTTPConnection, InvalidURL
@@ -9,7 +10,6 @@ import json
 import logging
 import logging.handlers
 import paho.mqtt.client as mqtt
-from retry import retry
 import signal
 import socket
 import sys
@@ -23,6 +23,7 @@ from .config import Config
 from .error import Error
 from .aircon import BaseDevice, AcDevice, FglDevice, FglBDevice, HumidifierDevice
 from .discovery import perform_discovery
+from .notifier import Notifier
 from .mqtt_client import MqttClient
 from .query_handlers import QueryHandlers
 
