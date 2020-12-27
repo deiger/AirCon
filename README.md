@@ -183,5 +183,4 @@ It currently implements the main functionality (turn on/off, AC mode, fan speed,
 
 The groovy file is available [here](devicetypes/deiger/hisense-air-conditioner.src/hisense-air-conditioner.groovy), for download and installation through the [Groovy IDE](https://graph.api.smartthings.com). As I'm continuously improving this script, it would be more efficient to use the IDE's github integration, in order to stay up-to-date.
 
-I've also created a configuration for HomeAssistant, available [here](hass/configuration.yaml) to communicate with the server through MQTT. Please let me know if you find issues while using it.  
-* Note: _If you change the `--mqtt_topic` flag, you should adjust the topics in the HomeAssistant configuration accordingly._
+HomeAsststant is now fully supported through [MQTT Discovery](https://www.home-assistant.io/docs/mqtt/discovery/). Properly configured devices are auto-configured and populated in the Lovelace dashboard.
