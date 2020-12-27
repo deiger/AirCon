@@ -27,13 +27,15 @@ class Notifier:
     self._configurations = []
     self._condition = asyncio.Condition()
 
+    self._running = False
+
     local_ip = self._get_local_ip()
     self._json = {
       'local_reg': {
         'ip': local_ip,
         'notify': 0,
         'port': port,
-        'uri': "/local_lan"
+        'uri': '/local_lan'
       }
     }
 
@@ -67,32 +69,36 @@ class Notifier:
     loop = asyncio.get_event_loop()
     asyncio.run_coroutine_threadsafe(self._notify(), loop)
 
-  async def start(self):
-    async with aiohttp.ClientSession(conn_timeout=5.0) as session:
-      async with self._condition:
-        while True:
-          queues_empty = True
+  async def start(self, session: aiohttp.ClientSession):
+    self._running = True
+    async with self._condition:
+      while self._running:
+        queues_empty = True
+        try:
+          for entry in self._configurations:
+            now = time.time()
+            queue_size = entry.device.commands_queue.qsize()
+            if queue_size > 1:
+              queues_empty = False
+            if now - entry.last_timestamp >= self._KEEP_ALIVE_INTERVAL or queue_size > 0:
+              await self._perform_request(session, entry)
+              entry.last_timestamp = now
+        except:
+          logging.exception('[KeepAlive] Failed to send local_reg keep alive to the AC.')
+        if queues_empty:
+          logging.debug('[KeepAlive] Waiting for notification or timeout')
           try:
-            for entry in self._configurations:
-              now = time.time()
-              queue_size = entry.device.commands_queue.qsize()
-              if queue_size > 1:
-                queues_empty = False
-              if now - entry.last_timestamp >= self._KEEP_ALIVE_INTERVAL or queue_size > 0:
-                await self._perform_request(session, entry)
-                entry.last_timestamp = now
-          except:
-            logging.exception('[KeepAlive] Failed to send local_reg keep alive to the AC.')
-          if queues_empty:
-            logging.debug('[KeepAlive] Waiting for notification or timeout')
-            try:
-              await asyncio.wait_for(self._condition.wait(), timeout=self._KEEP_ALIVE_INTERVAL)
-              #await self._wait_on_condition_with_timeout(self._condition, self._KEEP_ALIVE_INTERVAL)
-            except concurrent.futures.TimeoutError:
-              pass
-          else:
-            # give some time to clean up the queues
-            await asyncio.sleep(self._TIME_TO_HANDLE_REQUESTS)
+            await asyncio.wait_for(self._condition.wait(), timeout=self._KEEP_ALIVE_INTERVAL)
+            #await self._wait_on_condition_with_timeout(self._condition, self._KEEP_ALIVE_INTERVAL)
+          except concurrent.futures.TimeoutError:
+            pass
+        else:
+          # give some time to clean up the queues
+          await asyncio.sleep(self._TIME_TO_HANDLE_REQUESTS)
+
+  async def stop(self):
+    self._running = False
+    await self._notify()
 
   @retry(retry=retry_if_exception_type(ConnectionError), wait=wait_incrementing(start=0.5, increment=1.5, max=10))
   async def _perform_request(self, session: aiohttp.ClientSession, config: _NotifyConfiguration) -> None:

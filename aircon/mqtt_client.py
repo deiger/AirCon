@@ -17,7 +17,7 @@ class MqttClient(mqtt.Client):
 
   def mqtt_on_connect(self, client: mqtt.Client, userdata, flags, rc):
     for device in self._devices:
-      client.subscribe([(self._mqtt_topics['sub'].format(device.name, data_field.name), 0)
+      client.subscribe([(self._mqtt_topics['sub'].format(device.mac_address, data_field.name), 0)
                         for data_field in fields(device.get_all_properties())])
     # Subscribe to subscription updates.
     client.subscribe('$SYS/broker/log/M/subscribe/#')
@@ -26,7 +26,7 @@ class MqttClient(mqtt.Client):
     logging.info('MQTT message Topic: {}, Payload {}'.format(message.topic, message.payload))
     if message.topic.startswith('$SYS/broker/log/M/subscribe'):
       return self.mqtt_on_subscribe(message.payload)
-    dev_name = message.topic.rsplit('/', 3)[1]
+    mac_address = message.topic.rsplit('/', 3)[1]
     prop_name = message.topic.rsplit('/', 3)[2]
     payload = message.payload.decode('utf-8')
     if prop_name == 't_work_mode':
@@ -37,7 +37,7 @@ class MqttClient(mqtt.Client):
         payload = 'OFF'
     
     for device in self._devices:
-      if device.name != dev_name:
+      if device.mac_address != mac_address:
         continue
       chosen_device = device
     
@@ -51,19 +51,19 @@ class MqttClient(mqtt.Client):
     topic = payload.decode('utf-8').rsplit(' ', 1)[-1]
     if topic not in self._mqtt_topics['pub']:
       return
-    dev_name = topic.rsplit('/', 3)[1]
+    mac_address = topic.rsplit('/', 3)[1]
     prop_name = topic.rsplit('/', 3)[2]
 
     for device in self._devices:
-      if device.name != dev_name:
+      if device.mac_address != mac_address:
         continue
       chosen_device = device
 
-    self.mqtt_publish_update(chosen_device.name, prop_name, chosen_device.get_property(prop_name))
+    self.mqtt_publish_update(chosen_device.mac_address, prop_name, chosen_device.get_property(prop_name))
 
-  def mqtt_publish_update(self, device_name: str, property_name: str, value) -> None:
+  def mqtt_publish_update(self, mac_address: str, property_name: str, value) -> None:
     if isinstance(value, enum.Enum):
       payload = 'fan_only' if value is AcWorkMode.FAN else value.name.lower()
     else:
       payload = str(value)
-    self.publish(self._mqtt_topics['pub'].format(device_name, property_name), payload=payload.encode('utf-8'))
+    self.publish(self._mqtt_topics['pub'].format(mac_address, property_name), payload=payload.encode('utf-8'))

@@ -5,7 +5,7 @@ import logging
 import random
 import string
 import threading
-from typing import Callable
+from typing import Any, Callable, Dict, List
 import queue
 from Crypto.Cipher import AES
 
@@ -17,15 +17,20 @@ from .control_value import (get_power_value, set_power_value, get_temp_value,
     set_fan_lr_value, get_fan_mute_value, set_fan_mute_value, get_temptype_value,
     set_temptype_value, clear_up_change_flags_value)
 from .error import Error
-from .properties import (AcProperties, AirFlow, Economy, FanSpeed, FastColdHeat, FglProperties, FglBProperties, 
-    HumidifierProperties, Properties, Power, AcWorkMode, Quiet, TemperatureUnit)
+from .properties import (AcProperties, AirFlow, AirFlowState, Economy, FanSpeed,
+    FastColdHeat, FglProperties, FglBProperties, HumidifierProperties,
+    Properties, Power, AcWorkMode, Quiet, TemperatureUnit)
 
 class BaseDevice:
-  def __init__(self, name: str, ip_address: str, lanip_key: str, lanip_key_id: str, 
+  def __init__(self, config: Dict[str, str], ip_address: str, 
               properties: Properties, notifier: Callable[[None], None]):
-    self.name = name
+    self.name = config['name']
+    self.app = config['app']
+    self.model = config['model']
+    self.sw_version = config['sw_version']
+    self.mac_address = config['mac_address']
     self.ip_address = ip_address
-    self._config = Config(lanip_key, lanip_key_id)
+    self._config = Config(config['lanip_key'], config['lanip_key_id'])
     self._properties = properties
     self._properties_lock = threading.RLock()
     self._queue_listener = notifier
@@ -39,7 +44,17 @@ class BaseDevice:
     self._updates_seq_no = 0
     self._updates_seq_no_lock = threading.Lock()
 
-    self.property_change_listener: Callable[[str, str], None] = None
+    self._property_change_listeners = []  # type List[Callable[[str, Any], None]]
+
+  def add_property_change_listener(self, listener: Callable[[str, Any], None]):
+    self._property_change_listeners.append(listener)
+
+  def remove_property_change_listener(self, listener: Callable[[str, Any], None]):
+    self._property_change_listeners.remove(listener)
+
+  def _notify_listeners(self, prop_name: str, value):
+    for listener in self._property_change_listeners:
+      listener(self.mac_address, prop_name, value)
 
   def get_all_properties(self) -> Properties:
     with self._properties_lock:
@@ -59,11 +74,10 @@ class BaseDevice:
       old_value = getattr(self._properties, name)
       if value != old_value:
         setattr(self._properties, name, value)
-        #logging.debug('Updated properties: %s' % self._properties)
+        # logging.debug('Updated properties: %s' % self._properties)
         if name == 't_control_value':
           self._update_controlled_properties(value)
-      if self.property_change_listener:
-        self.property_change_listener(self.name, name, value)
+      self._notify_listeners(name, value)
 
   def _update_controlled_properties(self, control_value: int):
     raise NotImplementedError()
@@ -166,15 +180,25 @@ class BaseDevice:
     return self._config.dev
 
 class AcDevice(BaseDevice):
-  def __init__(self, name: str, ip_address: str, lanip_key: str, lanip_key_id: str,
-              notifier: Callable[[None], None]):
-    super().__init__(name, ip_address, lanip_key, lanip_key_id, AcProperties(), notifier)
+  def __init__(self, config: Dict[str, str], ip_address: str,
+               notifier: Callable[[None], None]):
+    super().__init__(config, ip_address, AcProperties(), notifier)
+
+  @property
+  def available(self) -> bool:
+    return self._available
+
+  @available.setter
+  def available(self, value: bool):
+    self._available = value
+    self._notify_listeners("available", value)
 
   def get_env_temp(self) -> int:
     return self.get_property('f_temp_in')
 
   def set_power(self, setting: Power) -> None:
     control_value = self.get_property('t_control_value')
+    control_value = clear_up_change_flags_value(control_value)
     if (control_value):
       control_value = set_power_value(control_value, setting)
       self.queue_command('t_control_value', control_value)
@@ -207,9 +231,13 @@ class AcDevice(BaseDevice):
   def set_work_mode(self, setting: AcWorkMode) -> None:
     control_value = self.get_property('t_control_value')
     if (control_value):
+      if get_power_value(control_value) == Power.OFF:
+        control_value = set_power_value(control_value, Power.ON)
       control_value = set_work_mode_value(control_value, setting)
       self.queue_command('t_control_value', control_value)
     else:
+      if self.get_property("t_power"):
+        self.queue_command("t_power", Power.ON)
       self.queue_command('t_work_mode', setting)
 
   def get_work_mode(self) -> AcWorkMode:
@@ -221,6 +249,7 @@ class AcDevice(BaseDevice):
 
   def set_fan_speed(self, setting: FanSpeed) -> None:
     control_value = self.get_property('t_control_value')
+    control_value = clear_up_change_flags_value(control_value)
     if (control_value):
       control_value = set_fan_speed_value(control_value, setting)
       self.queue_command('t_control_value', control_value)
@@ -236,6 +265,7 @@ class AcDevice(BaseDevice):
 
   def set_fan_vertical(self, setting: AirFlow) -> None:
     control_value = self.get_property('t_control_value')
+    control_value = clear_up_change_flags_value(control_value)
     if (control_value):
       control_value = set_fan_power_value(control_value, setting)
       self.queue_command('t_control_value', control_value)
@@ -251,6 +281,7 @@ class AcDevice(BaseDevice):
 
   def set_fan_horizontal(self, setting: AirFlow) -> None:
     control_value = self.get_property('t_control_value')
+    control_value = clear_up_change_flags_value(control_value)
     if (control_value):
       control_value = set_fan_lr_value(control_value, setting)
       self.queue_command('t_control_value', control_value)
@@ -266,6 +297,7 @@ class AcDevice(BaseDevice):
 
   def set_fan_mute(self, setting: Quiet) -> None:
     control_value = self.get_property('t_control_value')
+    control_value = clear_up_change_flags_value(control_value)
     if (control_value):
       control_value = set_fan_mute_value(control_value, setting)
       self.queue_command('t_control_value', control_value)
@@ -281,6 +313,7 @@ class AcDevice(BaseDevice):
 
   def set_fast_heat_cold(self, setting: FastColdHeat):
     control_value = self.get_property('t_control_value')
+    control_value = clear_up_change_flags_value(control_value)
     if (control_value):
       control_value = set_heat_cold_value(control_value, setting)
       self.queue_command('t_control_value', control_value)
@@ -296,6 +329,7 @@ class AcDevice(BaseDevice):
 
   def set_eco(self, setting: Economy) -> None:
     control_value = self.get_property('t_control_value')
+    control_value = clear_up_change_flags_value(control_value)
     if (control_value):
       control_value = set_eco_value(control_value, setting)
       self.queue_command('t_control_value', control_value)
@@ -311,6 +345,7 @@ class AcDevice(BaseDevice):
 
   def set_temptype(self, setting: TemperatureUnit) -> None:
     control_value = self.get_property('t_control_value')
+    control_value = clear_up_change_flags_value(control_value)
     if (control_value):
       control_value = set_temptype_value(control_value, setting)
       self.queue_command('t_control_value', control_value)
@@ -323,6 +358,37 @@ class AcDevice(BaseDevice):
       return get_temptype_value(control_value)
     else:
       return self.get_property('t_temptype')
+
+  def set_swing(self, setting: AirFlowState) -> None:
+    control_value = self.get_property("t_control_value")
+    control_value = clear_up_change_flags_value(control_value)
+    if control_value:
+      if setting == AirFlowState.OFF:
+        control_value = set_fan_power_value(control_value, AirFlow.OFF)
+        control_value = set_fan_lr_value(control_value, AirFlow.OFF)
+      elif setting == AirFlowState.VERTICAL_ONLY:
+        control_value = set_fan_power_value(control_value, AirFlow.ON)
+        control_value = set_fan_lr_value(control_value, AirFlow.OFF)
+      elif setting == AirFlowState.HORIZONTAL_ONLY:
+        control_value = set_fan_power_value(control_value, AirFlow.OFF)
+        control_value = set_fan_lr_value(control_value, AirFlow.ON)
+      elif setting == AirFlowState.VERTICAL_AND_HORIZONTAL:
+        control_value = set_fan_power_value(control_value, AirFlow.ON)
+        control_value = set_fan_lr_value(control_value, AirFlow.ON)
+      self.queue_command("t_control_value", control_value)
+    else:
+      if setting == AirFlowState.OFF:
+        self.queue_command("t_fan_speed", AirFlow.OFF)
+        self.queue_command("t_fan_leftright", AirFlow.OFF)
+      elif setting == AirFlowState.VERTICAL_ONLY:
+        self.queue_command("t_fan_speed", AirFlow.ON)
+        self.queue_command("t_fan_leftright", AirFlow.OFF)
+      elif setting == AirFlowState.HORIZONTAL_ONLY:
+        self.queue_command("t_fan_speed", AirFlow.OFF)
+        self.queue_command("t_fan_leftright", AirFlow.ON)
+      elif setting == AirFlowState.VERTICAL_AND_HORIZONTAL:
+        self.queue_command("t_fan_speed", AirFlow.ON)
+        self.queue_command("t_fan_leftright", AirFlow.ON)
 
   def _convert_to_control_value(self, name: str, value) -> int:
     if name == 't_power':
@@ -381,16 +447,16 @@ class AcDevice(BaseDevice):
     self.update_property('t_temptype', temptype)
 
 class FglDevice(BaseDevice):
-  def __init__(self, name: str, ip_address: str, lanip_key: str, 
-              lanip_key_id: str, notifier: Callable[[None], None]):
-    super().__init__(name, ip_address, lanip_key, lanip_key_id, FglProperties(), notifier)
+  def __init__(self, config: Dict[str, str], ip_address: str,
+               notifier: Callable[[None], None]):
+    super().__init__(config, ip_address, FglProperties(), notifier)
 
 class FglBDevice(BaseDevice):
-  def __init__(self, name: str, ip_address: str, lanip_key: str, 
-              lanip_key_id: str, notifier: Callable[[None], None]):
-    super().__init__(name, ip_address, lanip_key, lanip_key_id, FglBProperties(), notifier)
+  def __init__(self, config: Dict[str, str], ip_address: str,
+               notifier: Callable[[None], None]):
+    super().__init__(config, ip_address, FglBProperties(), notifier)
 
 class HumidifierDevice(BaseDevice):
-  def __init__(self, name: str, ip_address: str, lanip_key: str,
-              lanip_key_id: str, notifier: Callable[[None], None]):
-    super().__init__(name, ip_address, lanip_key, lanip_key_id, HumidifierProperties(), notifier)
+  def __init__(self, config: Dict[str, str], ip_address: str,
+               notifier: Callable[[None], None]):
+    super().__init__(config, ip_address, HumidifierProperties(), notifier)
