@@ -54,7 +54,7 @@ The module is installed in A/Cs and humidifiers that are either manufactured or 
    setting the `--device` flag to the device name you configured in the app.
 
 * Note: _To update the server from head, run `git pull` on the repository and
-  run setup. You may also need to re-run discovery.
+  run setup. You may also need to re-run discovery._
 
 ## Run the A/C control server
 
