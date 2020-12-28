@@ -5,7 +5,7 @@ from os import path
 this_directory = path.abspath(path.dirname(__file__))
 
 with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
-    long_description = f.read()
+  long_description = f.read()
 
 setuptools.setup(
     name='aircon',
@@ -19,12 +19,8 @@ setuptools.setup(
     license='GPL 3.0',
     packages=setuptools.find_packages(),
     install_requires=[
-          'aiohttp==3.6.2',
-          'dataclasses_json',
-          'pycryptodome',
-          'paho-mqtt==1.5.0',
-          'tenacity'
-      ],
+        'aiohttp==3.6.2', 'dataclasses_json', 'pycryptodome', 'paho-mqtt==1.5.0', 'tenacity'
+    ],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: Apache Software License",
@@ -32,4 +28,3 @@ setuptools.setup(
         "Topic :: Home Automation",
     ],
 )
-

@@ -45,53 +45,50 @@ async def query_status_worker(devices: [BaseDevice]):
 
 def ParseArguments() -> argparse.Namespace:
   """Parse command line arguments."""
-  arg_parser = argparse.ArgumentParser(
-      description='JSON server for HiSense air conditioners.',
-      allow_abbrev=False)
-  arg_parser.add_argument('--log_level', default='WARNING',
+  arg_parser = argparse.ArgumentParser(description='JSON server for HiSense air conditioners.',
+                                       allow_abbrev=False)
+  arg_parser.add_argument('--log_level',
+                          default='WARNING',
                           choices={'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG'},
                           help='Minimal log level.')
-  subparsers = arg_parser.add_subparsers(dest='cmd',
-                                         help='Determines what server should do')
+  subparsers = arg_parser.add_subparsers(dest='cmd', help='Determines what server should do')
   subparsers.required = True
 
   parser_run = subparsers.add_parser('run', help='Runs the server to control the device')
-  parser_run.add_argument('-p', '--port', required=True, type=int,
-                          help='Port for the server.')
+  parser_run.add_argument('-p', '--port', required=True, type=int, help='Port for the server.')
   group_device = parser_run.add_argument_group('Device', 'Arguments that are related to the device')
-  group_device.add_argument('--ip', required=True, action='append',
-                            help='IP address for the AC.')
-  group_device.add_argument('--config', required=True, action='append',
-                            help='LAN Config file.')
-  group_device.add_argument('--type', required=True, action='append',
+  group_device.add_argument('--ip', required=True, action='append', help='IP address for the AC.')
+  group_device.add_argument('--config', required=True, action='append', help='LAN Config file.')
+  group_device.add_argument('--type',
+                            required=True,
+                            action='append',
                             choices={'ac', 'fgl', 'fgl_b', 'humidifier'},
                             help='Device type (for systems other than Hisense A/C).')
 
   group_mqtt = parser_run.add_argument_group('MQTT', 'Settings related to the MQTT')
-  group_mqtt.add_argument('--mqtt_host', default=None,
-                          help='MQTT broker hostname or IP address.')
-  group_mqtt.add_argument('--mqtt_port', type=int, default=1883,
-                          help='MQTT broker port.')
-  group_mqtt.add_argument('--mqtt_client_id', default=None,
-                          help='MQTT client ID.')
-  group_mqtt.add_argument('--mqtt_user', default=None,
-                          help='<user:password> for the MQTT channel.')
-  group_mqtt.add_argument('--mqtt_topic', default='hisense_ac',
-                          help='MQTT topic.')
-  group_mqtt.add_argument('--mqtt_discovery_prefix', default='homeassistant',
+  group_mqtt.add_argument('--mqtt_host', default=None, help='MQTT broker hostname or IP address.')
+  group_mqtt.add_argument('--mqtt_port', type=int, default=1883, help='MQTT broker port.')
+  group_mqtt.add_argument('--mqtt_client_id', default=None, help='MQTT client ID.')
+  group_mqtt.add_argument('--mqtt_user', default=None, help='<user:password> for the MQTT channel.')
+  group_mqtt.add_argument('--mqtt_topic', default='hisense_ac', help='MQTT topic.')
+  group_mqtt.add_argument('--mqtt_discovery_prefix',
+                          default='homeassistant',
                           help='MQTT discovery prefix for HomeAssistant.')
 
   parser_discovery = subparsers.add_parser('discovery', help='Runs the device discovery')
-  parser_discovery.add_argument('app',
-                                choices=set(SECRET_MAP),
-                                help='The app used for the login.')
+  parser_discovery.add_argument('app', choices=set(SECRET_MAP), help='The app used for the login.')
   parser_discovery.add_argument('user', help='Username for the app login.')
   parser_discovery.add_argument('passwd', help='Password for the app login.')
-  parser_discovery.add_argument('-d', '--device', default=None,
+  parser_discovery.add_argument('-d',
+                                '--device',
+                                default=None,
                                 help='Device name to fetch data for. If not set, takes all.')
-  parser_discovery.add_argument('--prefix', required=False, default='config_',
+  parser_discovery.add_argument('--prefix',
+                                required=False,
+                                default='config_',
                                 help='Config file prefix.')
-  parser_discovery.add_argument('--properties', action='store_true',
+  parser_discovery.add_argument('--properties',
+                                action='store_true',
                                 help='Fetch the properties for the device.')
   return arg_parser.parse_args()
 
@@ -110,7 +107,8 @@ def setup_logger(log_level, use_stderr=False):
   logging_handler.setFormatter(
       logging.Formatter(fmt='{levelname[0]}{asctime}.{msecs:03.0f}  '
                         '{filename}:{lineno}] {message}',
-                         datefmt='%m%d %H:%M:%S', style='{'))
+                        datefmt='%m%d %H:%M:%S',
+                        style='{'))
   logger = logging.getLogger()
   logger.setLevel(log_level)
   logger.addHandler(logging_handler)
@@ -119,19 +117,14 @@ def setup_logger(log_level, use_stderr=False):
 async def setup_and_run_http_server(parsed_args, devices: [BaseDevice]):
   query_handlers = QueryHandlers(devices)
   app = web.Application()
-  app.add_routes(
-    [
+  app.add_routes([
       web.get('/hisense/status', query_handlers.get_status_handler),
       web.get('/hisense/command', query_handlers.queue_command_handler),
-      web.post('/local_lan/key_exchange.json',
-               query_handlers.key_exchange_handler),
+      web.post('/local_lan/key_exchange.json', query_handlers.key_exchange_handler),
       web.get('/local_lan/commands.json', query_handlers.command_handler),
-      web.post('/local_lan/property/datapoint.json',
-               query_handlers.property_update_handler),
-      web.post('/local_lan/property/datapoint/ack.json',
-               query_handlers.property_update_handler),
-      web.post('/local_lan/node/property/datapoint.json',
-               query_handlers.property_update_handler),
+      web.post('/local_lan/property/datapoint.json', query_handlers.property_update_handler),
+      web.post('/local_lan/property/datapoint/ack.json', query_handlers.property_update_handler),
+      web.post('/local_lan/node/property/datapoint.json', query_handlers.property_update_handler),
       web.post('/local_lan/node/property/datapoint/ack.json',
                query_handlers.property_update_handler),
       # TODO: Handle these if needed.
@@ -143,8 +136,7 @@ async def setup_and_run_http_server(parsed_args, devices: [BaseDevice]):
       # '/local_lan/wifi_status.json': query_handlers.module_request_handler,
       # '/local_lan/regtoken.json': query_handlers.module_request_handler,
       # '/local_lan/wifi_stop_ap.json': query_handlers.module_request_handler
-    ]
-  )
+  ])
   runner = web.AppRunner(app)
   await runner.setup()
   site = web.TCPSite(runner, port=parsed_args.port)
@@ -183,10 +175,16 @@ async def run(parsed_args):
 
   mqtt_client = None
   if parsed_args.mqtt_host:
-    mqtt_topics = {'pub' : '/'.join((parsed_args.mqtt_topic, '{}', '{}', 'status')),
-                   'sub' : '/'.join((parsed_args.mqtt_topic, '{}', '{}', 'command')),
-                   'lwt' : '/'.join((parsed_args.mqtt_topic, 'LWT')),
-                   'discovery' : '/'.join((parsed_args.mqtt_discovery_prefix, 'climate', '{}', 'hvac', 'config'))}
+    mqtt_topics = {
+        'pub':
+            '/'.join((parsed_args.mqtt_topic, '{}', '{}', 'status')),
+        'sub':
+            '/'.join((parsed_args.mqtt_topic, '{}', '{}', 'command')),
+        'lwt':
+            '/'.join((parsed_args.mqtt_topic, 'LWT')),
+        'discovery':
+            '/'.join((parsed_args.mqtt_discovery_prefix, 'climate', '{}', 'hvac', 'config'))
+    }
     mqtt_client = MqttClient(parsed_args.mqtt_client_id, mqtt_topics, devices)
     if parsed_args.mqtt_user:
       mqtt_client.username_pw_set(*parsed_args.mqtt_user.split(':', 1))
@@ -195,43 +193,42 @@ async def run(parsed_args):
     mqtt_client.publish(mqtt_topics['lwt'], payload='online', retain=True)
     for device in devices:
       config = {
-        'name': device.name,
-        'unique_id': device.mac_address,
-        'device': {
-          'identifiers': ['hisense_ac_{device.mac_address}'],
-          'manufacturer': f'Hisense ({device.app})',
-          'model': device.model,
           'name': device.name,
-          'sw_version': device.sw_version
-        },
-        'current_temperature_topic': mqtt_topics['pub'].format(device.mac_address, 'f_temp_in'),
-        'fan_mode_command_topic': mqtt_topics['sub'].format(device.mac_address, 't_fan_speed'),
-        'fan_mode_state_topic': mqtt_topics['pub'].format(device.mac_address, 't_fan_speed'),
-        'fan_modes': ['auto', 'lower', 'low', 'medium', 'high', 'higher'],
-        'max_temp': '86',
-        'min_temp': '61',
-        'mode_command_topic': mqtt_topics['sub'].format(device.mac_address, 't_work_mode'),
-        'mode_state_topic': mqtt_topics['pub'].format(device.mac_address, 't_work_mode'),
-        'modes': ['off', 'fan_only', 'heat', 'cool', 'dry', 'auto'],
-        'swing_modes': ['on', 'off'],
-        'power_command_topic': mqtt_topics['sub'].format(device.mac_address, 't_power'),
-        'power_state_topic': mqtt_topics['pub'].format(device.mac_address, 't_power'),
-        'precision': 1.0,
-        'swing_mode_command_topic': mqtt_topics['sub'].format(device.mac_address, 't_fan_power'),
-        'swing_mode_state_topic': mqtt_topics['pub'].format(device.mac_address, 't_fan_power'),
-        'temperature_command_topic': mqtt_topics['sub'].format(device.mac_address, 't_temp'),
-        'temperature_state_topic': mqtt_topics['pub'].format(device.mac_address, 't_temp'),
-        'temperature_unit': 'F'
+          'unique_id': device.mac_address,
+          'device': {
+              'identifiers': ['hisense_ac_{device.mac_address}'],
+              'manufacturer': f'Hisense ({device.app})',
+              'model': device.model,
+              'name': device.name,
+              'sw_version': device.sw_version
+          },
+          'current_temperature_topic': mqtt_topics['pub'].format(device.mac_address, 'f_temp_in'),
+          'fan_mode_command_topic': mqtt_topics['sub'].format(device.mac_address, 't_fan_speed'),
+          'fan_mode_state_topic': mqtt_topics['pub'].format(device.mac_address, 't_fan_speed'),
+          'fan_modes': ['auto', 'lower', 'low', 'medium', 'high', 'higher'],
+          'max_temp': '86',
+          'min_temp': '61',
+          'mode_command_topic': mqtt_topics['sub'].format(device.mac_address, 't_work_mode'),
+          'mode_state_topic': mqtt_topics['pub'].format(device.mac_address, 't_work_mode'),
+          'modes': ['off', 'fan_only', 'heat', 'cool', 'dry', 'auto'],
+          'swing_modes': ['on', 'off'],
+          'power_command_topic': mqtt_topics['sub'].format(device.mac_address, 't_power'),
+          'power_state_topic': mqtt_topics['pub'].format(device.mac_address, 't_power'),
+          'precision': 1.0,
+          'swing_mode_command_topic': mqtt_topics['sub'].format(device.mac_address, 't_fan_power'),
+          'swing_mode_state_topic': mqtt_topics['pub'].format(device.mac_address, 't_fan_power'),
+          'temperature_command_topic': mqtt_topics['sub'].format(device.mac_address, 't_temp'),
+          'temperature_state_topic': mqtt_topics['pub'].format(device.mac_address, 't_temp'),
+          'temperature_unit': 'F'
       }
       mqtt_client.publish(mqtt_topics['discovery'].format(device.mac_address),
-                          payload=json.dumps(config), retain=True)
+                          payload=json.dumps(config),
+                          retain=True)
       device.add_property_change_listener(mqtt_client.mqtt_publish_update)
 
   async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(connect=5.0)) as session:
-    await asyncio.gather(mqtt_loop(mqtt_client),
-                         setup_and_run_http_server(parsed_args, devices),
-                         query_status_worker(devices),
-                         notifier.start(session))
+    await asyncio.gather(mqtt_loop(mqtt_client), setup_and_run_http_server(parsed_args, devices),
+                         query_status_worker(devices), notifier.start(session))
 
 
 def _escape_name(name: str):
@@ -253,7 +250,8 @@ async def discovery(parsed_args):
     properties_text = ''
     if 'properties' in config.keys():
       properties_text = f'Properties:\n{json.dumps(config["properties"], indent=2)}'
-    print(textwrap.dedent(f"""Device {config['product_name']} has:
+    print(
+        textwrap.dedent(f"""Device {config['product_name']} has:
                               IP address: {config['lan_ip']}
                               lanip_key: {config['lanip_key']}
                               lanip_key_id: {config['lanip_key_id']}
@@ -261,14 +259,14 @@ async def discovery(parsed_args):
                               """))
 
     file_content = {
-      'name': config['product_name'],
-      'app': parsed_args.app,
-      'model': config['oem_model'],
-      'sw_version': config['sw_version'],
-      'dsn': config['dsn'],
-      'mac_address': config['mac'],
-      'lanip_key': config['lanip_key'],
-      'lanip_key_id': config['lanip_key_id'],
+        'name': config['product_name'],
+        'app': parsed_args.app,
+        'model': config['oem_model'],
+        'sw_version': config['sw_version'],
+        'dsn': config['dsn'],
+        'mac_address': config['mac'],
+        'lanip_key': config['lanip_key'],
+        'lanip_key_id': config['lanip_key_id'],
     }
     with open(parsed_args.prefix + _escape_name(config['product_name']) + '.json', 'w') as f:
       f.write(json.dumps(file_content))

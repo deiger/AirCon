@@ -15,7 +15,9 @@ from .config import Config, Encryption
 from .aircon import BaseDevice
 from .error import Error, KeyIdReplaced
 
+
 class QueryHandlers:
+
   def __init__(self, devices: [BaseDevice]):
     self._devices_map = {}
     for device in devices:
@@ -56,7 +58,7 @@ class QueryHandlers:
     except queue.Empty:
       command['data'], property_updater = {}, None
     if property_updater:
-      property_updater() #TODO: should be async as well?
+      property_updater()  #TODO: should be async as well?
     return web.json_response(self._encrypt_and_sign(device, command))
 
   async def property_update_handler(self, request: web.Request) -> web.Response:
@@ -77,7 +79,7 @@ class QueryHandlers:
     try:
       if not update['data']:
         logging.error('Unsupported update message = {}'.format(update['seq_no']))
-        return response #TODO: Should return error?
+        return response  #TODO: Should return error?
       name = update['data']['name']
       data_type = device.get_property_type(name)
       value = data_type(update['data']['value'])
@@ -95,8 +97,7 @@ class QueryHandlers:
     for device in self._devices_map.values():
       if 'device_ip' in request.query.keys() and device.ip_address != request.query['device_ip']:
         continue
-      devices.append({'ip': device.ip_address, 
-                     'props': device.get_all_properties().to_dict()})
+      devices.append({'ip': device.ip_address, 'props': device.get_all_properties().to_dict()})
     return web.json_response({'devices': devices})
 
   async def queue_command_handler(self, request: web.Request) -> web.Response:
@@ -118,8 +119,8 @@ class QueryHandlers:
     text = text.encode('utf-8')
     encryption = device.get_app_encryption()
     return {
-      "enc": base64.b64encode(encryption.cipher.encrypt(self.pad(text))).decode('utf-8'),
-      "sign": base64.b64encode(Encryption.hmac_digest(encryption.sign_key, text)).decode('utf-8')
+        "enc": base64.b64encode(encryption.cipher.encrypt(self.pad(text))).decode('utf-8'),
+        "sign": base64.b64encode(Encryption.hmac_digest(encryption.sign_key, text)).decode('utf-8')
     }
 
   def _decrypt_and_validate(self, device: BaseDevice, data: dict) -> dict:

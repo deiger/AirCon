@@ -6,7 +6,9 @@ import paho.mqtt.client as mqtt
 from .aircon import BaseDevice
 from .properties import AcWorkMode
 
+
 class MqttClient(mqtt.Client):
+
   def __init__(self, client_id: str, mqtt_topics: dict, devices: [BaseDevice]):
     super().__init__(client_id=client_id, clean_session=True)
     self._mqtt_topics = mqtt_topics
@@ -35,16 +37,17 @@ class MqttClient(mqtt.Client):
       elif payload == 'off':
         prop_name = 't_power'
         payload = 'OFF'
-    
+
     for device in self._devices:
       if device.mac_address != mac_address:
         continue
       chosen_device = device
-    
+
     try:
       chosen_device.queue_command(prop_name, payload.upper())
     except Exception:
-      logging.exception('Failed to parse value {} for property {}'.format(payload.upper(), prop_name))
+      logging.exception('Failed to parse value {} for property {}'.format(
+          payload.upper(), prop_name))
 
   def mqtt_on_subscribe(self, payload: bytes):
     # The last segment in the space delimited string is the topic.
@@ -59,11 +62,13 @@ class MqttClient(mqtt.Client):
         continue
       chosen_device = device
 
-    self.mqtt_publish_update(chosen_device.mac_address, prop_name, chosen_device.get_property(prop_name))
+    self.mqtt_publish_update(chosen_device.mac_address, prop_name,
+                             chosen_device.get_property(prop_name))
 
   def mqtt_publish_update(self, mac_address: str, property_name: str, value) -> None:
     if isinstance(value, enum.Enum):
       payload = 'fan_only' if value is AcWorkMode.FAN else value.name.lower()
     else:
       payload = str(value)
-    self.publish(self._mqtt_topics['pub'].format(mac_address, property_name), payload=payload.encode('utf-8'))
+    self.publish(self._mqtt_topics['pub'].format(mac_address, property_name),
+                 payload=payload.encode('utf-8'))

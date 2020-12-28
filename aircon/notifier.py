@@ -12,12 +12,14 @@ import threading
 
 from .aircon import BaseDevice
 
+
 @dataclass
 class _NotifyConfiguration:
   device: BaseDevice
   headers: dict
   alive: bool
   last_timestamp: int
+
 
 class Notifier:
   _KEEP_ALIVE_INTERVAL = 10.0
@@ -30,14 +32,7 @@ class Notifier:
     self._running = False
 
     local_ip = self._get_local_ip()
-    self._json = {
-      'local_reg': {
-        'ip': local_ip,
-        'notify': 0,
-        'port': port,
-        'uri': '/local_lan'
-      }
-    }
+    self._json = {'local_reg': {'ip': local_ip, 'notify': 0, 'port': port, 'uri': '/local_lan'}}
 
   def _get_local_ip(self):
     sock = None
@@ -53,11 +48,11 @@ class Notifier:
   def register_device(self, device: BaseDevice):
     if (not device in self._configurations):
       headers = {
-        'Accept': 'application/json',
-        'Connection': 'keep-alive',
-        'Content-Type': 'application/json',
-        'Host': device.ip_address,
-        'Accept-Encoding': 'gzip'
+          'Accept': 'application/json',
+          'Connection': 'keep-alive',
+          'Content-Type': 'application/json',
+          'Host': device.ip_address,
+          'Accept-Encoding': 'gzip'
       }
       self._configurations.append(_NotifyConfiguration(device, headers, False, 0))
 
@@ -100,8 +95,10 @@ class Notifier:
     self._running = False
     await self._notify()
 
-  @retry(retry=retry_if_exception_type(ConnectionError), wait=wait_incrementing(start=0.5, increment=1.5, max=10))
-  async def _perform_request(self, session: aiohttp.ClientSession, config: _NotifyConfiguration) -> None:
+  @retry(retry=retry_if_exception_type(ConnectionError),
+         wait=wait_incrementing(start=0.5, increment=1.5, max=10))
+  async def _perform_request(self, session: aiohttp.ClientSession,
+                             config: _NotifyConfiguration) -> None:
     method = 'PUT' if config.alive else 'POST'
     self._json['local_reg']['notify'] = int(config.device.commands_queue.qsize() > 0)
     url = 'http://{}/local_reg.json'.format(config.device.ip_address)
@@ -110,7 +107,8 @@ class Notifier:
       async with session.request(method, url, json=self._json, headers=config.headers) as resp:
         if resp.status != HTTPStatus.ACCEPTED.value:
           resp_data = await resp.text()
-          logging.error('[KeepAlive] Sending local_reg failed: {}, {}'.format(resp.status, resp_data))
+          logging.error('[KeepAlive] Sending local_reg failed: {}, {}'.format(
+              resp.status, resp_data))
           raise ConnectionError('Sending local_reg failed: {}, {}'.format(resp.status, resp_data))
     except:
       config.alive = False

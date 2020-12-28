@@ -12,13 +12,15 @@ from Crypto.Cipher import AES
 from . import control_value
 from .config import Config, Encryption
 from .error import Error
-from .properties import (AcProperties, AirFlow, AirFlowState, Economy, FanSpeed,
-    FastColdHeat, FglProperties, FglBProperties, HumidifierProperties,
-    Properties, Power, AcWorkMode, Quiet, TemperatureUnit)
+from .properties import (AcProperties, AirFlow, AirFlowState, Economy, FanSpeed, FastColdHeat,
+                         FglProperties, FglBProperties, HumidifierProperties, Properties, Power,
+                         AcWorkMode, Quiet, TemperatureUnit)
+
 
 class BaseDevice:
-  def __init__(self, config: Dict[str, str], ip_address: str, 
-              properties: Properties, notifier: Callable[[None], None]):
+
+  def __init__(self, config: Dict[str, str], ip_address: str, properties: Properties,
+               notifier: Callable[[None], None]):
     self.name = config['name']
     self.app = config['app']
     self.model = config['model']
@@ -87,9 +89,9 @@ class BaseDevice:
     with self._updates_seq_no_lock:
       # Every once in a while the sequence number is zeroed out, so accept it.
       if self._updates_seq_no > cur_update_no and cur_update_no > 0:
-        logging.error('Stale update found %d. Last update used is %d.',
-                      cur_update_no, self._updates_seq_no)
-        return False # Old update
+        logging.error('Stale update found %d. Last update used is %d.', cur_update_no,
+                      self._updates_seq_no)
+        return False  # Old update
       self._updates_seq_no = cur_update_no
       return True
 
@@ -107,12 +109,12 @@ class BaseDevice:
       data_value = round(float(value))
     else:
       data_value = data_type(value)
-    
+
     # If device has set t_control_value it is being controlled by this field.
     if name != 't_control_value' and self.get_property('t_control_value'):
       self._convert_to_control_value(name, data_value)
       return
-    
+
     if issubclass(data_type, enum.Enum):
       data_value = data_value.value
 
@@ -129,20 +131,20 @@ class BaseDevice:
       self.queue_command('t_fan_mute', 'OFF')
       self.queue_command('t_sleep', 'STOP')
       self.queue_command('t_temp_eight', 'OFF')
-    
+
     self._queue_listener()
 
   def _build_command(self, name: str, data_value: int):
     base_type = self._properties.get_base_type(name)
     return {
-      'properties': [{
-        'property': {
-          'base_type': base_type,
-          'name': name,
-          'value': data_value,
-          'id': ''.join(random.choices(string.ascii_letters + string.digits, k=8)),
-        }
-      }]
+        'properties': [{
+            'property': {
+                'base_type': base_type,
+                'name': name,
+                'value': data_value,
+                'id': ''.join(random.choices(string.ascii_letters + string.digits, k=8)),
+            }
+        }]
     }
 
   def _convert_to_control_value(self, name: str, value) -> int:
@@ -151,15 +153,15 @@ class BaseDevice:
   def queue_status(self) -> None:
     for data_field in fields(self._properties):
       command = {
-        'cmds': [{
-          'cmd': {
-            'method': 'GET',
-            'resource': 'property.json?name=' + data_field.name,
-            'uri': '/local_lan/property/datapoint.json',
-            'data': '',
-            'cmd_id': self._next_command_id,
-          }
-        }]
+          'cmds': [{
+              'cmd': {
+                  'method': 'GET',
+                  'resource': 'property.json?name=' + data_field.name,
+                  'uri': '/local_lan/property/datapoint.json',
+                  'data': '',
+                  'cmd_id': self._next_command_id,
+              }
+          }]
       }
       self._next_command_id += 1
       self.commands_queue.put_nowait((command, None))
@@ -174,9 +176,10 @@ class BaseDevice:
   def get_dev_encryption(self) -> Encryption:
     return self._config.dev
 
+
 class AcDevice(BaseDevice):
-  def __init__(self, config: Dict[str, str], ip_address: str,
-               notifier: Callable[[None], None]):
+
+  def __init__(self, config: Dict[str, str], ip_address: str, notifier: Callable[[None], None]):
     super().__init__(config, ip_address, AcProperties(), notifier)
 
   @property
@@ -222,7 +225,7 @@ class AcDevice(BaseDevice):
       return control_value.get_temp(control)
     else:
       return self.get_property('t_temp')
-    
+
   def set_work_mode(self, setting: AcWorkMode) -> None:
     control = self.get_property('t_control_value')
     if (control):
@@ -330,7 +333,7 @@ class AcDevice(BaseDevice):
       self.queue_command('t_control_value', control)
     else:
       self.queue_command('t_eco', setting)
-    
+
   def get_eco(self) -> Economy:
     control = self.get_property('t_control_value')
     if (control):
@@ -441,17 +444,20 @@ class AcDevice(BaseDevice):
     temptype = control_value.get_temptype(control)
     self.update_property('t_temptype', temptype)
 
+
 class FglDevice(BaseDevice):
-  def __init__(self, config: Dict[str, str], ip_address: str,
-               notifier: Callable[[None], None]):
+
+  def __init__(self, config: Dict[str, str], ip_address: str, notifier: Callable[[None], None]):
     super().__init__(config, ip_address, FglProperties(), notifier)
 
+
 class FglBDevice(BaseDevice):
-  def __init__(self, config: Dict[str, str], ip_address: str,
-               notifier: Callable[[None], None]):
+
+  def __init__(self, config: Dict[str, str], ip_address: str, notifier: Callable[[None], None]):
     super().__init__(config, ip_address, FglBProperties(), notifier)
 
+
 class HumidifierDevice(BaseDevice):
-  def __init__(self, config: Dict[str, str], ip_address: str,
-               notifier: Callable[[None], None]):
+
+  def __init__(self, config: Dict[str, str], ip_address: str, notifier: Callable[[None], None]):
     super().__init__(config, ip_address, HumidifierProperties(), notifier)
