@@ -14,6 +14,7 @@ from retry import retry
 import signal
 import socket
 import sys
+import textwrap
 import threading
 import time
 import _thread
@@ -95,8 +96,10 @@ def ParseArguments() -> argparse.Namespace:
   return arg_parser.parse_args()
 
 
-def setup_logger(log_level):
-  if sys.platform == 'linux':
+def setup_logger(log_level, use_stderr=False):
+  if use_stderr:
+    logging_handler = logging.StreamHandler(sys.stderr)
+  elif sys.platform == 'linux':
     logging_handler = logging.handlers.SysLogHandler(address='/dev/log')
   elif sys.platform == 'darwin':
     logging_handler = logging.handlers.SysLogHandler(address='/var/run/syslog')
@@ -239,24 +242,23 @@ def _escape_name(name: str):
 async def discovery(parsed_args):
   async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(connect=5.0)) as session:
     try:
-      all_configs = await perform_discovery(parsed_args.app, parsed_args.user,
-                                            parsed_args.passwd, parsed_args.prefix,
-                                            parsed_args.device,
+      all_configs = await perform_discovery(session, parsed_args.app, parsed_args.user,
+                                            parsed_args.passwd, parsed_args.device,
                                             parsed_args.properties)
-    except:
-      print('Error occurred.')
+    except Exception as e:
+      print(f'Error occurred:\n{e!r}')
       sys.exit(1)
 
   for config in all_configs:
     properties_text = ''
     if 'properties' in config.keys():
-      properties_text = 'Properties:\n{}'.format(
-        json.dumps(config['properties'], indent=2)
-      )
-    print('Device {} has:\nIP address: {}\nlanip_key: {}\nlanip_key_id: {}\n{}\n'
-            .format(config['product_name'], config['lan_ip'],
-                    config['lanip_key'], config['lanip_key_id'],
-                    properties_text))
+      properties_text = f'Properties:\n{json.dumps(config["properties"], indent=2)}'
+    print(textwrap.dedent(f"""Device {config['product_name']} has:
+                              IP address: {config['lan_ip']}
+                              lanip_key: {config['lanip_key']}
+                              lanip_key_id: {config['lanip_key_id']}
+                              {properties_text}
+                              """))
 
     file_content = {
       'name': config['product_name'],
@@ -274,9 +276,10 @@ async def discovery(parsed_args):
 
 if __name__ == '__main__':
   parsed_args = ParseArguments()  # type: argparse.Namespace
-  setup_logger(parsed_args.log_level)
 
   if parsed_args.cmd == 'run':
+    setup_logger(parsed_args.log_level)
     asyncio.run(run(parsed_args))
   elif parsed_args.cmd == 'discovery':
+    setup_logger(parsed_args.log_level, use_stderr=True)
     asyncio.run(discovery(parsed_args))
