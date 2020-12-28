@@ -57,7 +57,6 @@ def ParseArguments() -> argparse.Namespace:
   parser_run = subparsers.add_parser('run', help='Runs the server to control the device')
   parser_run.add_argument('-p', '--port', required=True, type=int, help='Port for the server.')
   group_device = parser_run.add_argument_group('Device', 'Arguments that are related to the device')
-  group_device.add_argument('--ip', required=True, action='append', help='IP address for the AC.')
   group_device.add_argument('--config', required=True, action='append', help='LAN Config file.')
   group_device.add_argument('--type',
                             required=True,
@@ -160,13 +159,13 @@ async def run(parsed_args):
     with open(parsed_args.config[i], 'rb') as f:
       config = json.load(f)
     if parsed_args.type[i] == 'ac':
-      device = AcDevice(config, parsed_args.ip[i], notifier.notify)
+      device = AcDevice(config, notifier.notify)
     elif parsed_args.type[i] == 'fgl':
-      device = FglDevice(config, parsed_args.ip[i], notifier.notify)
+      device = FglDevice(config, notifier.notify)
     elif parsed_args.type[i] == 'fgl_b':
-      device = FglBDevice(config, parsed_args.ip[i], notifier.notify)
+      device = FglBDevice(config, notifier.notify)
     elif parsed_args.type[i] == 'humidifier':
-      device = HumidifierDevice(config, parsed_args.ip[i], notifier.notify)
+      device = HumidifierDevice(config, notifier.notify)
     else:
       logging.error('Unknown type of device: %s', parsed_args.type[i])
       sys.exit(1)  # Should never get here.
@@ -265,6 +264,7 @@ async def discovery(parsed_args):
         'sw_version': config['sw_version'],
         'dsn': config['dsn'],
         'mac_address': config['mac'],
+        'ip_address': config['lan_ip'],
         'lanip_key': config['lanip_key'],
         'lanip_key_id': config['lanip_key_id'],
     }

@@ -14,7 +14,9 @@ The module is installed in A/Cs and humidifiers that are either manufactured or 
 1. Have Python 3.7 installed. If using Raspberry Pi, either upgrade to Raspbian Buster, or manually install it in Raspbian Stretch.
 1. Download and install aircon module:
    ```bash
-   python3.7 setup.py install
+   $ git clone https://github.com/deiger/AirCon
+   $ cd AirCon
+   $ python3.7 setup.py install
    ```
 1. Configure the A/C with the dedicated app. Links to each app are available in the table below. Log into the app, associate the A/C and connect it to the network, as described in the app documentation.
 1. Once everything has been configured, the A/C can be blocked from connecting to the internet, as it will no longer be needed. Set it a static IP address in the router, and write it down.
@@ -45,8 +47,14 @@ The module is installed in A/Cs and humidifiers that are either manufactured or 
    ```bash
    python3.7 -m aircon discovery tornado-us foo@example.com my_pass
    ```
-   The CLI will generate a config file, that needs to be passed to the A/C control server below.
-   If you have more than one A/C that you would like to control, create a separate config file for each A/C, and run a separate control process. You can select the A/C that the config is generated for by setting the `--device` flag to the device name you configured in the app.
+   The CLI will generate a config file, that needs to be passed to the A/C
+   control server below. If you have more than one A/C that you would like to
+   control, create a separate config file for each A/C, and run a separate
+   control process. You can select the A/C that the config is generated for by
+   setting the `--device` flag to the device name you configured in the app.
+
+* Note: _To update the server from head, run `git pull` on the repository and
+  run setup. You may also need to re-run discovery.
 
 ## Run the A/C control server
 
@@ -56,14 +64,13 @@ The module is installed in A/Cs and humidifiers that are either manufactured or 
    ```
 1. Test out that you can run the server, e.g.:
    ```bash
-   python3.7 -m aircon run --port 8888 --ip 10.0.0.40 --config config.json --mqtt_host localhost
+   python3.7 -m aircon run --port 8888 --type ac --config config.json --mqtt_host localhost
    ```
    Parameters:
    - `--port` or `-p` - Port for the web server.
-   - `--ip` - The IP address for the A/C.
    - `--config` - The config file with the credentials to connect to the A/C.
-   - `--device_type` - Choose which configuration to use:
-      - `ac` - Hisense based A/C (default)
+   - `--type` - Choose which configuration to use:
+      - `ac` - Hisense based A/C
       - `humidifier` - Hisense Humidifier
       - `fgl` - Fujitsu FGLair, models AP-WA?E, AP-WC?E, AP-WD?E, AP-WF?E
       - `fgl_b` - Fujitsu FGLair, models AP-WB?E
@@ -96,7 +103,7 @@ Assuming your username is "pi"
    After=network.target
 
    [Service]
-   ExecStart=/usr/bin/python3.7 -m aircon run --port 8888 --ip 10.0.0.40 --config config.json --mqtt_host localhost
+   ExecStart=/usr/bin/python3.7 -m aircon run --port 8888 --type ac --config config.json --mqtt_host localhost
    WorkingDirectory=/usr/lib/hisense
    StandardOutput=inherit
    StandardError=inherit
@@ -172,7 +179,7 @@ Listed here are the properties available through the API:
 ## Multiple Air Conditioners
 
 In order to use with multiple Air Conditioners, simply add multiple --config and --type params.
-MQTT topic will contain your topic defined by flag --mqtt_topic (hisense_ac by default) and device name.
+MQTT topic will contain your topic defined by flag --mqtt_topic (hisense_ac by default) and device MAC address (for uniqueness).
 
 * Note: _The smart home hub configuration should adjusted to refer to the right port or topics._
 

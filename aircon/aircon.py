@@ -19,14 +19,14 @@ from .properties import (AcProperties, AirFlow, AirFlowState, Economy, FanSpeed,
 
 class BaseDevice:
 
-  def __init__(self, config: Dict[str, str], ip_address: str, properties: Properties,
+  def __init__(self, config: Dict[str, str], properties: Properties,
                notifier: Callable[[None], None]):
     self.name = config['name']
     self.app = config['app']
     self.model = config['model']
     self.sw_version = config['sw_version']
     self.mac_address = config['mac_address']
-    self.ip_address = ip_address
+    self.ip_address = config['ip_address']
     self._config = Config(config['lanip_key'], config['lanip_key_id'])
     self._properties = properties
     self._properties_lock = threading.RLock()
@@ -185,8 +185,8 @@ class BaseDevice:
 
 class AcDevice(BaseDevice):
 
-  def __init__(self, config: Dict[str, str], ip_address: str, notifier: Callable[[None], None]):
-    super().__init__(config, ip_address, AcProperties(), notifier)
+  def __init__(self, config: Dict[str, str], notifier: Callable[[None], None]):
+    super().__init__(config, AcProperties(), notifier)
 
   @property
   def available(self) -> bool:
@@ -453,17 +453,17 @@ class AcDevice(BaseDevice):
 
 class FglDevice(BaseDevice):
 
-  def __init__(self, config: Dict[str, str], ip_address: str, notifier: Callable[[None], None]):
-    super().__init__(config, ip_address, FglProperties(), notifier)
+  def __init__(self, config: Dict[str, str], notifier: Callable[[None], None]):
+    super().__init__(config, FglProperties(), notifier)
 
 
 class FglBDevice(BaseDevice):
 
-  def __init__(self, config: Dict[str, str], ip_address: str, notifier: Callable[[None], None]):
-    super().__init__(config, ip_address, FglBProperties(), notifier)
+  def __init__(self, config: Dict[str, str], notifier: Callable[[None], None]):
+    super().__init__(config, FglBProperties(), notifier)
 
 
 class HumidifierDevice(BaseDevice):
 
-  def __init__(self, config: Dict[str, str], ip_address: str, notifier: Callable[[None], None]):
-    super().__init__(config, ip_address, HumidifierProperties(), notifier)
+  def __init__(self, config: Dict[str, str], notifier: Callable[[None], None]):
+    super().__init__(config, HumidifierProperties(), notifier)
