@@ -100,6 +100,12 @@ class BaseDevice:
       raise Error('Cannot update read-only property "{}".'.format(name))
     data_type = self._properties.get_type(name)
 
+    # HomeAssistant doesn't have a designated turn on button in climate.mqtt.
+    # Furthermore, turn_on doesn't send the right command...
+    # Mitigate that by making setting t_work_mode also set t_power.
+    if name == 't_work_mode' and value != 'OFF':
+      self.queue_command('t_power', 'ON')
+
     # Device mode is set using t_control_value
     if issubclass(data_type, enum.Enum):
       data_value = data_type[value]
