@@ -9,13 +9,8 @@ from typing import Any, Callable, Dict, List
 import queue
 from Crypto.Cipher import AES
 
+from . import control_value
 from .config import Config, Encryption
-from .control_value import (get_power_value, set_power_value, get_temp_value,
-    set_temp_value, get_work_mode_value, set_work_mode_value, get_fan_speed_value,
-    set_fan_speed_value, get_heat_cold_value, set_heat_cold_value, get_eco_value,
-    set_eco_value, get_fan_power_value, set_fan_power_value, get_fan_lr_value,
-    set_fan_lr_value, get_fan_mute_value, set_fan_mute_value, get_temptype_value,
-    set_temptype_value, clear_up_change_flags_value)
 from .error import Error
 from .properties import (AcProperties, AirFlow, AirFlowState, Economy, FanSpeed,
     FastColdHeat, FglProperties, FglBProperties, HumidifierProperties,
@@ -79,7 +74,7 @@ class BaseDevice:
           self._update_controlled_properties(value)
       self._notify_listeners(name, value)
 
-  def _update_controlled_properties(self, control_value: int):
+  def _update_controlled_properties(self, control: int):
     raise NotImplementedError()
 
   def get_command_seq_no(self) -> int:
@@ -103,7 +98,7 @@ class BaseDevice:
       raise Error('Cannot update read-only property "{}".'.format(name))
     data_type = self._properties.get_type(name)
 
-    # Device mode is set using control_value
+    # Device mode is set using t_control_value
     if issubclass(data_type, enum.Enum):
       data_value = data_type[value]
     elif data_type is int and type(value) is str and '.' in value:
@@ -197,185 +192,185 @@ class AcDevice(BaseDevice):
     return self.get_property('f_temp_in')
 
   def set_power(self, setting: Power) -> None:
-    control_value = self.get_property('t_control_value')
-    control_value = clear_up_change_flags_value(control_value)
-    if (control_value):
-      control_value = set_power_value(control_value, setting)
-      self.queue_command('t_control_value', control_value)
+    control = self.get_property('t_control_value')
+    control = control_value.clear_up_change_flags(control)
+    if (control):
+      control = control_value.set_power(control, setting)
+      self.queue_command('t_control_value', control)
     else:
       self.queue_command('t_power', setting)
 
   def get_power(self) -> Power:
-    control_value = self.get_property('t_control_value')
-    if (control_value):
-      return get_power_value(control_value)
+    control = self.get_property('t_control_value')
+    if (control):
+      return control_value.get_power(control)
     else:
       return self.get_property('t_power')
 
   def set_temperature(self, setting: int) -> None:
-    control_value = self.get_property('t_control_value')
-    control_value = clear_up_change_flags_value(control_value)
-    if (control_value):
-      control_value = set_temp_value(control_value, setting)
-      self.queue_command('t_control_value', control_value)
+    control = self.get_property('t_control_value')
+    control = control_value.clear_up_change_flags(control)
+    if (control):
+      control = control_value.set_temp(control, setting)
+      self.queue_command('t_control_value', control)
     else:
       self.queue_command('t_temp', setting)
 
   def get_temperature(self) -> int:
-    control_value = self.get_property('t_control_value')
-    if (control_value):
-      return get_temp_value(control_value)
+    control = self.get_property('t_control_value')
+    if (control):
+      return control_value.get_temp(control)
     else:
       return self.get_property('t_temp')
     
   def set_work_mode(self, setting: AcWorkMode) -> None:
-    control_value = self.get_property('t_control_value')
-    if (control_value):
-      if get_power_value(control_value) == Power.OFF:
-        control_value = set_power_value(control_value, Power.ON)
-      control_value = set_work_mode_value(control_value, setting)
-      self.queue_command('t_control_value', control_value)
+    control = self.get_property('t_control_value')
+    if (control):
+      if control_value.get_power(control) == Power.OFF:
+        control = control_value.set_power(control, Power.ON)
+      control = control_value.set_work_mode(control, setting)
+      self.queue_command('t_control_value', control)
     else:
       if self.get_property("t_power"):
         self.queue_command("t_power", Power.ON)
       self.queue_command('t_work_mode', setting)
 
   def get_work_mode(self) -> AcWorkMode:
-    control_value = self.get_property('t_control_value')
-    if (control_value):
-      return get_work_mode_value(control_value)
+    control = self.get_property('t_control_value')
+    if (control):
+      return control_value.get_work_mode(control)
     else:
       return self.get_property('t_work_mode')
 
   def set_fan_speed(self, setting: FanSpeed) -> None:
-    control_value = self.get_property('t_control_value')
-    control_value = clear_up_change_flags_value(control_value)
-    if (control_value):
-      control_value = set_fan_speed_value(control_value, setting)
-      self.queue_command('t_control_value', control_value)
+    control = self.get_property('t_control_value')
+    control = control_value.clear_up_change_flags(control)
+    if (control):
+      control = control_value.set_fan_speed(control, setting)
+      self.queue_command('t_control_value', control)
     else:
       self.queue_command('t_fan_speed', setting)
 
   def get_fan_speed(self) -> FanSpeed:
-    control_value = self.get_property('t_control_value')
-    if (control_value):
-      return get_fan_speed_value(control_value)
+    control = self.get_property('t_control_value')
+    if (control):
+      return control_value.get_fan_speed(control)
     else:
       return self.get_property('t_fan_speed')
 
   def set_fan_vertical(self, setting: AirFlow) -> None:
-    control_value = self.get_property('t_control_value')
-    control_value = clear_up_change_flags_value(control_value)
-    if (control_value):
-      control_value = set_fan_power_value(control_value, setting)
-      self.queue_command('t_control_value', control_value)
+    control = self.get_property('t_control_value')
+    control = control_value.clear_up_change_flags(control)
+    if (control):
+      control = control_value.set_fan_power(control, setting)
+      self.queue_command('t_control_value', control)
     else:
       self.queue_command('t_fan_power', setting)
 
   def get_fan_vertical(self) -> AirFlow:
-    control_value = self.get_property('t_control_value')
-    if (control_value):
-      return get_fan_power_value(control_value)
+    control = self.get_property('t_control_value')
+    if (control):
+      return control_value.get_fan_power(control)
     else:
       return self.get_property('t_fan_power')
 
   def set_fan_horizontal(self, setting: AirFlow) -> None:
-    control_value = self.get_property('t_control_value')
-    control_value = clear_up_change_flags_value(control_value)
-    if (control_value):
-      control_value = set_fan_lr_value(control_value, setting)
-      self.queue_command('t_control_value', control_value)
+    control = self.get_property('t_control_value')
+    control = control_value.clear_up_change_flags(control)
+    if (control):
+      control = control_value.set_fan_lr(control, setting)
+      self.queue_command('t_control_value', control)
     else:
       self.queue_command('t_fan_leftright', setting)
 
   def get_fan_horizontal(self) -> AirFlow:
-    control_value = self.get_property('t_control_value')
-    if (control_value):
-      return get_fan_lr_value(control_value)
+    control = self.get_property('t_control_value')
+    if (control):
+      return control_value.get_fan_lr(control)
     else:
       return self.get_property('t_fan_leftright')
 
   def set_fan_mute(self, setting: Quiet) -> None:
-    control_value = self.get_property('t_control_value')
-    control_value = clear_up_change_flags_value(control_value)
-    if (control_value):
-      control_value = set_fan_mute_value(control_value, setting)
-      self.queue_command('t_control_value', control_value)
+    control = self.get_property('t_control_value')
+    control = control_value.clear_up_change_flags(control)
+    if (control):
+      control = control_value.set_fan_mute(control, setting)
+      self.queue_command('t_control_value', control)
     else:
       self.queue_command('t_fan_mute', setting)
 
   def get_fan_mute(self) -> Quiet:
-    control_value = self.get_property('t_control_value')
-    if (control_value):
-      return get_fan_mute_value(control_value)
+    control = self.get_property('t_control_value')
+    if (control):
+      return control_value.get_fan_mute(control)
     else:
       return self.get_property('t_fan_mute')
 
   def set_fast_heat_cold(self, setting: FastColdHeat):
-    control_value = self.get_property('t_control_value')
-    control_value = clear_up_change_flags_value(control_value)
-    if (control_value):
-      control_value = set_heat_cold_value(control_value, setting)
-      self.queue_command('t_control_value', control_value)
+    control = self.get_property('t_control_value')
+    control = control_value.clear_up_change_flags(control)
+    if (control):
+      control = control_value.set_heat_cold(control, setting)
+      self.queue_command('t_control_value', control)
     else:
       self.queue_command('t_temp_heatcold', setting)
 
   def get_fast_heat_cold(self) -> FastColdHeat:
-    control_value = self.get_property('t_control_value')
-    if (control_value):
-      return get_heat_cold_value(control_value)
+    control = self.get_property('t_control_value')
+    if (control):
+      return control_value.get_heat_cold(control)
     else:
       return self.get_property('t_temp_heatcold')
 
   def set_eco(self, setting: Economy) -> None:
-    control_value = self.get_property('t_control_value')
-    control_value = clear_up_change_flags_value(control_value)
-    if (control_value):
-      control_value = set_eco_value(control_value, setting)
-      self.queue_command('t_control_value', control_value)
+    control = self.get_property('t_control_value')
+    control = control_value.clear_up_change_flags(control)
+    if (control):
+      control = control_value.set_eco(control, setting)
+      self.queue_command('t_control_value', control)
     else:
       self.queue_command('t_eco', setting)
     
   def get_eco(self) -> Economy:
-    control_value = self.get_property('t_control_value')
-    if (control_value):
-      return get_eco_value(control_value)
+    control = self.get_property('t_control_value')
+    if (control):
+      return control_value.get_eco(control)
     else:
       return self.get_property('t_eco')
 
   def set_temptype(self, setting: TemperatureUnit) -> None:
-    control_value = self.get_property('t_control_value')
-    control_value = clear_up_change_flags_value(control_value)
-    if (control_value):
-      control_value = set_temptype_value(control_value, setting)
-      self.queue_command('t_control_value', control_value)
+    control = self.get_property('t_control_value')
+    control = control_value.clear_up_change_flags(control)
+    if (control):
+      control = control_value.set_temptype(control, setting)
+      self.queue_command('t_control_value', control)
     else:
       self.queue_command('t_temptype', setting)
 
   def get_temptype(self) -> TemperatureUnit:
-    control_value = self.get_property('t_control_value')
-    if (control_value):
-      return get_temptype_value(control_value)
+    control = self.get_property('t_control_value')
+    if (control):
+      return control_value.get_temptype(control)
     else:
       return self.get_property('t_temptype')
 
   def set_swing(self, setting: AirFlowState) -> None:
-    control_value = self.get_property("t_control_value")
-    control_value = clear_up_change_flags_value(control_value)
-    if control_value:
+    control = self.get_property("t_control_value")
+    control = control_value.clear_up_change_flags(control)
+    if control:
       if setting == AirFlowState.OFF:
-        control_value = set_fan_power_value(control_value, AirFlow.OFF)
-        control_value = set_fan_lr_value(control_value, AirFlow.OFF)
+        control = control_value.set_fan_power(control, AirFlow.OFF)
+        control = control_value.set_fan_lr(control, AirFlow.OFF)
       elif setting == AirFlowState.VERTICAL_ONLY:
-        control_value = set_fan_power_value(control_value, AirFlow.ON)
-        control_value = set_fan_lr_value(control_value, AirFlow.OFF)
+        control = control_value.set_fan_power(control, AirFlow.ON)
+        control = control_value.set_fan_lr(control, AirFlow.OFF)
       elif setting == AirFlowState.HORIZONTAL_ONLY:
-        control_value = set_fan_power_value(control_value, AirFlow.OFF)
-        control_value = set_fan_lr_value(control_value, AirFlow.ON)
+        control = control_value.set_fan_power(control, AirFlow.OFF)
+        control = control_value.set_fan_lr(control, AirFlow.ON)
       elif setting == AirFlowState.VERTICAL_AND_HORIZONTAL:
-        control_value = set_fan_power_value(control_value, AirFlow.ON)
-        control_value = set_fan_lr_value(control_value, AirFlow.ON)
-      self.queue_command("t_control_value", control_value)
+        control = control_value.set_fan_power(control, AirFlow.ON)
+        control = control_value.set_fan_lr(control, AirFlow.ON)
+      self.queue_command("t_control_value", control)
     else:
       if setting == AirFlowState.OFF:
         self.queue_command("t_fan_speed", AirFlow.OFF)
@@ -415,35 +410,35 @@ class AcDevice(BaseDevice):
       logging.error('Cannot convert to control value property {}'.format(name))
       raise ValueError()
 
-  def _update_controlled_properties(self, control_value: int):
-    power = get_power_value(control_value)
+  def _update_controlled_properties(self, control: int):
+    power = control_value.get_power(control)
     self.update_property('t_power', power)
 
-    fan_speed = get_fan_speed_value(control_value)
+    fan_speed = control_value.get_fan_speed(control)
     self.update_property('t_fan_speed', fan_speed)
 
-    work_mode = get_work_mode_value(control_value)
+    work_mode = control_value.get_work_mode(control)
     self.update_property('t_work_mode', work_mode)
 
-    temp_heatcold = get_heat_cold_value(control_value)
+    temp_heatcold = control_value.get_heat_cold(control)
     self.update_property('t_temp_heatcold', temp_heatcold)
 
-    eco = get_eco_value(control_value)
+    eco = control_value.get_eco(control)
     self.update_property('t_eco', eco)
 
-    temp = get_temp_value(control_value)
+    temp = control_value.get_temp(control)
     self.update_property('t_temp', temp)
 
-    fan_power = get_fan_power_value(control_value)
+    fan_power = control_value.get_fan_power(control)
     self.update_property('t_fan_power', fan_power)
 
-    fan_horizontal = get_fan_lr_value(control_value)
+    fan_horizontal = control_value.get_fan_lr(control)
     self.update_property('t_fan_leftright', fan_horizontal)
 
-    fan_mute = get_fan_mute_value(control_value)
+    fan_mute = control_value.get_fan_mute(control)
     self.update_property('t_fan_mute', fan_mute)
 
-    temptype = get_temptype_value(control_value)
+    temptype = control_value.get_temptype(control)
     self.update_property('t_temptype', temptype)
 
 class FglDevice(BaseDevice):
