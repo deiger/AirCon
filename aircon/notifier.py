@@ -6,11 +6,18 @@ from http import HTTPStatus
 import json
 import logging
 import socket
+import sys
 from tenacity import retry, retry_if_exception_type, wait_incrementing
 import time
 import threading
 
 from .aircon import BaseDevice
+
+
+if sys.version_info < (3, 8):
+  TimeoutError = concurrent.futures.TimeoutError
+else:
+  TimeoutError = asyncio.exceptions.TimeoutError
 
 
 @dataclass
@@ -84,8 +91,7 @@ class Notifier:
           logging.debug('[KeepAlive] Waiting for notification or timeout')
           try:
             await asyncio.wait_for(self._condition.wait(), timeout=self._KEEP_ALIVE_INTERVAL)
-            #await self._wait_on_condition_with_timeout(self._condition, self._KEEP_ALIVE_INTERVAL)
-          except concurrent.futures.TimeoutError:
+          except TimeoutError:
             pass
         else:
           # give some time to clean up the queues
