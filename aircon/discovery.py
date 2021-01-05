@@ -156,5 +156,6 @@ async def perform_discovery(session: aiohttp.ClientSession,
 
     device_data['lanip_key'] = lanip['lanip_key']
     device_data['lanip_key_id'] = lanip['lanip_key_id']
+    device_data['temp_type'] = 'C' if app in CELSIUS_BASED_APPS else 'F'
     result.append(device_data)
   return result

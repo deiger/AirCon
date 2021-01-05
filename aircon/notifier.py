@@ -13,7 +13,6 @@ import threading
 
 from .aircon import BaseDevice
 
-
 if sys.version_info < (3, 8):
   TimeoutError = concurrent.futures.TimeoutError
 else:

@@ -205,8 +205,8 @@ async def run(parsed_args):
           'fan_mode_command_topic': mqtt_topics['sub'].format(device.mac_address, 't_fan_speed'),
           'fan_mode_state_topic': mqtt_topics['pub'].format(device.mac_address, 't_fan_speed'),
           'fan_modes': ['auto', 'lower', 'low', 'medium', 'high', 'higher'],
-          'max_temp': '86',
-          'min_temp': '61',
+          'max_temp': '86' if device.is_fahrenheit else '30',
+          'min_temp': '61' if device.is_fahrenheit else '16',
           'mode_command_topic': mqtt_topics['sub'].format(device.mac_address, 't_work_mode'),
           'mode_state_topic': mqtt_topics['pub'].format(device.mac_address, 't_work_mode'),
           'modes': ['off', 'fan_only', 'heat', 'cool', 'dry', 'auto'],
@@ -218,7 +218,7 @@ async def run(parsed_args):
           'swing_mode_state_topic': mqtt_topics['pub'].format(device.mac_address, 't_fan_power'),
           'temperature_command_topic': mqtt_topics['sub'].format(device.mac_address, 't_temp'),
           'temperature_state_topic': mqtt_topics['pub'].format(device.mac_address, 't_temp'),
-          'temperature_unit': 'F'
+          'temperature_unit': 'F' if device.is_fahrenheit else 'C'
       }
       mqtt_client.publish(mqtt_topics['discovery'].format(device.mac_address),
                           payload=json.dumps(config),

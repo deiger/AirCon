@@ -19,14 +19,16 @@ from .properties import (AcProperties, AirFlow, AirFlowState, Economy, FanSpeed,
 
 class BaseDevice:
 
-  def __init__(self, config: Dict[str, str], properties: Properties,
-               notifier: Callable[[None], None]):
+  def __init__(self, config: Dict[str, str], properties: Properties, notifier: Callable[[None],
+                                                                                        None]):
     self.name = config['name']
     self.app = config['app']
     self.model = config['model']
     self.sw_version = config['sw_version']
     self.mac_address = config['mac_address']
     self.ip_address = config['ip_address']
+    self.temp_type = (TemperatureUnit.CELSIUS
+                      if config.get('temp_type') == 'C' else TemperatureUnit.FAHRENHEIT)
     self._config = Config(config['lanip_key'], config['lanip_key_id'])
     self._properties = properties
     self._properties_lock = threading.RLock()
@@ -42,6 +44,10 @@ class BaseDevice:
     self._updates_seq_no_lock = threading.Lock()
 
     self._property_change_listeners = []  # type List[Callable[[str, Any], None]]
+
+  @property
+  def is_fahrenheit(self) -> bool:
+    return self.temp_type == TemperatureUnit.FAHRENHEIT
 
   def add_property_change_listener(self, listener: Callable[[str, Any], None]):
     self._property_change_listeners.append(listener)
