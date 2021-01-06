@@ -71,6 +71,4 @@ SECRET_ID_EXTRA_MAP = {
     'hismart-us': 'Lg',
 }
 # Most ACs are using Fahrenheit in their API. These do not:
-CELSIUS_BASED_APPS = {
-    'hisense-eu', 'fglair-eu'
-}
+CELSIUS_BASED_APPS = {'hisense-eu', 'fglair-eu'}

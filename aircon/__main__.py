@@ -263,6 +263,7 @@ async def discovery(parsed_args):
         'model': config['oem_model'],
         'sw_version': config['sw_version'],
         'dsn': config['dsn'],
+        'temp_type': config['temp_type'],
         'mac_address': config['mac'],
         'ip_address': config['lan_ip'],
         'lanip_key': config['lanip_key'],
