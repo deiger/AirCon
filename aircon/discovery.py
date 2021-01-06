@@ -1,5 +1,6 @@
 import aiohttp
 import base64
+from getmac import get_mac_address
 from http import HTTPStatus
 import json
 import logging
@@ -157,5 +158,13 @@ async def perform_discovery(session: aiohttp.ClientSession,
     device_data['lanip_key'] = lanip['lanip_key']
     device_data['lanip_key_id'] = lanip['lanip_key_id']
     device_data['temp_type'] = 'C' if app in CELSIUS_BASED_APPS else 'F'
+    # If the server doesn't know the MAC address, fetch it from the local network.
+    if not device_data.get('mac'):
+      mac = get_mac_address(ip=device_data['lan_ip'])
+      if not mac or mac == '00:00:00:00:00:00':
+        logging.error(f'Failed to fetch MAC address for AC on IP address {device_data["lan_ip"]}.' +
+                      '\nAre you sure it is connected? Skipping...')
+        continue
+      device_data['mac'] = mac.replace(':', '')
     result.append(device_data)
   return result
