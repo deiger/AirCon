@@ -17,7 +17,7 @@ VOLUME [ "/opt/hisense" ]
 
 CMD \
 if [ -z "$(cd /opt/hisense/ && find . -maxdepth 1 -type f -name "config_*.json")" ]; then \
-rm -Rf config_*.json && python -m aircon discovery $APP $USERNAME $PASSWORD && mv config_*.json /opt/hisense/; \
+rm -f config_*.json && python -m aircon discovery $APP $USERNAME $PASSWORD && mv config_*.json /opt/hisense/; \
 fi; \   
 configs= ; for i in $(find /opt/hisense/ -maxdepth 1 -type f -name "config_*.json" -exec basename {} \;); do configs="$configs --config /opt/hisense/$i --type $TYPE"; done ; \
 python -m aircon --log_level $LOG_LEVEL run --port $PORT --mqtt_host $MQTT_HOST --mqtt_user $MQTT_USER $configs
