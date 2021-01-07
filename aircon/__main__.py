@@ -14,6 +14,10 @@ from retry import retry
 import signal
 import socket
 import sys
+try:
+  from systemd.journal import JournalHandler
+except:
+  JournalHandler = None
 import textwrap
 import threading
 import time
@@ -95,6 +99,9 @@ def ParseArguments() -> argparse.Namespace:
 def setup_logger(log_level, use_stderr=False):
   if use_stderr:
     logging_handler = logging.StreamHandler(sys.stderr)
+  elif JournalHandler:
+    logging_handler = JournalHandler()
+  # Fallbacks when JournalHandler isn't available.
   elif sys.platform == 'linux':
     logging_handler = logging.handlers.SysLogHandler(address='/dev/log')
   elif sys.platform == 'darwin':
