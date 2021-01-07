@@ -3,6 +3,9 @@ FROM python:3.7
 COPY . /app
 WORKDIR /app
 
+RUN apt-get update
+RUN apt-get install python3-systemd
+
 RUN python setup.py install
 
 ENV APP=tornado-us
