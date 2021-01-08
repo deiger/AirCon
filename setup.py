@@ -20,7 +20,7 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     install_requires=[
         'aiohttp==3.6.2', 'dataclasses_json', 'pycryptodome', 'paho-mqtt==1.5.0', 'tenacity',
-        'get-mac'
+        'get-mac', 'retry'
     ],
     classifiers=[
         'Programming Language :: Python :: 3',
