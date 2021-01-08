@@ -78,8 +78,8 @@ class QueryHandlers:
       return response
     try:
       if not update['data']:
-        logging.error('Unsupported update message = {}'.format(update['seq_no']))
-        return response  #TODO: Should return error?
+        logging.info('Unsupported update message = {}'.format(update['seq_no']))
+        return response
       name = update['data']['name']
       data_type = device.get_property_type(name)
       value = data_type(update['data']['value'])

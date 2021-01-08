@@ -34,9 +34,6 @@ class MqttClient(mqtt.Client):
     if prop_name == 't_work_mode':
       if payload == 'fan_only':
         payload = 'FAN'
-      elif payload == 'off':
-        prop_name = 't_power'
-        payload = 'OFF'
 
     for device in self._devices:
       if device.mac_address != mac_address:

@@ -71,8 +71,10 @@ class BaseDevice:
   def get_property_type(self, name: str):
     return self._properties.get_type(name)
 
-  def update_property(self, name: str, value) -> None:
+  def update_property(self, name: str, value, notify_value=None) -> None:
     """Update the stored properties, if changed."""
+    if notify_value is None:
+      notify_value = value
     with self._properties_lock:
       old_value = getattr(self._properties, name)
       if value != old_value:
@@ -80,7 +82,7 @@ class BaseDevice:
         # logging.debug('Updated properties: %s' % self._properties)
         if name == 't_control_value':
           self._update_controlled_properties(value)
-      self._notify_listeners(name, value)
+      self._notify_listeners(name, notify_value)
 
   def _update_controlled_properties(self, control: int):
     raise NotImplementedError()
@@ -106,12 +108,6 @@ class BaseDevice:
       raise Error('Cannot update read-only property "{}".'.format(name))
     data_type = self._properties.get_type(name)
 
-    # HomeAssistant doesn't have a designated turn on button in climate.mqtt.
-    # Furthermore, turn_on doesn't send the right command...
-    # Mitigate that by making setting t_work_mode also set t_power.
-    if name == 't_work_mode' and value != 'OFF':
-      self.queue_command('t_power', 'ON')
-
     # Device mode is set using t_control_value
     if issubclass(data_type, enum.Enum):
       data_value = data_type[value]
@@ -136,13 +132,6 @@ class BaseDevice:
     typed_value = data_type[value] if issubclass(data_type, enum.Enum) else data_value
     property_updater = lambda: self.update_property(name, typed_value)
     self.commands_queue.put_nowait((command, property_updater))
-
-    # Handle turning on FastColdHeat
-    if name == 't_temp_heatcold' and typed_value is FastColdHeat.ON:
-      self.queue_command('t_fan_speed', 'AUTO')
-      self.queue_command('t_fan_mute', 'OFF')
-      self.queue_command('t_sleep', 'STOP')
-      self.queue_command('t_temp_eight', 'OFF')
 
     self._queue_listener()
 
@@ -203,6 +192,39 @@ class AcDevice(BaseDevice):
     self._available = value
     self._notify_listeners("available", value)
 
+  # @override to add special support for t_power.
+  def update_property(self, name: str, value) -> None:
+    with self._properties_lock:
+      # HomeAssistant expects an 'off' work mode when the AC is off.
+      notify_value = 'off' if name == 't_work_mode' and self.get_power() == Power.OFF else None
+      super().update_property(name, value, notify_value)
+      # HomeAssistant doesn't listen to changes in t_power, so notify also on a t_work_mode change.
+      if name == 't_power':
+        work_mode = 'off' if value == Power.OFF else self.get_work_mode()
+        self._notify_listeners('t_work_mode', work_mode)
+
+  # @override to add special support for t_power.
+  def queue_command(self, name: str, value) -> None:
+    # HomeAssistant doesn't have a designated turn on button in climate.mqtt.
+    # Furthermore, turn_on doesn't send the right command...
+    if name == 't_work_mode':
+      if value == 'OFF':
+        # Pass the command to t_power instead of t_work_mode.
+        name = 't_power'
+      else:
+        # Also turn on the AC (if it hasn't already).
+        super().queue_command('t_power', 'ON')
+
+    # Run base.
+    super().queue_command(name, value)
+
+    # Handle turning on FastColdHeat
+    if name == 't_temp_heatcold' and value is 'ON':
+      super().queue_command('t_fan_speed', 'AUTO')
+      super().queue_command('t_fan_mute', 'OFF')
+      super().queue_command('t_sleep', 'STOP')
+      super().queue_command('t_temp_eight', 'OFF')
+
   def get_env_temp(self) -> int:
     return self.get_property('f_temp_in')
 
@@ -246,8 +268,6 @@ class AcDevice(BaseDevice):
       control = control_value.set_work_mode(control, setting)
       self.queue_command('t_control_value', control)
     else:
-      if self.get_property("t_power"):
-        self.queue_command("t_power", Power.ON)
       self.queue_command('t_work_mode', setting)
 
   def get_work_mode(self) -> AcWorkMode:
