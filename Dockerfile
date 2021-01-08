@@ -5,6 +5,8 @@ WORKDIR /app
 
 RUN python setup.py install
 
+ENV PLATFORM=docker
+
 ENV APP=tornado-us
 ENV TYPE=ac
 ENV PORT=8888
