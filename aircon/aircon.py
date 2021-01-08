@@ -71,8 +71,10 @@ class BaseDevice:
   def get_property_type(self, name: str):
     return self._properties.get_type(name)
 
-  def update_property(self, name: str, value) -> None:
+  def update_property(self, name: str, value, notify_value=None) -> None:
     """Update the stored properties, if changed."""
+    if notify_value is None:
+      notify_value = value
     with self._properties_lock:
       old_value = getattr(self._properties, name)
       if value != old_value:
@@ -80,7 +82,7 @@ class BaseDevice:
         # logging.debug('Updated properties: %s' % self._properties)
         if name == 't_control_value':
           self._update_controlled_properties(value)
-      self._notify_listeners(name, value)
+      self._notify_listeners(name, notify_value)
 
   def _update_controlled_properties(self, control: int):
     raise NotImplementedError()
@@ -192,11 +194,14 @@ class AcDevice(BaseDevice):
 
   # @override to add special support for t_power.
   def update_property(self, name: str, value) -> None:
-    super().update_property(name, value)
-    # HomeAssistant doesn't listen to changes in t_power, so notify also on a t_work_mode change.
-    if name == 't_power':
-      work_mode = 'off' if value == Power.OFF else self.get_work_mode()
-      self._notify_listeners('t_work_mode', work_mode)
+    with self._properties_lock:
+      # HomeAssistant expects an 'off' work mode when the AC is off.
+      notify_value = 'off' if name == 't_work_mode' and self.get_power() == Power.OFF else None
+      super().update_property(name, value, notify_value)
+      # HomeAssistant doesn't listen to changes in t_power, so notify also on a t_work_mode change.
+      if name == 't_power':
+        work_mode = 'off' if value == Power.OFF else self.get_work_mode()
+        self._notify_listeners('t_work_mode', work_mode)
 
   # @override to add special support for t_power.
   def queue_command(self, name: str, value) -> None:
