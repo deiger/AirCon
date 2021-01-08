@@ -9,6 +9,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 import json
 import logging
 import logging.handlers
+import os
 import paho.mqtt.client as mqtt
 from retry import retry
 import signal
@@ -97,7 +98,7 @@ def ParseArguments() -> argparse.Namespace:
 
 
 def setup_logger(log_level, use_stderr=False):
-  if use_stderr:
+  if use_stderr or os.environ.get('PLATFORM') == 'docker':
     logging_handler = logging.StreamHandler(sys.stderr)
   elif JournalHandler:
     logging_handler = JournalHandler()
