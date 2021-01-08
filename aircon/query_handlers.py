@@ -37,12 +37,12 @@ class QueryHandlers:
     try:
       key = data['key_exchange']
       if key['ver'] != 1 or key['proto'] != 1 or key.get('sec'):
-        logging.error('Invalid key exchange: {}'.format(data))
-        raise web.HTTPBadRequest()
+        logging.error(f'Invalid key exchange: {data}')
+        raise web.HTTPBadRequest(reason=f'Invalid key exchange: {data}')
       updated_keys = self._devices_map[request.remote].update_key(key)
     except KeyIdReplaced as e:
-      logging.error('{}\n{}'.format(e.title, e.message))
-      return web.Response(status=HTTPStatus.NOT_FOUND.value)
+      logging.error(f'{e.title}\n{e.message}')
+      return web.Response(status=HTTPStatus.NOT_FOUND.value, reason=f'{e.title}\n{e.message}')
     return web.json_response(updated_keys)
 
   async def command_handler(self, request: web.Request) -> web.Response:
@@ -72,7 +72,7 @@ class QueryHandlers:
       update = self._decrypt_and_validate(device, data)
     except Error:
       logging.exception('Failed to parse property.')
-      return web.Response(status=HTTPStatus.BAD_REQUEST.value)
+      return web.Response(status=HTTPStatus.BAD_REQUEST.value, reason='Failed to parse property.')
     response = web.Response()
     if not device.is_update_valid(update['seq_no']):
       return response
@@ -105,12 +105,12 @@ class QueryHandlers:
     """
     device = self._devices_map.get(request.query.get('device_ip'))
     if not device:
-      raise web.HTTPBadRequest()
+      raise web.HTTPBadRequest(reason=f'Device "{request.query.get("device_ip")}" not found.')
     try:
       device.queue_command(request.query['property'], request.query['value'])
-    except:
+    except Exception as ex:
       logging.exception('Failed to queue command.')
-      raise web.HTTPBadRequest()
+      raise web.HTTPBadRequest(f'Failed to queue command:\n{ex!r}')
     return web.json_response({'queued_commands': device.commands_queue.qsize()})
 
   def _encrypt_and_sign(self, device: BaseDevice, data: dict) -> dict:
