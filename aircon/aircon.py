@@ -195,7 +195,7 @@ class AcDevice(BaseDevice):
     super().update_property(name, value)
     # HomeAssistant doesn't listen to changes in t_power, so notify also on a t_work_mode change.
     if name == 't_power':
-      work_mode = AcWorkMode.OFF if value == Power.OFF else self.get_work_mode()
+      work_mode = 'off' if value == Power.OFF else self.get_work_mode()
       self._notify_listeners('t_work_mode', work_mode)
 
   # @override to add special support for t_power.
