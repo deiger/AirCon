@@ -75,8 +75,8 @@ class Notifier:
     async with self._condition:
       while self._running:
         queues_empty = True
-        try:
-          for entry in self._configurations:
+        for entry in self._configurations:
+          try:    
             now = time.time()
             queue_size = entry.device.commands_queue.qsize()
             if queue_size > 1:
@@ -84,8 +84,8 @@ class Notifier:
             if now - entry.last_timestamp >= self._KEEP_ALIVE_INTERVAL or queue_size > 0:
               await self._perform_request(session, entry)
               entry.last_timestamp = now
-        except:
-          logging.exception('[KeepAlive] Failed to send local_reg keep alive to the AC.')
+          except:
+            logging.exception('[KeepAlive] Failed to send local_reg keep alive to the AC.')
         if queues_empty:
           logging.debug('[KeepAlive] Waiting for notification or timeout')
           try:
