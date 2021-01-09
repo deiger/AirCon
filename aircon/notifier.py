@@ -52,7 +52,7 @@ class Notifier:
         sock.close()
 
   def register_device(self, device: BaseDevice):
-    if (not device in self._configurations):
+    if device not in (conf.device for conf in self._configurations):
       headers = {
           'Accept': 'application/json',
           'Connection': 'keep-alive',
@@ -76,7 +76,7 @@ class Notifier:
       while self._running:
         queues_empty = True
         for entry in self._configurations:
-          try:    
+          try:
             now = time.time()
             queue_size = entry.device.commands_queue.qsize()
             if queue_size > 1:
