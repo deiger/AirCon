@@ -1,0 +1,19 @@
+version: '3'
+services:
+  hisense_ac:
+     image: deiger/aircon:latest
+     container_name: hisense_ac
+     healthcheck:
+       disable: true
+     environment:
+       - USERNAME=<app username>
+       - PASSWORD=<app password>
+       - APP=<app code>
+       - TYPE={ac|humidifier|fgl|fgl_b}
+       - LOG_LEVEL=INFO
+       - MQTT_HOST=localhost
+       - MQTT_USER=<mqtt username>:<mqtt password>
+       - PORT=<http server port>
+     network_mode: host
+     volumes:
+       - config:/opt/hisense
