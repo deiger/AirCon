@@ -209,6 +209,14 @@ async def run(parsed_args):
               'name': device.name,
               'sw_version': device.sw_version
           },
+          'availability': [
+              {
+                  'topic': mqtt_topics['lwt']
+              },
+              {
+                  'topic': mqtt_topics['pub'].format(device.mac_address, 'available')
+              },
+          ],
           'current_temperature_topic': mqtt_topics['pub'].format(device.mac_address, 'f_temp_in'),
           'fan_mode_command_topic': mqtt_topics['sub'].format(device.mac_address, 't_fan_speed'),
           'fan_mode_state_topic': mqtt_topics['pub'].format(device.mac_address, 't_fan_speed'),

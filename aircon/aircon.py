@@ -33,6 +33,7 @@ class BaseDevice:
     self._properties = properties
     self._properties_lock = threading.RLock()
     self._queue_listener = notifier
+    self._available = False
 
     self._next_command_id = 0
 
@@ -48,6 +49,15 @@ class BaseDevice:
   @property
   def is_fahrenheit(self) -> bool:
     return self.temp_type == TemperatureUnit.FAHRENHEIT
+
+  @property
+  def available(self) -> bool:
+    return self._available
+
+  @available.setter
+  def available(self, value: bool):
+    self._available = value
+    self._notify_listeners('available', 'online' if value else 'offline')
 
   def add_property_change_listener(self, listener: Callable[[str, Any], None]):
     self._property_change_listeners.append(listener)
@@ -182,15 +192,6 @@ class AcDevice(BaseDevice):
 
   def __init__(self, config: Dict[str, str], notifier: Callable[[None], None]):
     super().__init__(config, AcProperties(), notifier)
-
-  @property
-  def available(self) -> bool:
-    return self._available
-
-  @available.setter
-  def available(self, value: bool):
-    self._available = value
-    self._notify_listeners("available", value)
 
   # @override to add special support for t_power.
   def update_property(self, name: str, value) -> None:
