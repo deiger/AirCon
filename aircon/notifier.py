@@ -74,9 +74,9 @@ class Notifier:
     self._running = True
     async with self._condition:
       while self._running:
+        queues_empty = True
         for entry in self._configurations:
           try:    
-            queues_empty = True
             now = time.time()
             queue_size = entry.device.commands_queue.qsize()
             if queue_size > 1:
@@ -86,15 +86,15 @@ class Notifier:
               entry.last_timestamp = now
           except:
             logging.exception('[KeepAlive] Failed to send local_reg keep alive to the AC.')
-          if queues_empty:
-            logging.debug('[KeepAlive] Waiting for notification or timeout')
-            try:
-              await asyncio.wait_for(self._condition.wait(), timeout=self._KEEP_ALIVE_INTERVAL)
-            except TimeoutError:
-              pass
-          else:
-            # give some time to clean up the queues
-            await asyncio.sleep(self._TIME_TO_HANDLE_REQUESTS)
+        if queues_empty:
+          logging.debug('[KeepAlive] Waiting for notification or timeout')
+          try:
+            await asyncio.wait_for(self._condition.wait(), timeout=self._KEEP_ALIVE_INTERVAL)
+          except TimeoutError:
+            pass
+        else:
+          # give some time to clean up the queues
+          await asyncio.sleep(self._TIME_TO_HANDLE_REQUESTS)
 
   async def stop(self):
     self._running = False
