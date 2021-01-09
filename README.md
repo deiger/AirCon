@@ -11,16 +11,11 @@ The module is installed in A/Cs and humidifiers that are either manufactured or 
 ## Prerequisites
 
 1. Air Conditioner with HiSense AEH-W4B1 or AEH-W4E1 installed.
-1. Have Python 3.7 installed. If using Raspberry Pi, either upgrade to Raspbian Buster, or manually install it in Raspbian Stretch.
-1. Download and install aircon module:
-   ```bash
-   $ git clone https://github.com/deiger/AirCon
-   $ cd AirCon
-   $ python3.7 setup.py install
-   ```
-1. Configure the A/C with the dedicated app. Links to each app are available in the table below. Log into the app, associate the A/C and connect it to the network, as described in the app documentation.
-1. Once everything has been configured, the A/C can be blocked from connecting to the internet, as it will no longer be needed. Set it a static IP address in the router, and write it down.
-1. Run discovery command to fetch the LAN keys that will allow connecting to the A/C. Pass it your login credentials, as well as the code for your app from the list below:
+1. Have Python 3.7 or above installed. If using Raspberry Pi, either upgrade to Raspbian Buster, or manually install it in Raspbian Stretch.
+1. Configure the A/Cs with the dedicated app. Links to each app are available in the table below. Log into the app, associate each A/C and connect it to the network, as described in the app documentation.
+1. Once everything has been configured, the A/Cs can be blocked from connecting to the internet, as it will no longer be needed. Set them static IP addresses in the router, and write them down.
+   * Note: _To avoid the need for manual changes later, make sure the app is aware of the new IP addresses before disconnecting the A/Cs from the internet._
+1. Find the code for your app, from the list below:
 
    | Code       | App Name            | App link
    |------------|---------------------|---------|
@@ -43,25 +38,60 @@ The module is installed in A/Cs and humidifiers that are either manufactured or 
    | wwh-us     | Westinghouse?       | |
    | york-us    | YORK Smart          | [![](https://lh3.googleusercontent.com/udf-qe7lXPJ5d7pi96WC8ex20-DuzAvAfyYX1i9B0zyvKjj0TLqoWwZmju-M5y0dQwE=s50-rw)](https://play.google.com/store/apps/details?id=com.accontrol.york.america.hisense) |
 
-   For example:
+## Run the A/C control server in docker
+
+This is the preferred method.
+
+1. Download the [`docker-compose.yaml`](docker-compose.yaml) file. Update all the relevant environment fields:
+   - Set `USERNAME` and `PASSWORD` to your app login credentials.
+     These will be used to discover you A/Cs and get their LAN keys, if there are no config files in the config directory (`/opt/hisense`).
+   - Set `APP` to the app code from the list above.
+   - Set `TYPE` to one of the following:
+     - `ac` - Hisense based A/C
+     - `humidifier` - Hisense Humidifier
+     - `fgl` - Fujitsu FGLair, models AP-WA?E, AP-WC?E, AP-WD?E, AP-WF?E
+     - `fgl_b` - Fujitsu FGLair, models AP-WB?E
+   - Set `MQTT_HOST` to the [MQTT](http://en.wikipedia.org/wiki/Mqtt) broker server, use `localhost` if running on the same host.
+     Leave blank if not using MQTT.
+   - Set `MQTT_USER` to the MQTT credentials, as &lt;user:password&gt;. Leave blank if no authentication is used.
+   - Set `PORT` to the port to be used by the web server.
+
+1. Run:
    ```bash
-   python3.7 -m aircon discovery tornado-us foo@example.com my_pass
+   docker-compose up -d
    ```
-   The CLI will generate a config file, that needs to be passed to the A/C
-   control server below. If you have more than one A/C that you would like to
-   control, create a separate config file for each A/C, and run a separate
-   control process. You can select the A/C that the config is generated for by
-   setting the `--device` flag to the device name you configured in the app.
+1. Check the logs and verify that everything is in shape:
+   ```bash
+   journalctl CONTAINER_NAME=hisense_ac
+   ```
 
-* Note: _To update the server from head, run `git pull` on the repository and
-  run setup. You may also need to re-run discovery._
+1. Profit!  
+   The A/Cs should now be auto-discovered by [HomeAssistant](https://www.home-assistant.io/) or [openHAB](https://www.openhab.org/)
+   (using the [HomeAssistant MQTT Components Binding](https://www.openhab.org/addons/bindings/mqtt.homeassistant/)).
+   SmartThings requires manual setup, using the [groovy file](devicetypes/deiger/hisense-air-conditioner.src/hisense-air-conditioner.groovy), see below.
 
-## Run the A/C control server
+## Run the A/C control server manually
+
+Use this method if the docker setup above does not work for you.
 
 1. Download and install aircon module:
    ```bash
    python3.7 setup.py install
    ```
+
+1. Run discovery command to fetch the LAN keys that will allow connecting to the A/C. Pass it your login credentials, as well as the code for your app from the list below:
+
+   For example:
+   ```bash
+   python3.7 -m aircon discovery tornado-us foo@example.com my_pass
+   ```
+   The CLI will generate a config file for each A/C, that needs to be passed to the A/C
+   control server below. You can select the A/C that the config is generated for by
+   setting the `--device` flag to the device name you configured in the app.
+
+* Note: _To update the server from head, run `git pull` on the repository and
+  run setup. You may also need to re-run discovery._
+
 1. Test out that you can run the server, e.g.:
    ```bash
    python3.7 -m aircon run --port 8888 --type ac --config config.json --mqtt_host localhost
@@ -86,15 +116,20 @@ The module is installed in A/Cs and humidifiers that are either manufactured or 
    curl -ik 'http://localhost:8888/hisense/status'
    curl -ik 'http://localhost:8888/hisense/command?property=t_power&value=ON'
    ```
-## Run as a service
+
+### Multiple Air Conditioners
+In order to use with multiple Air Conditioners, simply add multiple --config and --type params.
+MQTT topic will contain your topic defined by flag --mqtt_topic (hisense_ac by default) and device MAC address (for uniqueness).
+
+### Run as a service
 Assuming your username is "pi"
 
 1. Create a dedicated directory for the script files, and move the files to it.
    Pass the ownership to root. e.g.:
    ```bash
-   sudo mkdir /usr/lib/hisense
-   sudo mv config.json /usr/lib/hisense
-   sudo chown pi:pi /usr/lib/hisense/*
+   sudo mkdir /opt/hisense
+   sudo mv config*.json /opt/hisense
+   sudo chown pi:pi /opt/hisense/*
    ```
 1. Create a service configuration file (as root), e.g. `/lib/systemd/system/hisense.service`:
    ```INI
@@ -104,7 +139,7 @@ Assuming your username is "pi"
 
    [Service]
    ExecStart=/usr/bin/python3.7 -m aircon run --port 8888 --type ac --config config.json --mqtt_host localhost
-   WorkingDirectory=/usr/lib/hisense
+   WorkingDirectory=/opt/hisense
    StandardOutput=inherit
    StandardError=inherit
    Restart=always
@@ -127,7 +162,7 @@ Assuming your username is "pi"
 
 ## Available Properties
 
-Listed here are the properties available through the API:
+Listed here are the properties available through the API when using `--type=ac`:
 
 | Property         | Read Only | Values                                 | Comment                                                                  |
 |------------------|-----------|----------------------------------------|--------------------------------------------------------------------------|
@@ -176,18 +211,16 @@ Listed here are the properties available through the API:
 | t_temp_heatcold  |           | OFF, ON                                | Fast cool heat                                                           |
 | t_work_mode      |           | FAN, HEAT, COOL, DRY, AUTO             | Work mode                                                                |
 
-## Multiple Air Conditioners
-
-In order to use with multiple Air Conditioners, simply add multiple --config and --type params.
-MQTT topic will contain your topic defined by flag --mqtt_topic (hisense_ac by default) and device MAC address (for uniqueness).
-
-* Note: _The smart home hub configuration should adjusted to refer to the right port or topics._
-
 ## SmartThings and HomeAssistant support
-
-I have built a groovy script to enable SmartThings integration with the Air Conditioner, through the control server above.
+You will need a groovy script to enable SmartThings integration with the Air Conditioner, through the control server above.
 It currently implements the main functionality (turn on/off, AC mode, fan speed, dimmer etc.).
 
 The groovy file is available [here](devicetypes/deiger/hisense-air-conditioner.src/hisense-air-conditioner.groovy), for download and installation through the [Groovy IDE](https://graph.api.smartthings.com). As I'm continuously improving this script, it would be more efficient to use the IDE's github integration, in order to stay up-to-date.
 
 HomeAsststant is now fully supported through [MQTT Discovery](https://www.home-assistant.io/docs/mqtt/discovery/). Properly configured devices are auto-configured and populated in the Lovelace dashboard.
+
+## Code Contributions
+Pull requests are always welcome.
+
+Please use [YAPF](https://github.com/google/yapf) with the style config defined here to style your code.
+Single quotes are used throughout the code-base. Unfortunately YAPF still doesn't support mandating this (support exists in the [fixers branch](https://github.com/google/yapf/tree/fixers)), so please be mindful.
