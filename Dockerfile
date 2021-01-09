@@ -1,4 +1,5 @@
 FROM python:3.7
+LABEL io.hass.version="0.3.0" io.hass.type="addon" io.hass.arch="armhfi|armv7|aarch64|amd64|i386"
 
 COPY . /app
 WORKDIR /app
@@ -22,4 +23,4 @@ if [ -z "$(cd /opt/hisense/ && find . -maxdepth 1 -type f -name "config_*.json")
 rm -f config_*.json && python -m aircon discovery $APP $USERNAME $PASSWORD && mv config_*.json /opt/hisense/; \
 fi; \   
 configs= ; for i in $(find /opt/hisense/ -maxdepth 1 -type f -name "config_*.json" -exec basename {} \;); do configs="$configs --config /opt/hisense/$i --type $TYPE"; done ; \
-python -m aircon --log_level $LOG_LEVEL run --port $PORT --mqtt_host $MQTT_HOST --mqtt_user $MQTT_USER $configs
+python -m aircon --log_level $LOG_LEVEL run --port $PORT --mqtt_host "$MQTT_HOST" --mqtt_user "$MQTT_USER" $configs

@@ -1,0 +1,35 @@
+{
+  "name": "HiSense Air Conditioners",
+  "version": "0.3.0",
+  "slug": "hisense_ac",
+  "description": "Interface for controlling Air Conditioners, e.g. with HiSense modules.",
+  "url": "https://github.com/deiger/AirCon",
+  "image": "deiger/aircon",
+  "arch": ["armhf", "armv7", "aarch64", "amd64", "i386"],
+  "startup": "application",
+  "boot": "auto",
+  "host_network": true,
+  "devices": ["/opt/hisense:/config"],
+  "discovery": ["mqtt"],
+  "services": ["mqtt:want"],
+  "options": {
+    "USERNAME": null,
+    "PASSWORD": null,
+    "APP": null,
+    "TYPE": "ac",
+    "LOG_LEVEL": "INFO",
+    "MQTT_HOST": "localhost",
+    "MQTT_USER": "<mqtt username>:<mqtt password>",
+    "PORT": null
+  },
+  "schema": {
+    "USERNAME": "str",
+    "PASSWORD": "str",
+    "APP": "str",
+    "TYPE": "list(ac,humidifier,fgl,fgl_b)",
+    "LOG_LEVEL": "list(CRITICAL,ERROR,WARNING,INFO,DEBUG)?",
+    "MQTT_HOST": "str?",
+    "MQTT_USER": "str?",
+    "PORT": "port"
+  }
+}
