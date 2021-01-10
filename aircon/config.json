@@ -9,7 +9,7 @@
   "startup": "application",
   "boot": "auto",
   "host_network": true,
-  "devices": ["/opt/hisense:/config"],
+  "map": ["config"],
   "discovery": ["mqtt"],
   "services": ["mqtt:want"],
   "options": {
