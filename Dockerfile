@@ -1,5 +1,5 @@
 FROM python:3.7
-LABEL io.hass.version="0.3.1" io.hass.type="addon" io.hass.arch="armhf|armv7|aarch64|amd64|i386"
+LABEL io.hass.version="0.3.2" io.hass.type="addon" io.hass.arch="armhf|armv7|aarch64|amd64|i386"
 
 COPY . /app
 WORKDIR /app
