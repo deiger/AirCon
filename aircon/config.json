@@ -1,6 +1,6 @@
 {
   "name": "HiSense Air Conditioners",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "slug": "hisense_ac",
   "description": "Interface for controlling Air Conditioners, e.g. with HiSense modules.",
   "url": "https://github.com/deiger/AirCon",
@@ -9,9 +9,12 @@
   "startup": "application",
   "boot": "auto",
   "host_network": true,
-  "map": ["config"],
+  "map": ["config:rw"],
   "discovery": ["mqtt"],
   "services": ["mqtt:want"],
+  "environment": {
+    "CONFIG_DIR": "/config/hisense"
+  },
   "options": {
     "USERNAME": null,
     "PASSWORD": null,

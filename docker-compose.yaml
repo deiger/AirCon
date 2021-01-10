@@ -14,6 +14,7 @@ services:
        - MQTT_HOST=localhost
        - MQTT_USER=<mqtt username>:<mqtt password>
        - PORT=<http server port>
+       - CONFIG_DIR=/config
      network_mode: host
      volumes:
        - config:/opt/hisense
