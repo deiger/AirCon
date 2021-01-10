@@ -105,7 +105,10 @@ class QueryHandlers:
     """
     device = self._devices_map.get(request.query.get('device_ip'))
     if not device:
-      raise web.HTTPBadRequest(reason=f'Device "{request.query.get("device_ip")}" not found.')
+      if len(self._devices_map) == 1:
+        device = list(self._devices_map.values())[0]
+      else:
+        raise web.HTTPBadRequest(reason=f'Device "{request.query.get("device_ip")}" not found.')
     try:
       device.queue_command(request.query['property'], request.query['value'])
     except Exception as ex:
