@@ -6,15 +6,8 @@ services:
      healthcheck:
        disable: true
      environment:
-       - USERNAME=<app username>
-       - PASSWORD=<app password>
-       - APP=<app code>
-       - TYPE={ac|humidifier|fgl|fgl_b}
-       - LOG_LEVEL=INFO
-       - MQTT_HOST=localhost
-       - MQTT_USER=<mqtt username>:<mqtt password>
-       - PORT=<http server port>
        - CONFIG_DIR=/config
+       - OPTIONS_FILE=./options.json
      network_mode: host
      volumes:
        - /opt/hisense:/config

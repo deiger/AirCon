@@ -13,26 +13,37 @@
   "discovery": ["mqtt"],
   "services": ["mqtt:want"],
   "environment": {
-    "CONFIG_DIR": "/config/hisense"
+    "CONFIG_DIR": "/config/hisense",
+    "OPTIONS_FILE": "/data/config.json"
   },
   "options": {
-    "USERNAME": null,
-    "PASSWORD": null,
-    "APP": null,
-    "TYPE": "ac",
-    "LOG_LEVEL": "INFO",
-    "MQTT_HOST": "localhost",
-    "MQTT_USER": "<mqtt username>:<mqtt password>",
-    "PORT": null
+    "app": [
+      {
+        "username": null,
+        "password": null,
+        "code": null
+      }
+    ],
+    "type": "ac",
+    "log_level": "INFO",
+    "mqtt_host": "localhost",
+    "mqtt_user": null,
+    "mqtt_pass": null,
+    "port": null
   },
   "schema": {
-    "USERNAME": "str",
-    "PASSWORD": "str",
-    "APP": "str",
-    "TYPE": "list(ac,humidifier,fgl,fgl_b)",
-    "LOG_LEVEL": "list(CRITICAL,ERROR,WARNING,INFO,DEBUG)?",
-    "MQTT_HOST": "str?",
-    "MQTT_USER": "str?",
-    "PORT": "port"
+    "app": [
+      {
+        "username": "str",
+        "password": "str",
+        "code": "str"
+      }
+    ],
+    "type": "list(ac,humidifier,fgl,fgl_b)",
+    "log_level": "list(CRITICAL,ERROR,WARNING,INFO,DEBUG)?",
+    "mqtt_host": "str?",
+    "mqtt_user": "str?",
+    "mqtt_pass": "str?",
+    "port": "port"
   }
 }
