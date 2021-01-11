@@ -17,4 +17,4 @@ services:
        - CONFIG_DIR=/config
      network_mode: host
      volumes:
-       - config:/opt/hisense
+       - /opt/hisense:/config
