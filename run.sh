@@ -8,7 +8,7 @@ MQTT_HOST=$(jq -r '.mqtt_host // ""' $OPTIONS_FILE)
 MQTT_USER=$(jq -r 'if (.mqtt_user and .mqtt_pass) then (.mqtt_user + ":" + .mqtt_pass) else "" end' $OPTIONS_FILE)
 APPS=$(jq -r '.app | length // 0' $OPTIONS_FILE)
 
-mkdir $CONFIG_DIR
+mkdir -p $CONFIG_DIR
 if [ -z "$(find $CONFIG_DIR -maxdepth 1 -type f -name "config_*.json")" ]; then
   rm -f config_*.json
   for i in $(seq 0 $(($APPS-1))); do
