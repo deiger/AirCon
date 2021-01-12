@@ -39,8 +39,8 @@
         "code": "str"
       }
     ],
-    "type": "list(ac,humidifier,fgl,fgl_b)",
-    "log_level": "list(CRITICAL,ERROR,WARNING,INFO,DEBUG)?",
+    "type": "list(ac|humidifier|fgl|fgl_b)",
+    "log_level": "list(CRITICAL|ERROR|WARNING|INFO|DEBUG)?",
     "mqtt_host": "str?",
     "mqtt_user": "str?",
     "mqtt_pass": "str?",
