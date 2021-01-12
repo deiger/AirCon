@@ -42,19 +42,19 @@ The module is installed in A/Cs and humidifiers that are either manufactured or 
 
 This is the preferred method.
 
-1. Download the [`docker-compose.yaml`](docker-compose.yaml) file. Update all the relevant environment fields:
-   - Set `USERNAME` and `PASSWORD` to your app login credentials.
+1. Download the [`docker-compose.yaml`](docker-compose.yaml) and [`options.json`](options.json). Update all the relevant fields in `options.json`:
+   - For every app (multiple apps are supported), set `username` and `password` to your app login credentials, and `code` to the app code from the list above.
      These will be used to discover you A/Cs and get their LAN keys, if there are no config files in the config directory (`/opt/hisense`).
-   - Set `APP` to the app code from the list above.
-   - Set `TYPE` to one of the following:
+   - Set `type` to one of the following:
      - `ac` - Hisense based A/C
      - `humidifier` - Hisense Humidifier
      - `fgl` - Fujitsu FGLair, models AP-WA?E, AP-WC?E, AP-WD?E, AP-WF?E
      - `fgl_b` - Fujitsu FGLair, models AP-WB?E
-   - Set `MQTT_HOST` to the [MQTT](http://en.wikipedia.org/wiki/Mqtt) broker server, use `localhost` if running on the same host.
+   - Set `mqtt_host` to the [MQTT](http://en.wikipedia.org/wiki/Mqtt) broker server, use `localhost` if running on the same host.
      Leave blank if not using MQTT.
-   - Set `MQTT_USER` to the MQTT credentials, as &lt;user:password&gt;. Leave blank if no authentication is used.
-   - Set `PORT` to the port to be used by the web server.
+   - Set `mqtt_user` and `mqtt_pass` to the MQTT credentials. Leave null (or drop) if no authentication is used.
+   - Set `port` to the port to be used by the web server.
+   - Set `log_level` to your desired verbosity level.
 
 1. Run:
    ```bash
