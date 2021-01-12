@@ -6,9 +6,7 @@ LABEL io.hass.version="$BUILD_VERSION" io.hass.type="addon" io.hass.arch="armhf|
 COPY . /app
 WORKDIR /app
 
-RUN dpkg --add-architecture i386
-RUN apt-get update
-RUN apt-get install -y --no-install-recommends jq
+RUN dpkg --add-architecture i386 && apt-get update && apt-get install -y --no-install-recommends jq
 RUN python setup.py install
 
 ENV PLATFORM=docker
