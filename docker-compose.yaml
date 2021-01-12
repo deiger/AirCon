@@ -1,13 +1,22 @@
 version: '3'
 services:
+  copy_config:
+    build:
+      context: .
+    command: >
+      sh -c "cp ./options.json /config/"
+    volumes:
+      - /opt/hisense:/config
   hisense_ac:
-     image: deiger/aircon:latest
-     container_name: hisense_ac
-     healthcheck:
-       disable: true
-     environment:
-       - CONFIG_DIR=/config
-       - OPTIONS_FILE=./options.json
-     network_mode: host
-     volumes:
-       - /opt/hisense:/config
+    depends_on:
+      - copy_config
+    image: deiger/aircon:0.3.4
+    container_name: hisense_ac
+    healthcheck:
+      disable: true
+    environment:
+      - CONFIG_DIR=/config
+      - OPTIONS_FILE=/config/options.json
+    network_mode: host
+    volumes:
+      - /opt/hisense:/config
