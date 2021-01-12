@@ -14,7 +14,7 @@
   "services": ["mqtt:want"],
   "environment": {
     "CONFIG_DIR": "/config/hisense",
-    "OPTIONS_FILE": "/data/config.json"
+    "OPTIONS_FILE": "/data/options.json"
   },
   "options": {
     "app": [
