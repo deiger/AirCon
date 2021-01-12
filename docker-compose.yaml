@@ -4,7 +4,7 @@ services:
     build:
       context: .
     command: >
-      sh -c "cp ./options.json /config/"
+      sh -c "cp -n ./options.json /config/"
     volumes:
       - /opt/hisense:/config
   hisense_ac:
