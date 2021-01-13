@@ -226,8 +226,7 @@ async def run(parsed_args):
       if 'power' in topics:
         config['power_command_topic'] = mqtt_topics['sub'].format(device.mac_address,
                                                                   topics['power'])
-        config['power_state_topic'] = mqtt_topics['pub'].format(device.mac_address,
-                                                                topics['power'])
+        config['power_state_topic'] = mqtt_topics['pub'].format(device.mac_address, topics['power'])
       if 'swing_mode' in topics:
         config['swing_mode_command_topic'] = mqtt_topics['sub'].format(
             device.mac_address, topics['swing_mode'])
