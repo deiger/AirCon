@@ -55,7 +55,7 @@ class Device(object):
     self._property_change_listeners = []  # type List[Callable[[str, Any], None]]
 
   @classmethod
-  def create(cls, config: Dict[str, str], notifier: Callable[[None], None]) -> Device:
+  def create(cls, config: Dict[str, str], notifier: Callable[[None], None]):
     model = config['model']
     if cls._FGL_DEVICES.fullmatch(model):
       return FglDevice(config, notifier)
