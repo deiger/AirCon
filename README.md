@@ -38,15 +38,26 @@ The module is installed in A/Cs and humidifiers that are either manufactured or 
    | wwh-us     | Westinghouse?       | |
    | york-us    | YORK Smart          | [![](https://lh3.googleusercontent.com/udf-qe7lXPJ5d7pi96WC8ex20-DuzAvAfyYX1i9B0zyvKjj0TLqoWwZmju-M5y0dQwE=s50-rw)](https://play.google.com/store/apps/details?id=com.accontrol.york.america.hisense) |
 
+## Run the A/C control server as a HomeAssistant add-on.
+
+If using [HomeAssistant], this is the preferred method.
+
+1. In the HomeAssistant UI, enter **Supervisor → Add-on Store**.
+1. Click **⋮ menu → Repositories**.
+1. Add `https://github.com/deiger/AirCon` to the list.
+1. Choose **HiSense Air Conditioner** and install it.
+1. Update the configuration as detailed within the add-on.
+1. Start the add-on. Do not forget to enable **Start on boot** and **Watchdog**.
+
 ## Run the A/C control server in docker
 
-This is the preferred method.
+Use this method if not using HomeAssistant, or if you prefer to set it up outside of HomeAssistant.
 
 1. Download the [`docker-compose.yaml`](docker-compose.yaml) and [`options.json`](options.json). Update all the relevant fields in `options.json`:
    - For every app (multiple apps are supported), set `username` and `password` to your app login credentials, and `code` to the app code from the list above.
      These will be used to discover you A/Cs and get their LAN keys, if there are no config files in the config directory (`/opt/hisense`).
-   - Set `mqtt_host` to the [MQTT](http://en.wikipedia.org/wiki/Mqtt) broker server, use `localhost` if running on the same host.
-     Leave blank if not using MQTT.
+   - Set `mqtt_host` to the [MQTT] broker server, use `localhost` if running on the same host.
+     Leave blank if not using [MQTT].
    - Set `mqtt_user` and `mqtt_pass` to the MQTT credentials. Leave null (or drop) if no authentication is used.
    - Set `port` to the port to be used by the web server.
    - Set `log_level` to your desired verbosity level.
@@ -61,9 +72,9 @@ This is the preferred method.
    ```
 
 1. Profit!  
-   The A/Cs should now be auto-discovered by [HomeAssistant](https://www.home-assistant.io/) or [openHAB](https://www.openhab.org/)
+   The A/Cs should now be auto-discovered by [HomeAssistant] or [openHAB]
    (using the [HomeAssistant MQTT Components Binding](https://www.openhab.org/addons/bindings/mqtt.homeassistant/)).
-   SmartThings requires manual setup, using the [groovy file](devicetypes/deiger/hisense-air-conditioner.src/hisense-air-conditioner.groovy), see below.
+   [SmartThings] requires manual setup, using the [groovy file](devicetypes/deiger/hisense-air-conditioner.src/hisense-air-conditioner.groovy), see below.
 
 ## Run the A/C control server manually
 
@@ -147,7 +158,7 @@ Assuming your username is "pi"
    sudo systemctl enable hisense.service
    sudo systemctl start hisense.service
    ```
-1. If you use [MQTT](http://en.wikipedia.org/wiki/Mqtt) for [HomeAssistant](https://www.home-assistant.io/) or
+1. If you use [MQTT](http://en.wikipedia.org/wiki/Mqtt) for [HomeAssistant] or
    [openHAB](https://www.openhab.org/), the broker should now provide the updated status of the A/C, and accepts commands.
 
 ## Available Properties
@@ -208,10 +219,17 @@ It currently implements the main functionality (turn on/off, AC mode, fan speed,
 
 The groovy file is available [here](devicetypes/deiger/hisense-air-conditioner.src/hisense-air-conditioner.groovy), for download and installation through the [Groovy IDE](https://graph.api.smartthings.com). As I'm continuously improving this script, it would be more efficient to use the IDE's github integration, in order to stay up-to-date.
 
-HomeAsststant is now fully supported through [MQTT Discovery](https://www.home-assistant.io/docs/mqtt/discovery/). Properly configured devices are auto-configured and populated in the Lovelace dashboard.
+HomeAsststant is now fully supported through [MQTT Discovery]. Properly configured devices are auto-configured and populated in the Lovelace dashboard.
 
 ## Code Contributions
 Pull requests are always welcome.
 
-Please use [YAPF](https://github.com/google/yapf) with the style config defined here to style your code.
+Please use [YAPF] with the style config defined here to style your code.
 Single quotes are used throughout the code-base. Unfortunately YAPF still doesn't support mandating this (support exists in the [fixers branch](https://github.com/google/yapf/tree/fixers)), so please be mindful.
+
+[HomeAssistant]: https://www.home-assistant.io/
+[MQTT Discovery]: https://www.home-assistant.io/docs/mqtt/discovery/
+[openHAB]: https://www.openhab.org/
+[SmartThings]: https://www.smartthings.com/
+[MQTT]: http://en.wikipedia.org/wiki/Mqtt
+[YAPF]: https://github.com/google/yapf
