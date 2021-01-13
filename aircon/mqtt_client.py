@@ -4,7 +4,7 @@ import logging
 import paho.mqtt.client as mqtt
 
 from .aircon import Device
-from .properties import AcWorkMode
+from .properties import AcWorkMode, FglOperationMode
 
 
 class MqttClient(mqtt.Client):
@@ -64,7 +64,8 @@ class MqttClient(mqtt.Client):
 
   def mqtt_publish_update(self, mac_address: str, property_name: str, value) -> None:
     if isinstance(value, enum.Enum):
-      payload = 'fan_only' if value is AcWorkMode.FAN else value.name.lower()
+      payload = 'fan_only' if (value is AcWorkMode.FAN or
+                               value is FglOperationMode.FAN) else value.name.lower()
     else:
       payload = str(value)
     self.publish(self._mqtt_topics['pub'].format(mac_address, property_name),

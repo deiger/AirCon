@@ -204,25 +204,43 @@ async def run(parsed_args):
                   'topic': mqtt_topics['pub'].format(device.mac_address, 'available')
               },
           ],
-          'current_temperature_topic': mqtt_topics['pub'].format(device.mac_address, 'f_temp_in'),
-          'fan_mode_command_topic': mqtt_topics['sub'].format(device.mac_address, 't_fan_speed'),
-          'fan_mode_state_topic': mqtt_topics['pub'].format(device.mac_address, 't_fan_speed'),
-          'fan_modes': ['auto', 'lower', 'low', 'medium', 'high', 'higher'],
-          'max_temp': '86' if device.is_fahrenheit else '30',
-          'min_temp': '61' if device.is_fahrenheit else '16',
-          'mode_command_topic': mqtt_topics['sub'].format(device.mac_address, 't_work_mode'),
-          'mode_state_topic': mqtt_topics['pub'].format(device.mac_address, 't_work_mode'),
-          'modes': ['off', 'fan_only', 'heat', 'cool', 'dry', 'auto'],
-          'swing_modes': ['on', 'off'],
-          'power_command_topic': mqtt_topics['sub'].format(device.mac_address, 't_power'),
-          'power_state_topic': mqtt_topics['pub'].format(device.mac_address, 't_power'),
           'precision': 1.0,
-          'swing_mode_command_topic': mqtt_topics['sub'].format(device.mac_address, 't_fan_power'),
-          'swing_mode_state_topic': mqtt_topics['pub'].format(device.mac_address, 't_fan_power'),
-          'temperature_command_topic': mqtt_topics['sub'].format(device.mac_address, 't_temp'),
-          'temperature_state_topic': mqtt_topics['pub'].format(device.mac_address, 't_temp'),
           'temperature_unit': 'F' if device.is_fahrenheit else 'C'
       }
+      topics = device.topics
+      if 'env_temp' in topics:
+        config['current_temperature_topic'] = mqtt_topics['pub'].format(
+            device.mac_address, topics['env_temp'])
+      if 'fan_speed' in topics:
+        config['fan_mode_command_topic'] = mqtt_topics['sub'].format(device.mac_address,
+                                                                     topics['fan_speed'])
+        config['fan_mode_state_topic'] = mqtt_topics['pub'].format(device.mac_address,
+                                                                   topics['fan_speed'])
+        config['fan_modes'] = device.fan_modes
+      if 'work_mode' in topics:
+        config['mode_command_topic'] = mqtt_topics['sub'].format(device.mac_address,
+                                                                 topics['work_mode'])
+        config['mode_state_topic'] = mqtt_topics['pub'].format(device.mac_address,
+                                                               topics['work_mode'])
+        config['modes'] = device.work_modes
+      if 'power' in topics:
+        config['power_command_topic'] = mqtt_topics['sub'].format(device.mac_address,
+                                                                  topics['power'])
+        config['power_state_topic'] = mqtt_topics['pub'].format(device.mac_address,
+                                                                topics['power'])
+      if 'swing_mode' in topics:
+        config['swing_mode_command_topic'] = mqtt_topics['sub'].format(
+            device.mac_address, topics['swing_mode'])
+        config['swing_mode_state_topic'] = mqtt_topics['pub'].format(device.mac_address,
+                                                                     topics['swing_mode'])
+        config['swing_modes'] = ['on', 'off']
+      if 'temp' in topics:
+        config['temperature_command_topic'] = mqtt_topics['sub'].format(
+            device.mac_address, topics['temp'])
+        config['temperature_state_topic'] = mqtt_topics['pub'].format(device.mac_address,
+                                                                      topics['temp'])
+        config['max_temp'] = '86' if device.is_fahrenheit else '30',
+        config['min_temp'] = '61' if device.is_fahrenheit else '16',
       mqtt_client.publish(mqtt_topics['discovery'].format(device.mac_address),
                           payload=json.dumps(config),
                           retain=True)

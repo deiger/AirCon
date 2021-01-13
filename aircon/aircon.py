@@ -38,6 +38,9 @@ class Device(object):
     self._properties_lock = threading.RLock()
     self._queue_listener = notifier
     self._available = False
+    self.topics = {}
+    self.work_modes = []
+    self.fan_modes = []
 
     self._next_command_id = 0
 
@@ -208,6 +211,16 @@ class AcDevice(Device):
 
   def __init__(self, config: Dict[str, str], notifier: Callable[[None], None]):
     super().__init__(config, AcProperties(), notifier)
+    self.topics = {
+        'env_temp': 'f_temp_in',
+        'fan_speed': 't_fan_speed',
+        'work_mode': 't_work_mode',
+        'power': 't_power',
+        'swing_mode': 't_fan_power',
+        'temp': 't_temp'
+    }
+    self.work_modes = ['off', 'fan_only', 'heat', 'cool', 'dry', 'auto']
+    self.fan_modes = ['auto', 'lower', 'low', 'medium', 'high', 'higher']
 
   # @override to add special support for t_power.
   def update_property(self, name: str, value) -> None:
@@ -498,18 +511,31 @@ class FglDevice(Device):
 
   def __init__(self, config: Dict[str, str], notifier: Callable[[None], None]):
     super().__init__(config, FglProperties(), notifier)
+    self.topics = {
+        'fan_speed': 'fan_speed',
+        'work_mode': 'operation_mode',
+        'swing_mode': 'af_vertical_swing',
+        'temp': 'adjust_temperature'
+    }
+    self.work_modes = ['off', 'fan_only', 'heat', 'cool', 'dry', 'auto']
+    self.fan_modes = ['auto', 'quiet', 'low', 'medium', 'high']
 
 
 class FglBDevice(Device):
 
   def __init__(self, config: Dict[str, str], notifier: Callable[[None], None]):
     super().__init__(config, FglBProperties(), notifier)
+    self.topics = {
+        'fan_speed': 'fan_speed',
+        'work_mode': 'operation_mode',
+        'temp': 'adjust_temperature'
+    }
+    self.work_modes = ['off', 'fan_only', 'heat', 'cool', 'dry', 'auto']
+    self.fan_modes = ['auto', 'quiet', 'low', 'medium', 'high']
 
 
 class HumidifierDevice(Device):
 
   def __init__(self, config: Dict[str, str], notifier: Callable[[None], None]):
     super().__init__(config, HumidifierProperties(), notifier)
-
-
-
+    self.topics = {'env_temp': 'temp', 'power': 'switch'}
