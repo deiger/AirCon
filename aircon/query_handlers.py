@@ -12,13 +12,13 @@ import time
 from typing import Callable
 
 from .config import Config, Encryption
-from .aircon import BaseDevice
+from .aircon import Device
 from .error import Error, KeyIdReplaced
 
 
 class QueryHandlers:
 
-  def __init__(self, devices: [BaseDevice]):
+  def __init__(self, devices: [Device]):
     self._devices_map = {}
     for device in devices:
       self._devices_map[device.ip_address] = device
@@ -116,7 +116,7 @@ class QueryHandlers:
       raise web.HTTPBadRequest(f'Failed to queue command:\n{ex!r}')
     return web.json_response({'queued_commands': device.commands_queue.qsize()})
 
-  def _encrypt_and_sign(self, device: BaseDevice, data: dict) -> dict:
+  def _encrypt_and_sign(self, device: Device, data: dict) -> dict:
     text = json.dumps(data)
     logging.debug('Encrypting: {}'.format(text))
     text = text.encode('utf-8')
@@ -126,7 +126,7 @@ class QueryHandlers:
         "sign": base64.b64encode(Encryption.hmac_digest(encryption.sign_key, text)).decode('utf-8')
     }
 
-  def _decrypt_and_validate(self, device: BaseDevice, data: dict) -> dict:
+  def _decrypt_and_validate(self, device: Device, data: dict) -> dict:
     encryption = device.get_dev_encryption()
     text = self.unpad(encryption.cipher.decrypt(base64.b64decode(data['enc'])))
     sign = base64.b64encode(Encryption.hmac_digest(encryption.sign_key, text)).decode('utf-8')

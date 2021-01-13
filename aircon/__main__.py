@@ -28,14 +28,14 @@ from urllib.parse import parse_qs, urlparse, ParseResult
 from .app_mappings import SECRET_MAP
 from .config import Config
 from .error import Error
-from .aircon import BaseDevice, AcDevice, FglDevice, FglBDevice, HumidifierDevice
+from .aircon import Device
 from .discovery import perform_discovery
 from .mqtt_client import MqttClient
 from .notifier import Notifier
 from .query_handlers import QueryHandlers
 
 
-async def query_status_worker(devices: [BaseDevice]):
+async def query_status_worker(devices: [Device]):
   _STATUS_UPDATE_INTERVAL = 600.0
   _WAIT_FOR_EMPTY_QUEUE = 10.0
   while True:
@@ -64,10 +64,10 @@ def ParseArguments() -> argparse.Namespace:
   group_device = parser_run.add_argument_group('Device', 'Arguments that are related to the device')
   group_device.add_argument('--config', required=True, action='append', help='LAN Config file.')
   group_device.add_argument('--type',
-                            required=True,
+                            required=False,
                             action='append',
                             choices={'ac', 'fgl', 'fgl_b', 'humidifier'},
-                            help='Device type (for systems other than Hisense A/C).')
+                            help='Device type. Deprecated, now decided based on OEM model.')
 
   group_mqtt = parser_run.add_argument_group('MQTT', 'Settings related to the MQTT')
   group_mqtt.add_argument('--mqtt_host', default=None, help='MQTT broker hostname or IP address.')
@@ -121,7 +121,7 @@ def setup_logger(log_level, use_stderr=False):
   logger.addHandler(logging_handler)
 
 
-async def setup_and_run_http_server(parsed_args, devices: [BaseDevice]):
+async def setup_and_run_http_server(parsed_args, devices: [Device]):
   query_handlers = QueryHandlers(devices)
   app = web.Application()
   app.add_routes([
@@ -158,25 +158,12 @@ async def mqtt_loop(mqtt_client: MqttClient):
 
 
 async def run(parsed_args):
-  if len(parsed_args.type) != len(parsed_args.config):
-    raise ValueError('Each device has to have specified type and config file')
-
   notifier = Notifier(parsed_args.port)
   devices = []
   for i in range(len(parsed_args.config)):
     with open(parsed_args.config[i], 'rb') as f:
       config = json.load(f)
-    if parsed_args.type[i] == 'ac':
-      device = AcDevice(config, notifier.notify)
-    elif parsed_args.type[i] == 'fgl':
-      device = FglDevice(config, notifier.notify)
-    elif parsed_args.type[i] == 'fgl_b':
-      device = FglBDevice(config, notifier.notify)
-    elif parsed_args.type[i] == 'humidifier':
-      device = HumidifierDevice(config, notifier.notify)
-    else:
-      logging.error('Unknown type of device: %s', parsed_args.type[i])
-      sys.exit(1)  # Should never get here.
+    device = Device.create(config, notifier.notify)
     notifier.register_device(device)
     devices.append(device)
 

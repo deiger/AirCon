@@ -3,13 +3,13 @@ import enum
 import logging
 import paho.mqtt.client as mqtt
 
-from .aircon import BaseDevice
+from .aircon import Device
 from .properties import AcWorkMode
 
 
 class MqttClient(mqtt.Client):
 
-  def __init__(self, client_id: str, mqtt_topics: dict, devices: [BaseDevice]):
+  def __init__(self, client_id: str, mqtt_topics: dict, devices: [Device]):
     super().__init__(client_id=client_id, clean_session=True)
     self._mqtt_topics = mqtt_topics
     self._devices = devices

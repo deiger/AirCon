@@ -17,7 +17,11 @@ from .properties import (AcProperties, AirFlow, AirFlowState, Economy, FanSpeed,
                          AcWorkMode, Quiet, TemperatureUnit)
 
 
-class BaseDevice:
+class Device(object):
+
+  _FGL_DEVICES = re.compile(r'AP-W[ACDF]\dE')
+  _FGLB_DEVICES = re.compile(r'AP-WB\dE')
+  _HUMI_DEVICES = re.compile(r'0001-0401-000[12]')
 
   def __init__(self, config: Dict[str, str], properties: Properties, notifier: Callable[[None],
                                                                                         None]):
@@ -45,6 +49,18 @@ class BaseDevice:
     self._updates_seq_no_lock = threading.Lock()
 
     self._property_change_listeners = []  # type List[Callable[[str, Any], None]]
+
+  @classmethod
+  def create(cls, config: Dict[str, str], notifier: Callable[[None], None]) -> Device:
+    model = config['model']
+    if cls._FGL_DEVICES.fullmatch(model):
+      return FglDevice(config, notifier)
+    elif cls._FGLB_DEVICES.fullmatch(model):
+      return FglBDevice(config, notifier)
+    elif cls._HUMI_DEVICES.fullmatch(model):
+      return HumidifierDevice(config, notifier)
+    else:
+      return AcDevice(config, notifier)
 
   @property
   def is_fahrenheit(self) -> bool:
@@ -188,7 +204,7 @@ class BaseDevice:
     return self._config.dev
 
 
-class AcDevice(BaseDevice):
+class AcDevice(Device):
 
   def __init__(self, config: Dict[str, str], notifier: Callable[[None], None]):
     super().__init__(config, AcProperties(), notifier)
@@ -478,19 +494,22 @@ class AcDevice(BaseDevice):
     self.update_property('t_temptype', temptype)
 
 
-class FglDevice(BaseDevice):
+class FglDevice(Device):
 
   def __init__(self, config: Dict[str, str], notifier: Callable[[None], None]):
     super().__init__(config, FglProperties(), notifier)
 
 
-class FglBDevice(BaseDevice):
+class FglBDevice(Device):
 
   def __init__(self, config: Dict[str, str], notifier: Callable[[None], None]):
     super().__init__(config, FglBProperties(), notifier)
 
 
-class HumidifierDevice(BaseDevice):
+class HumidifierDevice(Device):
 
   def __init__(self, config: Dict[str, str], notifier: Callable[[None], None]):
     super().__init__(config, HumidifierProperties(), notifier)
+
+
+

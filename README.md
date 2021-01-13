@@ -45,11 +45,6 @@ This is the preferred method.
 1. Download the [`docker-compose.yaml`](docker-compose.yaml) and [`options.json`](options.json). Update all the relevant fields in `options.json`:
    - For every app (multiple apps are supported), set `username` and `password` to your app login credentials, and `code` to the app code from the list above.
      These will be used to discover you A/Cs and get their LAN keys, if there are no config files in the config directory (`/opt/hisense`).
-   - Set `type` to one of the following:
-     - `ac` - Hisense based A/C
-     - `humidifier` - Hisense Humidifier
-     - `fgl` - Fujitsu FGLair, models AP-WA?E, AP-WC?E, AP-WD?E, AP-WF?E
-     - `fgl_b` - Fujitsu FGLair, models AP-WB?E
    - Set `mqtt_host` to the [MQTT](http://en.wikipedia.org/wiki/Mqtt) broker server, use `localhost` if running on the same host.
      Leave blank if not using MQTT.
    - Set `mqtt_user` and `mqtt_pass` to the MQTT credentials. Leave null (or drop) if no authentication is used.
@@ -94,16 +89,11 @@ Use this method if the docker setup above does not work for you.
 
 1. Test out that you can run the server, e.g.:
    ```bash
-   python3.7 -m aircon run --port 8888 --type ac --config config.json --mqtt_host localhost
+   python3.7 -m aircon run --port 8888 --config config.json --mqtt_host localhost
    ```
    Parameters:
    - `--port` or `-p` - Port for the web server.
    - `--config` - The config file with the credentials to connect to the A/C.
-   - `--type` - Choose which configuration to use:
-      - `ac` - Hisense based A/C
-      - `humidifier` - Hisense Humidifier
-      - `fgl` - Fujitsu FGLair, models AP-WA?E, AP-WC?E, AP-WD?E, AP-WF?E
-      - `fgl_b` - Fujitsu FGLair, models AP-WB?E
    - `--mqtt_host` - The MQTT broker hostname or IP address. Must be set to enable MQTT.
    - `--mqtt_port` - The MQTT broker port. Default is 1883.
    - `--mqtt_client_id` - The MQTT client ID. If not set, a random client ID will be generated.
@@ -118,7 +108,7 @@ Use this method if the docker setup above does not work for you.
    ```
 
 ### Multiple Air Conditioners
-In order to use with multiple Air Conditioners, simply add multiple --config and --type params.
+In order to use with multiple Air Conditioners, simply add multiple --config params.
 MQTT topic will contain your topic defined by flag --mqtt_topic (hisense_ac by default) and device MAC address (for uniqueness).
 
 ### Run as a service
@@ -138,7 +128,7 @@ Assuming your username is "pi"
    After=network.target
 
    [Service]
-   ExecStart=/usr/bin/python3.7 -m aircon run --port 8888 --type ac --config config.json --mqtt_host localhost
+   ExecStart=/usr/bin/python3.7 -m aircon run --port 8888 --config config.json --mqtt_host localhost
    WorkingDirectory=/opt/hisense
    StandardOutput=inherit
    StandardError=inherit
@@ -162,7 +152,8 @@ Assuming your username is "pi"
 
 ## Available Properties
 
-Listed here are the properties available through the API when using `--type=ac`:
+Listed here are the properties available through the API for standard A/Cs
+(FGLair and humidifers have different properties):
 
 | Property         | Read Only | Values                                 | Comment                                                                  |
 |------------------|-----------|----------------------------------------|--------------------------------------------------------------------------|

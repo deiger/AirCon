@@ -6,7 +6,6 @@
       "code": "<app code>"
     }
   ],
-  "type": "{ac|humidifier|fgl|fgl_b}",
   "log_level": "INFO",
   "mqtt_host": "localhost",
   "mqtt_user": "<mqtt username>",

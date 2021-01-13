@@ -11,7 +11,7 @@ from tenacity import retry, retry_if_exception_type, wait_incrementing
 import time
 import threading
 
-from .aircon import BaseDevice
+from .aircon import Device
 
 if sys.version_info < (3, 8):
   TimeoutError = concurrent.futures.TimeoutError
@@ -21,7 +21,7 @@ else:
 
 @dataclass
 class _NotifyConfiguration:
-  device: BaseDevice
+  device: Device
   headers: dict
   last_timestamp: int
 
@@ -50,7 +50,7 @@ class Notifier:
       if sock:
         sock.close()
 
-  def register_device(self, device: BaseDevice):
+  def register_device(self, device: Device):
     if device not in (conf.device for conf in self._configurations):
       headers = {
           'Accept': 'application/json',

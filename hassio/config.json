@@ -24,7 +24,6 @@
         "code": null
       }
     ],
-    "type": "ac",
     "log_level": "INFO",
     "mqtt_host": "localhost",
     "mqtt_user": null,
@@ -39,7 +38,6 @@
         "code": "str"
       }
     ],
-    "type": "list(ac|humidifier|fgl|fgl_b)",
     "log_level": "list(CRITICAL|ERROR|WARNING|INFO|DEBUG)?",
     "mqtt_host": "str?",
     "mqtt_user": "str?",
