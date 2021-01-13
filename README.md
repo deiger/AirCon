@@ -10,7 +10,7 @@ The module is installed in A/Cs and humidifiers that are either manufactured or 
 
 ## Prerequisites
 
-1. Air Conditioner with HiSense AEH-W4B1 or AEH-W4E1 installed.
+1. Air Conditioner with HiSense AEH-W4B1 or AEH-W4E1 installed, or a Fujitsu FGLair.
 1. Have Python 3.7 or above installed. If using Raspberry Pi, either upgrade to Raspbian Buster, or manually install it in Raspbian Stretch.
 1. Configure the A/Cs with the dedicated app. Links to each app are available in the table below. Log into the app, associate each A/C and connect it to the network, as described in the app documentation.
 1. Once everything has been configured, the A/Cs can be blocked from connecting to the internet, as it will no longer be needed. Set them static IP addresses in the router, and write them down.

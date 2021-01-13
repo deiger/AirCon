@@ -2,9 +2,10 @@
 
 ## Prerequisites
 
-1. Air Conditioner with HiSense AEH-W4B1 or AEH-W4E1 WiFi module installed.
-   These include A/Cs by multiple brands, including Fujitsu, Beko, Westinghouse,
-   Winia, Tornado, York and more.
+1. Air Conditioner with HiSense AEH-W4B1 or AEH-W4E1 WiFi module installed, or
+   Fujitsu FGLair.
+   These include A/Cs by multiple brands, including Beko, Westinghouse, Winia,
+   Tornado, York and more.
 1. An [MQTT broker](https://www.home-assistant.io/docs/mqtt/broker/) installed,
    whether it is Mosquitto or the default Home Assistant MQTT broker. Please
    make sure to install and set up that add-on before continuing.
