@@ -249,7 +249,7 @@ class AcDevice(Device):
     super().queue_command(name, value)
 
     # Handle turning on FastColdHeat
-    if name == 't_temp_heatcold' and value is 'ON':
+    if name == 't_temp_heatcold' and value == 'ON':
       super().queue_command('t_fan_speed', 'AUTO')
       super().queue_command('t_fan_mute', 'OFF')
       super().queue_command('t_sleep', 'STOP')
