@@ -59,12 +59,11 @@ class Device(object):
     model = config['model']
     if cls._FGL_DEVICES.fullmatch(model):
       return FglDevice(config, notifier)
-    elif cls._FGLB_DEVICES.fullmatch(model):
+    if cls._FGLB_DEVICES.fullmatch(model):
       return FglBDevice(config, notifier)
-    elif cls._HUMI_DEVICES.fullmatch(model):
+    if cls._HUMI_DEVICES.fullmatch(model):
       return HumidifierDevice(config, notifier)
-    else:
-      return AcDevice(config, notifier)
+    return AcDevice(config, notifier)
 
   @property
   def is_fahrenheit(self) -> bool:
@@ -94,9 +93,9 @@ class Device(object):
       return deepcopy(self._properties)
 
   def get_property(self, name: str):
-    """Get a stored property."""
+    """Get a stored property (or None if doesn't exist)."""
     with self._properties_lock:
-      return getattr(self._properties, name)
+      return getattr(self._properties, name, None)
 
   def get_property_type(self, name: str):
     return self._properties.get_type(name)
