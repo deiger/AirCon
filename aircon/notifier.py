@@ -80,7 +80,7 @@ class Notifier:
             queue_size = config.device.commands_queue.qsize()
             if queue_size > 1:
               queues_empty = False
-            if now - config.last_timestamp >= self._KEEP_ALIVE_INTERVAL or queue_size > 0:
+            if now - config.last_timestamp >= self._KEEP_ALIVE_INTERVAL or (queue_size > 0 and config.device.available):
               config.last_timestamp = now
               await self._perform_request(session, config)
           except:
