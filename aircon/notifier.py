@@ -81,8 +81,8 @@ class Notifier:
             if queue_size > 1:
               queues_empty = False
             if now - config.last_timestamp >= self._KEEP_ALIVE_INTERVAL or queue_size > 0:
-              await self._perform_request(session, config)
               config.last_timestamp = now
+              await self._perform_request(session, config)
           except:
             logging.exception('[KeepAlive] Failed to send local_reg keep alive to the AC.')
             config.device.available = False
