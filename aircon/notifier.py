@@ -83,11 +83,10 @@ class Notifier:
             if now - config.last_timestamp >= self._KEEP_ALIVE_INTERVAL or (queue_size > 0 and config.device.available):
               config.last_timestamp = now
               await self._perform_request(session, config)
+              config.device.available = True
           except:
             logging.exception('[KeepAlive] Failed to send local_reg keep alive to the AC.')
             config.device.available = False
-          else:
-            config.device.available = True
         if queues_empty:
           logging.debug('[KeepAlive] Waiting for notification or timeout')
           try:
