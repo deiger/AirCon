@@ -73,9 +73,8 @@ class Notifier:
     self._running = True
     async with self._condition:
       while self._running:
-        queue_sizes = await asyncio.gather(
-            self._perform_request(session=session, config=config) for config in self._configurations
-        )
+        queue_sizes = await asyncio.gather(*(self._perform_request(session=session, config=config)
+                                             for config in self._configurations))
         if queue_sizes <= 1:
           logging.debug('[KeepAlive] Waiting for notification or timeout')
           try:
