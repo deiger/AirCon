@@ -25,7 +25,7 @@
       }
     ],
     "log_level": "INFO",
-    "mqtt_host": "localhost",
+    "mqtt_host": "core-mosquitto",
     "mqtt_user": null,
     "mqtt_pass": null,
     "port": null
