@@ -107,13 +107,17 @@ class Notifier:
       return 0
     method = 'PUT' if config.device.available else 'POST'
     self._json['local_reg']['notify'] = int(config.device.commands_queue.qsize() > 0)
-    url = 'http://{}/local_reg.json'.format(config.device.ip_address)
-    logging.debug('[KeepAlive] Sending {} {} {}'.format(method, url, json.dumps(self._json)))
-    async with session.request(method, url, json=self._json, headers=config.headers) as resp:
-      if resp.status != HTTPStatus.ACCEPTED.value:
-        resp_data = await resp.text()
-        logging.error('[KeepAlive] Sending local_reg failed: {}, {}'.format(resp.status, resp_data))
-        raise ConnectionError('Sending local_reg failed: {}, {}'.format(resp.status, resp_data))
+    url = f'http://{config.device.ip_address}/local_reg.json'
+    logging.debug(f'[KeepAlive] Sending {method} {url} {json.dumps(self._json)}')
+    try:
+      async with session.request(method, url, json=self._json, headers=config.headers) as resp:
+        if resp.status != HTTPStatus.ACCEPTED.value:
+          resp_data = await resp.text()
+          logging.error(f'[KeepAlive] Sending local_reg failed: {resp.status}, {resp_data}')
+          raise ConnectionError(f'Sending local_reg failed: {resp.status}, {resp_data}')
+    except aiohttp.client_exceptions.ClientConnectorError as e:
+      raise ConnectionError(
+          f'Failed to connect to {e.host}:{e.port}, maybe it is offline? Details: {e.os_error}.')
     config.last_timestamp = now
     config.device.available = True
     return queue_size
