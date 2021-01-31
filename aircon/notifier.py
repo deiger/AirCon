@@ -26,6 +26,12 @@ class _NotifyConfiguration:
   last_timestamp: int
 
 
+def _run_after_failure(retry_state):
+  config = retry_state.kwargs['config']
+  config.device.available = False
+  return 0
+
+
 class Notifier:
   _KEEP_ALIVE_INTERVAL = 10.0
   _TIME_TO_HANDLE_REQUESTS = 100e-3
@@ -89,14 +95,8 @@ class Notifier:
     self._running = False
     await self._notify()
 
-  @staticmethod
-  def _run_after_failure(retry_state):
-    config = retry_state.kwargs['config']
-    config.device.available = False
-    return 0
-
   @retry(retry=retry_if_exception_type(ConnectionError),
-         retry_error_callback=Notifier._run_after_failure,
+         retry_error_callback=_run_after_failure,
          wait=wait_exponential(exp_base=1.6, max=10),
          stop=stop_after_attempt(6))
   async def _perform_request(self, session: aiohttp.ClientSession,
