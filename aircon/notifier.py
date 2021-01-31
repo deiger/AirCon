@@ -7,7 +7,7 @@ import json
 import logging
 import socket
 import sys
-from tenacity import retry, retry_if_exception_type, wait_exponential
+from tenacity import retry, retry_if_exception_type, wait_exponential, stop_after_attempt
 import time
 import threading
 
@@ -96,8 +96,9 @@ class Notifier:
     return 0
 
   @retry(retry=retry_if_exception_type(ConnectionError),
-         retry_error_callback=_run_after_failure,
-         wait=wait_exponential(min=0.5, multiplier=1.5, max=10))
+         retry_error_callback=Notifier._run_after_failure,
+         wait=wait_exponential(exp_base=1.6, max=10),
+         stop=stop_after_attempt(6))
   async def _perform_request(self, session: aiohttp.ClientSession,
                              config: _NotifyConfiguration) -> int:
     now = time.time()
