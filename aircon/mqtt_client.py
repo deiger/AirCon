@@ -69,4 +69,4 @@ class MqttClient(mqtt.Client):
     else:
       payload = str(value)
     self.publish(self._mqtt_topics['pub'].format(mac_address, property_name),
-                 payload=payload.encode('utf-8'))
+                 payload=payload.encode('utf-8'), retain=True)
