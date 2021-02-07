@@ -116,9 +116,14 @@ class Notifier:
           resp_data = await resp.text()
           logging.error(f'[KeepAlive] Sending local_reg failed: {resp.status}, {resp_data}')
           raise ConnectionError(f'Sending local_reg failed: {resp.status}, {resp_data}')
-    except aiohttp.client_exceptions.ClientConnectorError as e:
+    except aiohttp.client_exceptions.ClientConnectionError as e:
+      logging.error(f'Failed to connect to {config.device.ip_address}, maybe it is offline?')      
       raise ConnectionError(
-          f'Failed to connect to {e.host}:{e.port}, maybe it is offline? Details: {e.os_error}.')
+          f'Failed to connect to {config.device.ip_address}, maybe it is offline?')    
+    except aiohttp.client_exceptions.ClientConnectorError as e:
+      logging.error(f'Failed to connect to {config.device.ip_address}, maybe it is offline? Details: {e.os_error}.')
+      raise ConnectionError(
+          f'Failed to connect to {config.device.ip_address}, maybe it is offline? Details: {e.os_error}.')
     config.last_timestamp = now
     config.device.available = True
     return queue_size
