@@ -47,8 +47,8 @@ async def query_status_device(device: Device):
     await asyncio.sleep(_STATUS_UPDATE_INTERVAL)
 
 async def query_status_worker(devices: [Device]):
-  await asyncio.gather(*(query_status_device(device)
-                                             for device in devices))
+  await asyncio.wait([*(query_status_device(device)
+                                             for device in devices)])
 
 def ParseArguments() -> argparse.Namespace:
   """Parse command line arguments."""
