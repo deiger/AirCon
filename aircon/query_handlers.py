@@ -54,7 +54,8 @@ class QueryHandlers:
     device = self._devices_map[request.remote]
     command['seq_no'] = device.get_command_seq_no()
     try:
-      command['data'], property_updater = device.commands_queue.get_nowait()
+      command_entry = device.commands_queue.get_nowait()
+      command['data'], property_updater = command_entry.command, command_entry.updater
     except queue.Empty:
       command['data'], property_updater = {}, None
     if property_updater:

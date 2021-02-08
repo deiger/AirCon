@@ -1,11 +1,12 @@
 from copy import deepcopy
-from dataclasses import fields
+from dataclasses import dataclass, field, fields
 import enum
 import logging
 import random
 import re
 import string
 import threading
+import time
 from typing import Any, Callable, Dict, List
 import queue
 from Crypto.Cipher import AES
@@ -16,6 +17,14 @@ from .error import Error
 from .properties import (AcProperties, AirFlow, AirFlowState, Economy, FanSpeed, FastColdHeat,
                          FglProperties, FglBProperties, HumidifierProperties, Properties, Power,
                          AcWorkMode, Quiet, TemperatureUnit)
+
+
+@dataclass(order=True)
+class Command:
+  priority: int
+  timestamp: int  # Aligns equal priority commands in FIFO.
+  command: Dict = field(compare=False)
+  updater: Callable = field(compare=False)
 
 
 class Device(object):
@@ -45,7 +54,7 @@ class Device(object):
 
     self._next_command_id = 0
 
-    self.commands_queue = queue.Queue()
+    self.commands_queue = queue.PriorityQueue()
     self._commands_seq_no = 0
     self._commands_seq_no_lock = threading.Lock()
 
@@ -160,7 +169,8 @@ class Device(object):
     # property, to be run once the command is sent.
     typed_value = data_type[value] if issubclass(data_type, enum.Enum) else data_value
     property_updater = lambda: self.update_property(name, typed_value)
-    self.commands_queue.put_nowait((command, property_updater))
+    # Add as a high priority command.
+    self.commands_queue.put_nowait(Command(10, time.time_ns(), command, property_updater))
 
     self._queue_listener()
 
@@ -194,7 +204,8 @@ class Device(object):
           }]
       }
       self._next_command_id += 1
-      self.commands_queue.put_nowait((command, None))
+      # Add as a lower-priority command.
+      self.commands_queue.put_nowait(Command(100, time.time_ns(), command, None))
     self._queue_listener()
 
   def update_key(self, key: dict) -> dict:
