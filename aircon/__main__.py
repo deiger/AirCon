@@ -43,7 +43,7 @@ async def query_status_device(device: Device):
     # the queue with status updates.
     while device.commands_queue.qsize() > 10:
       await asyncio.sleep(_WAIT_FOR_EMPTY_QUEUE)
-    await device.queue_status()
+    device.queue_status()
     await asyncio.sleep(_STATUS_UPDATE_INTERVAL)
 
 async def query_status_worker(devices: [Device]):
