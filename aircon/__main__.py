@@ -35,19 +35,20 @@ from .notifier import Notifier
 from .query_handlers import QueryHandlers
 
 
-async def query_status_worker(devices: [Device]):
+async def query_status_device(device: Device):
   _STATUS_UPDATE_INTERVAL = 600.0
   _WAIT_FOR_EMPTY_QUEUE = 10.0
   while True:
     # In case the AC is stuck, and not fetching commands, avoid flooding
     # the queue with status updates.
-    for device in devices:
-      while device.commands_queue.qsize() > 10:
-        await asyncio.sleep(_WAIT_FOR_EMPTY_QUEUE)
-      device.queue_status()
-    break  
+    while device.commands_queue.qsize() > 10:
+      await asyncio.sleep(_WAIT_FOR_EMPTY_QUEUE)
+    device.queue_status()
     await asyncio.sleep(_STATUS_UPDATE_INTERVAL)
 
+async def query_status_worker(devices: [Device]):
+  await asyncio.gather(*(query_status_device(device)
+                                             for device in devices))
 
 def ParseArguments() -> argparse.Namespace:
   """Parse command line arguments."""
