@@ -1,5 +1,6 @@
 from copy import deepcopy
 from dataclasses import fields
+import asyncio
 import enum
 import logging
 import random
@@ -180,8 +181,11 @@ class Device(object):
   def _convert_to_control_value(self, name: str, value) -> int:
     raise NotImplementedError()
 
-  def queue_status(self) -> None:
+  async def queue_status(self) -> None:
+    _WAIT_FOR_EMPTY_QUEUE = 1
     for data_field in fields(self._properties):
+      while self.commands_queue.qsize() > 0:
+        await asyncio.sleep(_WAIT_FOR_EMPTY_QUEUE)
       command = {
           'cmds': [{
               'cmd': {
@@ -195,7 +199,7 @@ class Device(object):
       }
       self._next_command_id += 1
       self.commands_queue.put_nowait((command, None))
-    self._queue_listener()
+      self._queue_listener()
 
   def update_key(self, key: dict) -> dict:
     return self._config.update(key)
