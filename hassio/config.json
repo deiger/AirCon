@@ -17,13 +17,6 @@
     "OPTIONS_FILE": "/data/options.json"
   },
   "options": {
-    "app": [
-      {
-        "username": null,
-        "password": null,
-        "code": null
-      }
-    ],
     "log_level": "INFO",
     "mqtt_host": "core-mosquitto",
     "mqtt_user": null,
