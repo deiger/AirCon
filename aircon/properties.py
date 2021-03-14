@@ -152,6 +152,10 @@ class Properties(object):
     return cls._get_metadata(attr)['base_type']
 
   @classmethod
+  def get_precision(cls, attr: str):
+    return cls._get_metadata(attr).get('precision', 1)
+
+  @classmethod
   def get_read_only(cls, attr: str):
     return cls._get_metadata(attr)['read_only']
 
@@ -396,7 +400,12 @@ class FglProperties(Properties):
                                          'decoder': lambda x: FglFanSpeed[x]
                                      }
                                  })
-  adjust_temperature: int = field(default=25, metadata={'base_type': 'integer', 'read_only': False})
+  adjust_temperature: int = field(default=25,
+                                  metadata={
+                                      'base_type': 'integer',
+                                      'precision': 0.1,
+                                      'read_only': False
+                                  })
   af_vertical_direction: int = field(default=3,
                                      metadata={
                                          'base_type': 'integer',
@@ -457,7 +466,12 @@ class FglBProperties(Properties):
                                          'decoder': lambda x: FglFanSpeed[x]
                                      }
                                  })
-  adjust_temperature: int = field(default=25, metadata={'base_type': 'integer', 'read_only': False})
+  adjust_temperature: int = field(default=25,
+                                  metadata={
+                                      'base_type': 'integer',
+                                      'precision': 0.1,
+                                      'read_only': False
+                                  })
   af_vertical_move_step1: int = field(default=3,
                                       metadata={
                                           'base_type': 'integer',

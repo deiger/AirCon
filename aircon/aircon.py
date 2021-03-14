@@ -113,8 +113,14 @@ class Device(object):
 
   def update_property(self, name: str, value, notify_value=None) -> None:
     """Update the stored properties, if changed."""
+    # Update value precision for value sent from the A/C
+    precision = self._properties.get_precision(name)
+    if precision != 1:
+      value = round(value * precision)
+
     if notify_value is None:
       notify_value = value
+
     with self._properties_lock:
       old_value = getattr(self._properties, name)
       if value != old_value:
@@ -163,13 +169,19 @@ class Device(object):
       self._convert_to_control_value(name, data_value)
       return
 
+    typed_value = data_value
     if issubclass(data_type, enum.Enum):
       data_value = data_value.value
+      typed_value = data_type[value]
+
+    # Update value precision for value to be sent to the A/C
+    precision = self._properties.get_precision(name)
+    if precision != 1:
+      data_value = round(data_value / precision)
 
     command = self._build_command(name, data_value)
     # There are (usually) no acks on commands, so also queue an update to the
     # property, to be run once the command is sent.
-    typed_value = data_type[value] if issubclass(data_type, enum.Enum) else data_value
     property_updater = lambda: self.update_property(name, typed_value)
     # Add as a high priority command.
     self.commands_queue.put_nowait(Command(10, time.time_ns(), command, property_updater))
