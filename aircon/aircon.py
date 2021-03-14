@@ -47,7 +47,7 @@ class Device(object):
     self._properties = properties
     self._properties_lock = threading.RLock()
     self._queue_listener = notifier
-    self._available = False
+    self._available = None
     self.topics = {}
     self.work_modes = []
     self.fan_modes = []
@@ -80,12 +80,14 @@ class Device(object):
 
   @property
   def available(self) -> bool:
-    return self._available
+    # Return False if was not set yet.
+    return self._available or False
 
   @available.setter
   def available(self, value: bool):
-    self._available = value
-    self._notify_listeners('available', 'online' if value else 'offline')
+    if self._available != value:
+      self._available = value
+      self._notify_listeners('available', 'online' if value else 'offline', retain=True)
 
   def add_property_change_listener(self, listener: Callable[[str, Any], None]):
     self._property_change_listeners.append(listener)
@@ -93,9 +95,9 @@ class Device(object):
   def remove_property_change_listener(self, listener: Callable[[str, Any], None]):
     self._property_change_listeners.remove(listener)
 
-  def _notify_listeners(self, prop_name: str, value):
+  def _notify_listeners(self, prop_name: str, value, retain: bool = False):
     for listener in self._property_change_listeners:
-      listener(self.mac_address, prop_name, value)
+      listener(self.mac_address, prop_name, value, retain)
 
   def get_all_properties(self) -> Properties:
     with self._properties_lock:

@@ -24,6 +24,15 @@ class MqttClient(mqtt.Client):
     # Subscribe to subscription updates.
     client.subscribe('$SYS/broker/log/M/subscribe/#')
 
+    # Publish current status of all properties for available devices.
+    for device in self._devices:
+      if device.available():
+        for prop_name in fields(device.get_all_properties()):
+          self.mqtt_publish_update(device.mac_address,
+                                   prop_name,
+                                   device.get_property(prop_name),
+                                   retain=False)
+
   def mqtt_on_message(self, client: mqtt.Client, userdata, message: mqtt.MQTTMessage):
     logging.info('MQTT message Topic: {}, Payload {}'.format(message.topic, message.payload))
     if message.topic.startswith('$SYS/broker/log/M/subscribe'):
@@ -59,14 +68,21 @@ class MqttClient(mqtt.Client):
         continue
       chosen_device = device
 
-    self.mqtt_publish_update(chosen_device.mac_address, prop_name,
-                             chosen_device.get_property(prop_name))
+    self.mqtt_publish_update(chosen_device.mac_address,
+                             prop_name,
+                             chosen_device.get_property(prop_name),
+                             retain=False)
 
-  def mqtt_publish_update(self, mac_address: str, property_name: str, value) -> None:
+  def mqtt_publish_update(self,
+                          mac_address: str,
+                          property_name: str,
+                          value,
+                          retain: bool = False) -> None:
     if isinstance(value, enum.Enum):
       payload = 'fan_only' if (value is AcWorkMode.FAN or
                                value is FglOperationMode.FAN) else value.name.lower()
     else:
       payload = str(value)
     self.publish(self._mqtt_topics['pub'].format(mac_address, property_name),
-                 payload=payload.encode('utf-8'), retain=True)
+                 payload=payload.encode('utf-8'),
+                 retain=retain)
