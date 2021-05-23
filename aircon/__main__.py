@@ -48,7 +48,7 @@ async def query_status_device(device: Device):
 
 
 async def query_status_worker(devices: [Device]):
-  await asyncio.wait([*(query_status_device(device) for device in devices)])
+  await asyncio.wait([asyncio.create_task(query_status_device(device)) for device in devices])
 
 
 def ParseArguments() -> argparse.Namespace:
