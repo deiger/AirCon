@@ -82,6 +82,9 @@ class QueryHandlers:
         logging.info('Unsupported update message = {}'.format(update['seq_no']))
         return response
       name = update['data']['name']
+      # Fix A/C typos.
+      if name == 'f_votage':
+        name = 'f_voltage'
       data_type = device.get_property_type(name)
       value = data_type(update['data']['value'])
       device.update_property(name, value)
