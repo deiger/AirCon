@@ -16,7 +16,7 @@ from .config import Config, Encryption
 from .error import Error
 from .properties import (AcProperties, AirFlow, AirFlowState, Economy, FanSpeed, FastColdHeat,
                          FglProperties, FglBProperties, HumidifierProperties, Properties, Power,
-                         AcWorkMode, Quiet, TemperatureUnit)
+                         AcWorkMode, Quiet, TemperatureUnit, SleepMode)
 
 
 @dataclass(order=True)
@@ -165,7 +165,7 @@ class Device(object):
       data_value = data_type(value)
 
     # If device has set t_control_value it is being controlled by this field.
-    if name != 't_control_value' and self.get_property('t_control_value'):
+    if name != 't_control_value' and self.get_property('t_control_value') and name != 't_sleep':
       self._convert_to_control_value(name, data_value)
       return
 
@@ -314,6 +314,12 @@ class AcDevice(Device):
       return control_value.get_temp(control)
     else:
       return self.get_property('t_temp')
+
+  def set_sleep(self, setting: SleepMode) -> None:
+    self.queue_command('t_control_value', setting)
+
+  def get_sleep(self) -> SleepMode:
+    self.get_property('t_sleep')
 
   def set_work_mode(self, setting: AcWorkMode) -> None:
     control = self.get_property('t_control_value')
