@@ -26,7 +26,7 @@ class MqttClient(mqtt.Client):
 
     # Publish current status of all properties for available devices.
     for device in self._devices:
-      if device.available():
+      if device.available:
         for prop_name in fields(device.get_all_properties()):
           self.mqtt_publish_update(device.mac_address,
                                    prop_name,
