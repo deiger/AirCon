@@ -125,7 +125,7 @@ class FglOperationMode(enum.IntEnum):
   AUTO = 2
   COOL = 3
   DRY = 4
-  FAN = 5
+  FAN_ONLY = 5
   HEAT = 6
 
 

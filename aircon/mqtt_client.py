@@ -79,8 +79,7 @@ class MqttClient(mqtt.Client):
                           value,
                           retain: bool = False) -> None:
     if isinstance(value, enum.Enum):
-      payload = 'fan_only' if (value is AcWorkMode.FAN or
-                               value is FglOperationMode.FAN) else value.name.lower()
+      payload = 'fan_only' if value is AcWorkMode.FAN else value.name.lower()
     else:
       payload = str(value)
     self.publish(self._mqtt_topics['pub'].format(mac_address, property_name),
