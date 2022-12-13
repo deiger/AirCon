@@ -36,13 +36,13 @@ class Notifier:
   _KEEP_ALIVE_INTERVAL = 10.0
   _TIME_TO_HANDLE_REQUESTS = 100e-3
 
-  def __init__(self, port: int):
+  def __init__(self, port: int, local_ip: str):
     self._configurations = []
     self._condition = asyncio.Condition()
 
     self._running = False
 
-    local_ip = self._get_local_ip()
+    local_ip = local_ip or self._get_local_ip()
     self._json = {'local_reg': {'ip': local_ip, 'notify': 0, 'port': port, 'uri': '/local_lan'}}
 
   def _get_local_ip(self):

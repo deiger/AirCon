@@ -112,6 +112,7 @@ Use this method if the docker setup above does not work for you.
    - `--mqtt_topic` - The MQTT root topic. Default is &quot;hisense_ac&quot;. The server will listen on topics
      &lt;{mqtt_topic}/{property_name}/command&gt; and publish to &lt;{mqtt_topic}/{property_name}/status&gt;.
    - `--log_level` - The minimal log level to send to syslog. Default is WARNING.
+   - `--local_ip` - The local IP address to report to the AC unit(s) as target server. Useful in case the server running this application has multiple IP addresses (e.g. in multiple VLANs), since some/most(?) AC units will refuse to report to an IP address outside of their subnet.
 1. Access e.g. using curl:
    ```bash
    curl -ik 'http://localhost:8888/hisense/status'
