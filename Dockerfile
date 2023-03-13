@@ -1,4 +1,4 @@
-FROM python:3.7
+FROM python:3.10
 
 ARG BUILD_VERSION=latest
 LABEL io.hass.version="$BUILD_VERSION" io.hass.type="addon" io.hass.arch="armhf|armv7|aarch64|amd64|i386"

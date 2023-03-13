@@ -11,7 +11,7 @@ The module is installed in A/Cs and humidifiers that are either manufactured or 
 ## Prerequisites
 
 1. Air Conditioner with HiSense AEH-W4B1 or AEH-W4E1 installed, or a Fujitsu FGLair.
-1. Have Python 3.7 or above installed. If using Raspberry Pi, either upgrade to Raspbian Buster, or manually install it in Raspbian Stretch.
+1. Have Python 3.10 or above installed. If using Raspberry Pi, either upgrade to Raspbian Buster, or manually install it in Raspbian Stretch.
 1. Configure the A/Cs with the dedicated app. Links to each app are available in the table below. Log into the app, associate each A/C and connect it to the network, as described in the app documentation.
 1. Once everything has been configured, the A/Cs can be blocked from connecting to the internet, as it will no longer be needed. Set them static IP addresses in the router, and write them down.
    * Note: _To avoid the need for manual changes later, make sure the app is aware of the new IP addresses before disconnecting the A/Cs from the internet._
@@ -82,14 +82,14 @@ Use this method if the docker setup above does not work for you.
 
 1. Download and install aircon module:
    ```bash
-   python3.7 setup.py install
+   python3.10 setup.py install
    ```
 
 1. Run discovery command to fetch the LAN keys that will allow connecting to the A/C. Pass it your login credentials, as well as the code for your app from the list below:
 
    For example:
    ```bash
-   python3.7 -m aircon discovery tornado-us foo@example.com my_pass
+   python3.10 -m aircon discovery tornado-us foo@example.com my_pass
    ```
    The CLI will generate a config file for each A/C, that needs to be passed to the A/C
    control server below. You can select the A/C that the config is generated for by
@@ -100,7 +100,7 @@ Use this method if the docker setup above does not work for you.
 
 1. Test out that you can run the server, e.g.:
    ```bash
-   python3.7 -m aircon run --port 8888 --config config.json --mqtt_host localhost
+   python3.10 -m aircon run --port 8888 --config config.json --mqtt_host localhost
    ```
    Parameters:
    - `--port` or `-p` - Port for the web server.
@@ -139,7 +139,7 @@ Assuming your username is "pi"
    After=network.target
 
    [Service]
-   ExecStart=/usr/bin/python3.7 -m aircon run --port 8888 --config config.json --mqtt_host localhost
+   ExecStart=/usr/bin/python3.10 -m aircon run --port 8888 --config config.json --mqtt_host localhost
    WorkingDirectory=/opt/hisense
    StandardOutput=inherit
    StandardError=inherit
