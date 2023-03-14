@@ -21,7 +21,8 @@
     "mqtt_host": "core-mosquitto",
     "mqtt_user": null,
     "mqtt_pass": null,
-    "port": null
+    "port": null,
+    "local_ip": null
   },
   "schema": {
     "app": [
@@ -35,6 +36,7 @@
     "mqtt_host": "str?",
     "mqtt_user": "str?",
     "mqtt_pass": "str?",
-    "port": "port"
+    "port": "port",
+    "local_ip": "str?"
   }
 }
