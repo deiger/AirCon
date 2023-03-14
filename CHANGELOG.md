@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.12 (2023-03-14)
+
+#### New Features
+
+* Add option to specify local ip address to AC units to connect to
+
+Full set of changes: [`0.3.11...0.3.12`](https://github.com/deiger/AirCon/compare/0.3.11...0.3.12)
+
 ## 0.3.11 (2023-03-13)
 
 
