@@ -157,10 +157,19 @@ class Device(object):
     # Device mode is set using t_control_value
     if issubclass(data_type, enum.Enum):
       data_value = data_type[value]
-    elif data_type is int and type(value) is str and '.' in value:
-      # Round rather than fail if the input is a float.
-      # This is commonly the case for temperatures converted by HA from Celsius.
-      data_value = round(float(value))
+    elif data_type is int:
+      # incoming data may be an int or float; it's likely to be a float for
+      # temperatures converted by HA to/from Celsius.
+      float_val = float(value)
+
+      # Granularity may be 0.5, in which case we round to the nearest 0.5, then apply precision
+      granularity = self._properties.get_granularity(name)
+      precision = self._properties.get_precision(name)
+      float_val = (round(float_val / granularity) * granularity) / precision
+
+      # Update value precision for value to be sent to the A/C
+      # We assume that only int types have a precision value
+      data_value = round(float_val)
     else:
       data_value = data_type(value)
 
@@ -173,11 +182,6 @@ class Device(object):
     if issubclass(data_type, enum.Enum):
       data_value = data_value.value
       typed_value = data_type[value]
-
-    # Update value precision for value to be sent to the A/C
-    precision = self._properties.get_precision(name)
-    if precision != 1:
-      data_value = round(data_value / precision)
 
     command = self._build_command(name, data_value)
     # There are (usually) no acks on commands, so also queue an update to the
