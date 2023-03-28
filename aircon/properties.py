@@ -406,6 +406,12 @@ class FglProperties(Properties):
                                       'precision': 0.1,
                                       'read_only': False
                                   })
+  display_temperature: int = field(default=25,
+                                   metadata={
+                                      'base_type': 'integer',
+                                      'precision': 0.1,
+                                      'read_only': True
+                                   })
   af_vertical_direction: int = field(default=3,
                                      metadata={
                                          'base_type': 'integer',
@@ -472,6 +478,12 @@ class FglBProperties(Properties):
                                       'precision': 0.1,
                                       'read_only': False
                                   })
+  display_temperature: int = field(default=25,
+                                   metadata={
+                                      'base_type': 'integer',
+                                      'precision': 0.1,
+                                      'read_only': True
+                                   })
   af_vertical_move_step1: int = field(default=3,
                                       metadata={
                                           'base_type': 'integer',
