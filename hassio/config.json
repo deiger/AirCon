@@ -1,9 +1,9 @@
 {
-  "name": "HiSense Air Conditioners",
+  "name": "HiSense Air Conditioners (edit)",
   "version": "0.3.13",
   "slug": "hisense_ac",
   "description": "Interface for controlling Air Conditioners, e.g. with HiSense modules.",
-  "url": "https://github.com/deiger/AirCon",
+  "url": "https://github.com/gyro-labs/AirCon",
   "image": "deiger/aircon",
   "arch": ["armhf", "armv7", "aarch64", "amd64", "i386"],
   "startup": "application",
