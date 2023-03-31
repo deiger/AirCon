@@ -2,6 +2,7 @@ from copy import deepcopy
 from dataclasses import dataclass, field, fields
 import enum
 import logging
+import numbers
 import random
 import re
 import string
@@ -118,10 +119,12 @@ class Device(object):
   def update_property(self, name: str, value, notify_value=None) -> None:
     """Update the stored properties, if changed."""
     # Update value scale for value sent from the A/C
-    scale = self._properties.get_scale(name)
-    precision = self._properties.get_precision(name)
-    # Scale by scale, then round to precision
-    value = round(value * scale / precision) * precision
+    data_type = self._properties.get_type(name)
+    if data_type is int:
+      scale = self._properties.get_scale(name)
+      precision = self._properties.get_precision(name)
+      # Scale by scale, then round to precision
+      value = round(value * scale / precision) * precision
 
 
     if notify_value is None:
