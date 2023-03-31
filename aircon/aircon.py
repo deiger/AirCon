@@ -111,12 +111,18 @@ class Device(object):
   def get_property_type(self, name: str):
     return self._properties.get_type(name)
 
+  def get_temp_precision(self) -> float:
+    """ This must be 1.0, 0.5, or 0.1 for HA MQTT precision """
+    return float(self._properties.get_precision(self.topics['temp']))
+
   def update_property(self, name: str, value, notify_value=None) -> None:
     """Update the stored properties, if changed."""
-    # Update value precision for value sent from the A/C
+    # Update value scale for value sent from the A/C
+    scale = self._properties.get_scale(name)
     precision = self._properties.get_precision(name)
-    if precision != 1:
-      value = round(value * precision)
+    # Scale by scale, then round to precision
+    value = round(value * scale / precision) * precision
+
 
     if notify_value is None:
       notify_value = value
@@ -162,13 +168,13 @@ class Device(object):
       # temperatures converted by HA to/from Celsius.
       float_val = float(value)
 
-      # Granularity may be 0.5, in which case we round to the nearest 0.5, then apply precision
-      granularity = self._properties.get_granularity(name)
+      # Precision may be 0.5, in which case we round to the nearest 0.5, then apply scale
       precision = self._properties.get_precision(name)
-      float_val = (round(float_val / granularity) * granularity) / precision
+      scale = self._properties.get_scale(name)
+      float_val = (round(float_val / precision) * precision) / scale
 
-      # Update value precision for value to be sent to the A/C
-      # We assume that only int types have a precision value
+      # Update value scale for value to be sent to the A/C
+      # We assume that only int types have a scale value
       data_value = round(float_val)
     else:
       data_value = data_type(value)
