@@ -1,5 +1,5 @@
 {
-  "name": "Home Assistant Add-on (edit): HiSense Air Conditioners",
-  "url": "https://github.com/gyro-labs/AirCon",
-  "maintainer": "Martijn Ruijzendaal <droreiger@gmail.com>"
+  "name": "Home Assistant Add-on: HiSense Air Conditioners",
+  "url": "https://github.com/deiger/AirCon",
+  "maintainer": "Dror Eiger <droreiger@gmail.com>"
 }
