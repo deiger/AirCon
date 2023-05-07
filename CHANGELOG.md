@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.14 (2023-03-28)
+
+
+Full set of changes: [`0.3.13...0.3.14`](https://github.com/deiger/AirCon/compare/0.3.13...0.3.14)
+
 ## 0.3.13 (2023-03-14)
 
 
