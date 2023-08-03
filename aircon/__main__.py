@@ -194,7 +194,7 @@ async def run(parsed_args):
     mqtt_client.publish(mqtt_topics['lwt'], payload='online', retain=True)
     for device in devices:
       config = {
-          'name': device.name,
+          'name': None,
           'unique_id': device.mac_address,
           'device': {
               'identifiers': [f'hisense_ac_{device.mac_address}'],
