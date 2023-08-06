@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -xeo pipefail
 
 git pull
 
@@ -12,7 +12,7 @@ else
 fi
 
 git tag -a $NEW_VERSION -m "$NEW_VERSION_MSG"
-auto-changelog
+#auto-changelog
 
 for f in aircon/__init__.py hassio/config.json docker-compose.yaml; do
   sed -i "" -e "s/$OLD_VERSION/$NEW_VERSION/" $f
