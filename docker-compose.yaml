@@ -10,7 +10,7 @@ services:
   hisense_ac:
     depends_on:
       - copy_config
-    image: deiger/aircon:0.3.15
+    image: emoses/aircon:0.3.15
     container_name: hisense_ac
     healthcheck:
       disable: true

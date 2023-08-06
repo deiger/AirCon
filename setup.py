@@ -13,7 +13,7 @@ setuptools.setup(
     description='Interface for controlling Air Conditioners, e.g. with HiSense modules.',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/deiger/AirCon',
+    url='https://github.com/emoses/AirCon',
     author='Dror Eiger',
     author_email='droreiger@gmail.com',
     license='GPL 3.0',

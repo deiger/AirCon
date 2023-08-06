@@ -4,7 +4,7 @@
 
 ## About
 
-Use this add-on to add support for Hisense Air Conditioners. See [here](https://github.com/deiger/AirCon) for more details.
+Use this add-on to add support for Hisense Air Conditioners. See [here](https://github.com/emoses/AirCon) for more details.
 
 [aarch64-shield]: https://img.shields.io/badge/aarch64-yes-green.svg
 [amd64-shield]: https://img.shields.io/badge/amd64-yes-green.svg

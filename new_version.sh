@@ -24,5 +24,5 @@ git tag -a $NEW_VERSION -m "$NEW_VERSION_MSG"
 git push
 docker buildx rm --all-inactive --force
 docker buildx create --name multiarch --driver docker-container --use || true
-docker buildx build --platform linux/arm/v7,linux/arm64,linux/amd64,linux/386 -t deiger/aircon:$NEW_VERSION --push .
+docker buildx build --platform linux/arm/v7,linux/arm64,linux/amd64,linux/386 -t emoses/aircon:$NEW_VERSION --push .
 git push --tags
