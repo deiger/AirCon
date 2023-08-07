@@ -19,6 +19,7 @@
   "options": {
     "log_level": "INFO",
     "mqtt_host": "core-mosquitto",
+    "mqtt_port": 1883,
     "mqtt_user": null,
     "mqtt_pass": null,
     "port": null
@@ -33,6 +34,7 @@
     ],
     "log_level": "list(CRITICAL|ERROR|WARNING|INFO|DEBUG)?",
     "mqtt_host": "str?",
+    "mqtt_port": "port?",
     "mqtt_user": "str?",
     "mqtt_pass": "str?",
     "port": "port",
