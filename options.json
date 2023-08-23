@@ -7,7 +7,8 @@
     }
   ],
   "log_level": "INFO",
-  "mqtt_host": "localhost",
+  "mqtt_host": "core-mosquitto",
+  "mqtt_port": 1883,
   "mqtt_user": "<mqtt username>",
   "mqtt_pass": "<mqtt password>",
   "port": 8888,
