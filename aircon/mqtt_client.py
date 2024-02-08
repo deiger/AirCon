@@ -19,8 +19,10 @@ class MqttClient(mqtt.Client):
 
   def mqtt_on_connect(self, client: mqtt.Client, userdata, flags, rc):
     for device in self._devices:
-      client.subscribe([(self._mqtt_topics['sub'].format(device.mac_address, data_field.name), 0)
-                        for data_field in fields(device.get_all_properties())])
+      topics_fmt = [(self._mqtt_topics['sub'].format(device.mac_address, data_field.name), 0)
+                        for data_field in fields(device.get_all_properties())]
+      logging.debug(f"Subscribing to topics{topics_fmt} for device {device}")
+      client.subscribe(topics_fmt)
     # Subscribe to subscription updates.
     client.subscribe('$SYS/broker/log/M/subscribe/#')
 
