@@ -111,6 +111,9 @@ class Device(object):
   def get_property_type(self, name: str):
     return self._properties.get_type(name)
 
+  def parse_property(self, name: str, value):
+    return self._properties.parse_attr(name, value)
+
   def update_property(self, name: str, value, notify_value=None) -> None:
     """Update the stored properties, if changed."""
     # Update value precision for value sent from the A/C
@@ -123,11 +126,13 @@ class Device(object):
 
     with self._properties_lock:
       old_value = getattr(self._properties, name)
+      logging.debug(f"Updating {self}.{name} to {value}")
       if value != old_value:
         setattr(self._properties, name, value)
         # logging.debug('Updated properties: %s' % self._properties)
         if name == 't_control_value':
           self._update_controlled_properties(value)
+      logging.debug(f"Updated  {self}.{name} to {getattr(self._properties, name)}")
       self._notify_listeners(name, notify_value)
 
   def _update_controlled_properties(self, control: int):
@@ -546,7 +551,8 @@ class FglDevice(Device):
         'fan_speed': 'fan_speed',
         'work_mode': 'operation_mode',
         'swing_mode': 'af_vertical_swing',
-        'temp': 'adjust_temperature'
+        'temp': 'adjust_temperature',
+        'display_temperature': 'display_temperature',
     }
     self.work_modes = ['off', 'fan_only', 'heat', 'cool', 'dry', 'auto']
     self.fan_modes = ['auto', 'quiet', 'low', 'medium', 'high']
@@ -559,7 +565,8 @@ class FglBDevice(Device):
     self.topics = {
         'fan_speed': 'fan_speed',
         'work_mode': 'operation_mode',
-        'temp': 'adjust_temperature'
+        'temp': 'adjust_temperature',
+        'display_temperature': 'display_temperature',
     }
     self.work_modes = ['off', 'fan_only', 'heat', 'cool', 'dry', 'auto']
     self.fan_modes = ['auto', 'quiet', 'low', 'medium', 'high']
