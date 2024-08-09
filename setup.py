@@ -19,7 +19,7 @@ setuptools.setup(
     license='GPL 3.0',
     packages=setuptools.find_packages(),
     install_requires=[
-        'aiohttp==3.9.4', 'dataclasses_json', 'pycryptodome', 'paho-mqtt==1.6.1', 'tenacity',
+        'aiohttp==3.10.2', 'dataclasses_json', 'pycryptodome', 'paho-mqtt==1.6.1', 'tenacity',
         'get-mac', 'retry'
     ],
     classifiers=[
