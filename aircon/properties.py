@@ -152,7 +152,18 @@ class Properties(object):
     return cls._get_metadata(attr)['base_type']
 
   @classmethod
-  def get_precision(cls, attr: str):
+  def get_scale(cls, attr: str) -> float:
+    """Scale affects int values; they will be divided by the scale to get a result that's
+    sent to the device, or multiplied when updating from the device. A typical value is 0.1.
+    """
+    return cls._get_metadata(attr).get('scale', 1)
+
+  @classmethod
+  def get_precision(cls, attr: str) -> float:
+    """Precision affects int values.  Any incoming float value v will be rounded to the nearest
+    precision g by round(v/g) * g.  A typical value is 0.5.  Combined with a scale of 0.1, this
+    can convert an incoming value of 20.1 to 200, or 20.4 to 205.
+    """
     return cls._get_metadata(attr).get('precision', 1)
 
   @classmethod
@@ -403,13 +414,14 @@ class FglProperties(Properties):
   adjust_temperature: int = field(default=25,
                                   metadata={
                                       'base_type': 'integer',
-                                      'precision': 0.1,
+                                      'scale': 0.1,
+                                      'precision': 0.5,
                                       'read_only': False
                                   })
   display_temperature: int = field(default=25,
                                    metadata={
                                       'base_type': 'integer',
-                                      'precision': 0.1,
+                                      'scale': 0.1,
                                       'read_only': True
                                    })
   af_vertical_direction: int = field(default=3,
@@ -475,13 +487,13 @@ class FglBProperties(Properties):
   adjust_temperature: int = field(default=25,
                                   metadata={
                                       'base_type': 'integer',
-                                      'precision': 0.1,
+                                      'scale': 0.1,
                                       'read_only': False
                                   })
   display_temperature: int = field(default=25,
                                    metadata={
                                       'base_type': 'integer',
-                                      'precision': 0.1,
+                                      'scale': 0.1,
                                       'read_only': True
                                    })
   af_vertical_move_step1: int = field(default=3,
