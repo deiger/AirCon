@@ -44,7 +44,7 @@ If using [HomeAssistant], this is the preferred method.
 
 1. In the HomeAssistant UI, enter **Supervisor → Add-on Store**.
 1. Click **⋮ menu → Repositories**.
-1. Add `https://github.com/deiger/AirCon` to the list.
+1. Add `https://github.com/emoses/AirCon` to the list.
 1. Choose **HiSense Air Conditioner** and install it.
 1. Update the configuration as detailed within the add-on.
 1. Start the add-on. Do not forget to enable **Start on boot** and **Watchdog**.
@@ -71,10 +71,10 @@ Use this method if not using HomeAssistant, or if you prefer to set it up outsid
    journalctl CONTAINER_NAME=hisense_ac
    ```
 
-1. Profit!  
+1. Profit!
    The A/Cs should now be auto-discovered by [HomeAssistant] or [openHAB]
    (using the [HomeAssistant MQTT Components Binding](https://www.openhab.org/addons/bindings/mqtt.homeassistant/)).
-   [SmartThings] requires manual setup, using the [groovy file](devicetypes/deiger/hisense-air-conditioner.src/hisense-air-conditioner.groovy), see below.
+   [SmartThings] requires manual setup, using the [groovy file](devicetypes/emoses/hisense-air-conditioner.src/hisense-air-conditioner.groovy), see below.
 
 ## Run the A/C control server manually
 
@@ -218,7 +218,7 @@ Listed here are the properties available through the API for standard A/Cs
 You will need a groovy script to enable SmartThings integration with the Air Conditioner, through the control server above.
 It currently implements the main functionality (turn on/off, AC mode, fan speed, dimmer etc.).
 
-The groovy file is available [here](devicetypes/deiger/hisense-air-conditioner.src/hisense-air-conditioner.groovy), for download and installation through the [Groovy IDE](https://graph.api.smartthings.com). As I'm continuously improving this script, it would be more efficient to use the IDE's github integration, in order to stay up-to-date.
+The groovy file is available [here](devicetypes/emoses/hisense-air-conditioner.src/hisense-air-conditioner.groovy), for download and installation through the [Groovy IDE](https://graph.api.smartthings.com). As I'm continuously improving this script, it would be more efficient to use the IDE's github integration, in order to stay up-to-date.
 
 HomeAsststant is now fully supported through [MQTT Discovery]. Properly configured devices are auto-configured and populated in the Lovelace dashboard.
 
