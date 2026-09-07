@@ -16,22 +16,33 @@ class MqttClient(mqtt.Client):
 
     self.on_connect = self.mqtt_on_connect
     self.on_message = self.mqtt_on_message
+    self.on_disconnect = self.mqtt_on_disconnect
 
   def mqtt_on_connect(self, client: mqtt.Client, userdata, flags, rc):
+    logging.info('MQTT connected to broker rc=%s (flags=%s)', rc, flags)
+    if rc != mqtt.CONNACK_ACCEPTED:
+      return
     for device in self._devices:
       client.subscribe([(self._mqtt_topics['sub'].format(device.mac_address, data_field.name), 0)
                         for data_field in fields(device.get_all_properties())])
     # Subscribe to subscription updates.
     client.subscribe('$SYS/broker/log/M/subscribe/#')
 
-    # Publish current status of all properties for available devices.
+    # The broker keeps the retained 'offline' will after any disconnect, so announce that we
+    # are back on every (re)connect, not only once at start-up.
+    if 'lwt' in self._mqtt_topics:
+      self.publish(self._mqtt_topics['lwt'], payload='online', retain=True)
+
+    # Do not publish the cached properties here: right after start-up they are still the
+    # dataclass defaults (e.g. t_power=ON, t_work_mode=AUTO) and Home Assistant would briefly
+    # show a phantom "on / auto". Query the device instead; the fresh values are published by
+    # the property change listeners as the replies arrive.
     for device in self._devices:
-      if device.available:
-        for prop_name in fields(device.get_all_properties()):
-          self.mqtt_publish_update(device.mac_address,
-                                   prop_name,
-                                   device.get_property(prop_name),
-                                   retain=False)
+      device.queue_status()
+
+  def mqtt_on_disconnect(self, client: mqtt.Client, userdata, rc):
+    # Reconnection is driven by mqtt_loop() in __main__; here we only make it visible.
+    logging.warning('MQTT disconnected from broker rc=%s', rc)
 
   def mqtt_on_message(self, client: mqtt.Client, userdata, message: mqtt.MQTTMessage):
     logging.info('MQTT message Topic: {}, Payload {}'.format(message.topic, message.payload))

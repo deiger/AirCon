@@ -158,9 +158,31 @@ async def setup_and_run_http_server(parsed_args, devices: [Device]):
 
 
 async def mqtt_loop(mqtt_client: MqttClient):
+  """Drives the paho network loop and reconnects when the broker connection is lost.
+
+  paho's manual loop() never reconnects on its own, so after a broker restart or a short LAN
+  outage the bridge used to stay silent forever (LWT 'offline', entities 'unavailable' in Home
+  Assistant) until the container was restarted.
+  """
   _MQTT_LOOP_TIMEOUT = 1
+  _MQTT_RECONNECT_DELAY = 5
+  if mqtt_client is None:
+    return
   while True:
-    mqtt_client.loop()
+    try:
+      rc = mqtt_client.loop()
+    except Exception:
+      logging.exception('MQTT loop failed')
+      rc = mqtt.MQTT_ERR_UNKNOWN
+    if rc != mqtt.MQTT_ERR_SUCCESS:
+      logging.warning('MQTT loop returned %s, reconnecting in %ss', mqtt.error_string(rc),
+                      _MQTT_RECONNECT_DELAY)
+      await asyncio.sleep(_MQTT_RECONNECT_DELAY)
+      try:
+        mqtt_client.reconnect()
+      except Exception as ex:
+        logging.error('MQTT reconnect failed: %r', ex)
+      continue
     await asyncio.sleep(_MQTT_LOOP_TIMEOUT)
 
 
