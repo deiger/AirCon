@@ -12,15 +12,24 @@ else
 fi
 
 git tag -a $NEW_VERSION -m "$NEW_VERSION_MSG"
-auto-changelog
+PYTHONWARNINGS="ignore" auto-changelog
 
 for f in aircon/__init__.py hassio/config.json docker-compose.yaml; do
-  sed -i "" -e "s/$OLD_VERSION/$NEW_VERSION/" $f
+  echo "Editing $f"
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    # macOS syntax
+    sed -i "" -e "s/$OLD_VERSION/$NEW_VERSION/" $f
+  else
+    # Linux (GNU) syntax
+    sed -i -e "s/$OLD_VERSION/$NEW_VERSION/" $f
+  fi
 done
 
+echo "Commiting updates"
 git commit -a -m $NEW_VERSION
 git tag -d $NEW_VERSION
 git tag -a $NEW_VERSION -m "$NEW_VERSION_MSG"
+echo "Building binaries"
 docker buildx rm --all-inactive --force
 docker buildx create --name multiarch --driver docker-container --use || true
 docker buildx build --platform linux/arm/v7,linux/arm64,linux/amd64,linux/386 -t deiger/aircon:$NEW_VERSION --push .
