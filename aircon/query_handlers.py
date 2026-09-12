@@ -85,9 +85,10 @@ class QueryHandlers:
       # Fix A/C typos.
       if name == 'f_votage':
         name = 'f_voltage'
-      data_type = device.get_property_type(name)
-      value = data_type(update['data']['value'])
+      value = device.parse_property(name, update['data']['value'])
+      logging.debug(f"Updating {device}.{name} to {value} ({update['data']['value']})")
       device.update_property(name, value)
+      logging.debug(f"Updated{device}: {device.get_all_properties()})")
     except Exception as ex:
       logging.error('Failed to handle {}. Exception = {}'.format(update, ex))
       #TODO: Should return internal error?
