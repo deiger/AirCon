@@ -148,6 +148,20 @@ class Properties(object):
     return cls.__dataclass_fields__[attr].type
 
   @classmethod
+  def parse_attr(cls, attr, value):
+    """If a field supplies a parser function in its metadata, use it to parse its value from the raw data."""
+    # Retrieve the desired type from the class attribute type hinting
+    native_type = cls.__dataclass_fields__[attr].type
+    value_fmt = native_type(value)
+
+    # Detect parser for this attribute
+    parser = cls.__dataclass_fields__[attr].metadata.get('parser')
+    if parser:
+      value_fmt = parser(value)
+      
+    return value_fmt
+
+  @classmethod
   def get_base_type(cls, attr: str):
     return cls._get_metadata(attr)['base_type']
 
@@ -406,12 +420,12 @@ class FglProperties(Properties):
                                       'precision': 0.1,
                                       'read_only': False
                                   })
-  display_temperature: int = field(default=25,
-                                   metadata={
+  display_temperature: float = field(default=25,
+                                  metadata={
                                       'base_type': 'integer',
-                                      'precision': 0.1,
-                                      'read_only': True
-                                   })
+                                      'read_only': True,
+                                      'parser': lambda x: round((x-5000)/50)/2,
+                                  })
   af_vertical_direction: int = field(default=3,
                                      metadata={
                                          'base_type': 'integer',
@@ -478,12 +492,12 @@ class FglBProperties(Properties):
                                       'precision': 0.1,
                                       'read_only': False
                                   })
-  display_temperature: int = field(default=25,
-                                   metadata={
-                                      'base_type': 'integer',
-                                      'precision': 0.1,
-                                      'read_only': True
-                                   })
+  display_temperature: float = field(default=25,
+                                  metadata={
+                                      'base_type': 'float',
+                                      'read_only': True,
+                                      'parser': lambda x: round((x-5000)/50)/2,
+                                  })
   af_vertical_move_step1: int = field(default=3,
                                       metadata={
                                           'base_type': 'integer',
